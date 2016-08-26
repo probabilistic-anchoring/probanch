@@ -1,0 +1,9 @@
+*.bag
+*.tar.gz
+*.jpg
+*.png
+bin/
+log/
+data/
+img/
+*~
