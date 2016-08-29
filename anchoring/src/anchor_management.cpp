@@ -14,8 +14,8 @@ using namespace anchoring;
 // Constructor
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
   
-  //_object_sub = _nh.subscribe("/objects", 10, &AnchorManagement::match, this);
-  //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
+  _object_sub = _nh.subscribe("/objects", 10, &AnchorManagement::match, this);
+  _track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
 
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
@@ -34,22 +34,17 @@ void AnchorManagement::init(int threads) {
    Receives and process each incomming 
    scene of object(s).
    --------------------------------------- */
-void AnchorManagement::match( /* const ObjectArrayConstPtr &object_ptr */ ) {
+void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr ) {
   
-  ros::Time t = ros::Time::now();
-  /*
   // Get the time
   ros::Time t = object_ptr->header.stamp;
   if( _time_zero < 0.0 ) {
     _time_zero = t.toSec();
   }
-  */
   
   // Maintain all incoming objectss
-  //for( uint i = 0; i < object_ptr->images.size(); i++) {
-  for( ;; ) {
-  
-    /*
+  for( uint i = 0; i < object_ptr->caffes.size(); i++) {
+
     // Read percept from ROS message
     cv_bridge::CvImagePtr cv_ptr;
     Mat img, descriptor;
@@ -57,23 +52,21 @@ void AnchorManagement::match( /* const ObjectArrayConstPtr &object_ptr */ ) {
       cv_ptr = cv_bridge::toCvCopy( object_ptr->descriptors[i].data, 
 				    sensor_msgs::image_encodings::MONO8 );
       cv_ptr->image.copyTo(descriptor);
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->images[i].data,
+      cv_ptr = cv_bridge::toCvCopy( object_ptr->caffes[i].data,
 				    sensor_msgs::image_encodings::BGR8 );
       cv_ptr->image.copyTo(img); 
     } catch (cv_bridge::Exception& e) {
       ROS_ERROR("[AnchorManagement::match] receiving descriptor or image: %s", e.what());
     }
-    */
 
+    // Create a map of all object attributes
     AttributeMap attributes;
-    /*
     attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
     attributes[COLOR] = AttributePtr( new ColorAttribute( object_ptr->colors[i].data, object_ptr->colors[i].symbols) );
     attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->shapes[i].data, object_ptr->shapes[i].symbols) );
     attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->locations[i].data, object_ptr->locations[i].symbols) );    
-    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->images[i].predictions, object_ptr->images[i].symbols) ); 
-    */
-
+    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->caffes[i].predictions, object_ptr->caffes[i].symbols) ); 
+    
     // Match all attributes
     map< string, map<anchoring::AttributeType, float> > matches;
     this->_anchors->match( attributes, matches);
@@ -96,10 +89,9 @@ void AnchorManagement::match( /* const ObjectArrayConstPtr &object_ptr */ ) {
 /* -----------------------------------------
    Main track function
    --------------------------------------- */
-void AnchorManagement::track( /* const MovementArrayConstPtr &movement_ptr */ ) {
+void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement_ptr ) {
   
-  /*
-  // Maintain all incoming percepts
+  // Maintain all incoming object movmements
   for( uint i = 0; i < movement_ptr->movements.size(); i++) {
     anchoring::AttributeMap attributes;
     attributes[LOCATION] = AttributePtr( new LocationAttribute(movement_ptr->movements[i]) );    
@@ -118,7 +110,6 @@ void AnchorManagement::track( /* const MovementArrayConstPtr &movement_ptr */ ) 
       this->_anchors->acquire(attributes, t); // ACQUIRE
     }
   } 
-  */
 }
 
 /* -----------------------------------------

@@ -1,12 +1,8 @@
 #ifndef __ANCHOR_MANAGEMENT_HPP__
 #define __ANCHOR_MANAGEMENT_HPP__ 
 
-/*
-  To be moved to a seperate ROS package, and are therefore not added to the repo. yet....
-  --------------------------------------------------------------------------------------------
-  #include <perceptual_pipeline/ObjectArray.h> 
-  #include <perceptual_pipeline/MovementArray.h>
-*/
+#include <anchor_msgs/ObjectArray.h> 
+#include <anchor_msgs/MovementArray.h>
 
 #include <anchoring/anchor_container.hpp>
 
@@ -28,8 +24,8 @@ class AnchorManagement {
   ros::Subscriber _object_sub, _track_sub;
   double _time_zero;
 
-  void match( /* const perceptual_pipeline::ObjectArrayConstPtr &object_ptr */ );
-  void track( /* const perceptual_pipeline::MovementArrayConstPtr &movement_ptr */ );
+  void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
+  void track( const anchor_msgs::MovementArrayConstPtr &movement_ptr );
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 
 	       string &id, 
 	       float dist_th,

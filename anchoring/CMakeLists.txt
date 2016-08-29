@@ -18,8 +18,8 @@ endif()
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
+  anchor_msgs
   cv_bridge
-  geometry_msgs
   image_geometry
   image_transport
   message_filters
@@ -27,8 +27,6 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   rostime
-  sensor_msgs
-  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -101,9 +99,6 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-#   mongoclient
-#   ssl
-#   crypto
 #  ${MongoClient_INCLUDE_DIRS}
 )
 
