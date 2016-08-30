@@ -23,3 +23,10 @@ $ git clone https://<user>@bitbucket.org/reground/anchoring.git
 $ cd ..
 $ catkin_make
 ```
+
+Note, to prevent `catkin` from compiling one (or more) package(s), simply add an empty `CATKIN_IGNORE` to the package directory (`CATKIN_IGNORE` is added to `.gitignore`, so all `CATKIN_IGNORE` files will only exist locally). For example, to prevent `catkin` from compiling the perceptual_piple package:
+
+```
+$ cd <path/to/workspace>/src/anchoring/perceptual_pipeline
+$ touch CATKIN_IGNORE
+```
