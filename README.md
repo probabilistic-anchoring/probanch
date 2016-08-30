@@ -9,7 +9,9 @@ This repository contains the source code of the anchoring system. The overall sy
 
 ## Dependencies ##
 
-The code has been written and tested in Ubuntu 14.04 together with ROS Indigo. However, the code does not have any OS- or ROS-specific dependencies, and should work equally fine on later Ubuntu distributions together with later ROS versions.  
+The code has been written and tested in Ubuntu 14.04 together with ROS Indigo. However, the code does not have any OS- or ROS-specific dependencies (except for standard libraries), and should, therefore, work fine even on later Ubuntu distributions together with later ROS versions.
+
+*Also, see each individual package for specific dependencies.*
 
 ## Install ##
 
