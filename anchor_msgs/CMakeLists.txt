@@ -16,15 +16,16 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
-   Caffe.msg 
-   Color.msg  
+   CaffeAttribute.msg 
+   ColorAttribute.msg  
    Contour.msg  
-   Descriptor.msg  
-   Location.msg  
+   DescriptorAttribute.msg  
+   LocationAttribute.msg  
    MovementArray.msg  
+   Object.msg 
    ObjectArray.msg 
    Point2d.msg  
-   Shape.msg
+   ShapeAttribute.msg
 )
 
 ## Generate services in the 'srv' folder

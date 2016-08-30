@@ -43,16 +43,16 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   }
   
   // Maintain all incoming objectss
-  for( uint i = 0; i < object_ptr->caffes.size(); i++) {
+  for( uint i = 0; i < object_ptr->objects.size(); i++) {
 
     // Read percept from ROS message
     cv_bridge::CvImagePtr cv_ptr;
     Mat img, descriptor;
     try {
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->descriptors[i].data, 
+      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].descriptor.data, 
 				    sensor_msgs::image_encodings::MONO8 );
       cv_ptr->image.copyTo(descriptor);
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->caffes[i].data,
+      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].caffe.data,
 				    sensor_msgs::image_encodings::BGR8 );
       cv_ptr->image.copyTo(img); 
     } catch (cv_bridge::Exception& e) {
@@ -62,10 +62,10 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Create a map of all object attributes
     AttributeMap attributes;
     attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
-    attributes[COLOR] = AttributePtr( new ColorAttribute( object_ptr->colors[i].data, object_ptr->colors[i].symbols) );
-    attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->shapes[i].data, object_ptr->shapes[i].symbols) );
-    attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->locations[i].data, object_ptr->locations[i].symbols) );    
-    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->caffes[i].predictions, object_ptr->caffes[i].symbols) ); 
+    attributes[COLOR] = AttributePtr( new ColorAttribute( object_ptr->objects[i].color.data, object_ptr->objects[i].color.symbols) );
+    attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
+    attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->objects[i].location.data, object_ptr->objects[i].location.symbols) );    
+    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 
     
     // Match all attributes
     map< string, map<anchoring::AttributeType, float> > matches;

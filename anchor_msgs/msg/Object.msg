@@ -1,0 +1,5 @@
+anchor_msgs/CaffeAttribute caffe
+anchor_msgs/ColorAttribute color
+anchor_msgs/DescriptorAttribute descriptor
+anchor_msgs/LocationAttribute location
+anchor_msgs/ShapeAttribute shape
