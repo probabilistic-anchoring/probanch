@@ -2,10 +2,10 @@
 
 This repository contains the source code of the anchoring system. The overall system is (or it will eventually be) divided into the following individual ROS packages:
 
-* [anchoring](https://bitbucket.org/reground/anchoring/src/e7ff087a0d769887a99c9fa3e521b6d1d1127ec1/anchoring/?at=master): the main anchoring management system.
-* anchor_caffe: an ROS wrapper for the Caffe framework (for object recognition/classification).
-* [anchor_msgs](https://bitbucket.org/reground/anchoring/src/e7ff087a0d769887a99c9fa3e521b6d1d1127ec1/anchor_msgs/?at=master): a separate package for all anchor specific ROS messages.
-* perceptual_pipeline: a package for all processing (object segmentation, feature extraction, etc.) of sensor data.
+* **anchoring**: the main anchoring management system.
+* **anchor_caffe**: an ROS wrapper for the Caffe framework (for object recognition/classification).
+* **anchor_msgs**: a separate package for all anchor specific ROS messages.
+* **perceptual_pipeline**: a package for all processing (object segmentation, feature extraction, etc.) of sensor data.
 
 ## Dependencies ##
 
