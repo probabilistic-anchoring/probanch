@@ -19,7 +19,7 @@ Download the repository to your `catkin` workspace and compile, e.g.:
 
 ```
 $ cd <path/to/workspace>/src
-$ git clone https://<user>@bitbucket.org/reground/anchoring.git
+$ git clone --recursive https://<user>@bitbucket.org/reground/anchoring.git
 $ cd ..
 $ catkin_make
 ```
