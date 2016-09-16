@@ -1,0 +1,5 @@
+sensor_msgs/Image image
+---
+string[] wordnet_ids
+string[] symbols
+float32[] predictions

@@ -8,3 +8,4 @@ data/
 img/
 *~
 CATKIN_IGNORE
+bvlc_reference_caffenet.caffemodel

@@ -1,3 +1,6 @@
 [submodule "perceptual_pipeline/iai_kinect2"]
 	path = perceptual_pipeline/iai_kinect2
 	url = https://github.com/code-iai/iai_kinect2.git
+[submodule "anchor_caffe/caffe"]
+	path = anchor_caffe/caffe
+	url = https://github.com/BVLC/caffe.git
