@@ -12,10 +12,13 @@
 #include <thread>
 #include <chrono>
 
+
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
+
+#include <tf/transform_listener.h>
 
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
@@ -40,12 +43,17 @@ class ObjectSegmentation {
   ros::NodeHandle nh_, priv_nh_;
   image_transport::ImageTransport it_;
 
+  // Tf transform listener 
+  tf::TransformListener *tf_listener_;
+  std::string base_frame_;
+
   // Subscribers / publishers
   const size_t queueSize_;
   image_transport::SubscriberFilter *image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> *camera_info_sub_;
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
   image_transport::Publisher seg_image_pub_;
+  ros::Publisher obj_pub_;
 
   message_filters::Synchronizer<ExactSyncPolicy> *syncExact_;
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;

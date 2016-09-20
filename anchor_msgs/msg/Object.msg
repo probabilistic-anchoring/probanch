@@ -1,3 +1,4 @@
+anchor_msgs/Contour border 
 anchor_msgs/CaffeAttribute caffe
 anchor_msgs/ColorAttribute color
 anchor_msgs/DescriptorAttribute descriptor

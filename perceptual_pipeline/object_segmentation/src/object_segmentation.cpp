@@ -10,11 +10,8 @@
 #include <image_geometry/pinhole_camera_model.h>
 #include <sensor_msgs/image_encodings.h>
 
-/*
-#include <anchoring/ObjectArray.h>
-#include <anchoring/CloudArray.h>
-#include <anchoring/MovementArray.h>
-*/
+#include <anchor_msgs/ObjectArray.h>
+
 
 #include <object_segmentation/object_segmentation.hpp>
 
@@ -29,8 +26,6 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   , priv_nh_("~")
   , queueSize_(5) {
 
-  ROS_WARN("Set up the ROS subscribers... ");
-
   // Subscribers / publishers
   //image_transport::TransportHints hints(useCompressed ? "compressed" : "raw");
   //image_sub_ = new image_transport::SubscriberFilter( it_, topicColor, "image", hints);1
@@ -39,10 +34,9 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>( nh_, "camera_info", queueSize_);
   cloud_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>( nh_, "cloud", queueSize_);
   seg_image_pub_ = it_.advertise("/display/segmented_image", 1);
+
+  obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/object/array", queueSize_);
   
-
-  ROS_WARN("Set sync ploicies... ");
-
   // Set up sync policies
   if(useApprox) {
     syncApproximate_ = new message_filters::Synchronizer<ApproximateSyncPolicy>(ApproximateSyncPolicy(queueSize_), *image_sub_, *camera_info_sub_, *cloud_sub_);
@@ -52,6 +46,10 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
     syncExact_ = new message_filters::Synchronizer<ExactSyncPolicy>(ExactSyncPolicy(queueSize_), *image_sub_, *camera_info_sub_, *cloud_sub_);
     syncExact_->registerCallback( boost::bind( &ObjectSegmentation::callback, this, _1, _2, _3));
   }
+
+  // Create transformation listener
+  tf_listener_ = new tf::TransformListener();
+  priv_nh_.param( "base_frame", base_frame_, std::string("base_link"));
 }
   
 ObjectSegmentation::~ObjectSegmentation() {
@@ -64,6 +62,7 @@ ObjectSegmentation::~ObjectSegmentation() {
   delete image_sub_;
   delete camera_info_sub_;
   delete cloud_sub_;
+  delete tf_listener_;
 }
 
 void ObjectSegmentation::spin() {
@@ -76,14 +75,26 @@ void ObjectSegmentation::spin() {
 // --------------------------
 // Callback function (ROS)
 // --------------------------
-void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image, 
-				  const sensor_msgs::CameraInfo::ConstPtr camera_info, 
-				  const sensor_msgs::PointCloud2::ConstPtr cloud) {
+void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg, 
+				   const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
+				   const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
+  
+  // Get the transformation
+  tf::StampedTransform transform;
+  try{
+    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.5) ); 
+    tf_listener_->lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, transform );
+  }
+  catch( tf::TransformException ex) {
+    ROS_WARN("[TabletopSegmentor::process] %s" , ex.what());
+    return;
+  }
 
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
-  pcl::fromROSMsg (*cloud, *raw_cloud_ptr);
-  std::cout << "Cloud size: " << raw_cloud_ptr->width << " x " << raw_cloud_ptr->height << std::endl;
+  pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
+  //std::cout << "Cloud size: " << raw_cloud_ptr->width << " x " << raw_cloud_ptr->height << std::endl;
+
 
   // Cluster cloud into objects 
   // ----------------------------------------
@@ -92,16 +103,16 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image,
   seg.cluster_organized(cluster_indices, 4);
   if( !cluster_indices.empty() ) {
  
-    ROS_WARN("Clusters: %d", (int)cluster_indices.size());
+    //ROS_WARN("Clusters: %d", (int)cluster_indices.size());
 
     cv::Mat img;
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      cv_ptr = cv_bridge::toCvCopy( image, image->encoding);
+      cv_ptr = cv_bridge::toCvCopy( image_msg, image_msg->encoding);
       cv_ptr->image.copyTo(img);
     }
     catch (cv_bridge::Exception& ex){
-      ROS_ERROR("[object_recognition] Failed to convert image.");
+      ROS_ERROR("[ObjectSegmentation::callback]: Failed to convert image.");
       return;
     }
 
@@ -112,7 +123,13 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image,
     
     // Camera information
     image_geometry::PinholeCameraModel cam_model;
-    cam_model.fromCameraInfo(camera_info);
+    cam_model.fromCameraInfo(camera_info_msg);
+
+
+    // Image & Cloud output
+    anchor_msgs::ObjectArray objects;
+    objects.header = cloud_msg->header;
+    objects.image = *image_msg;
 
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
@@ -144,27 +161,44 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image,
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours( cluster_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 	
-	// Add the contour to the output message
+	// Create and add the object output message
 	if( contours.size() > 0 ) {
-	  /*
-	  anchoring::Contour new_contour;
+
+	  anchor_msgs::Object obj;
+	  
 	  for( size_t j = 0; j < contours[0].size(); j++) {  
-	    anchoring::Point2d p;
+	    anchor_msgs::Point2d p;
 	    p.x = contours[0][j].x;
 	    p.y = contours[0][j].y;
-	    new_contour.contour.push_back(p);
+	    obj.border.contour.push_back(p);
 	  }
-	  new_objects.contours.push_back(new_contour);	
-	  */
-
+	  
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
       
-	  /*
+	  
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cloud;
 	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cloud, transform);
 	  
+	  // Extract the location
+	  obj.location.data.header.stamp = cloud_msg->header.stamp;
+	  segmentation::getLocation( raw_cloud_ptr, obj.location.data.pose ); 
+    
+	  // Extract the shape
+	  segmentation::getShape( raw_cloud_ptr, obj.shape.data );
+
+	  // Add the object to the object array message
+	  objects.objects.push_back(obj);
+
+	  /*
+	  Eigen::Vector4f centroid;
+	  pcl::compute3DCentroid ( transformed_cloud, centroid);
+
+	  if( centroid[0] > 0.0 && centroid[1] < 0.5 && centroid[1] > -0.5 )
+	    std::cout << "Location: [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
+	  */
+	  /*
 	  sensor_msgs::PointCloud2 pc_object;
 	  pcl::toROSMsg( transformed_cloud, pc_object );
 	  //pcl::concatenatePointCloud( pc_multi, pc_object, pc_multi);
@@ -181,6 +215,14 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image,
     cv_ptr->image = img;
     cv_ptr->encoding = "bgr8";
     seg_image_pub_.publish(cv_ptr->toImageMsg());
+
+    
+    // Publish the object array
+    if( !objects.objects.empty() ) {
+      //ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
+      obj_pub_.publish(objects);
+    }
+    
   }
 }
 

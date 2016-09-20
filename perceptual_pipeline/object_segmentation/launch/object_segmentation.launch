@@ -2,7 +2,7 @@
 
   <!-- Laucnh Kinect2 bridge (with default parameters) -->
   <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">	
-    <arg name="calib_path" value="$(find anchoring)/../data/" />
+    <arg name="calib_path" value="$(find anchoring)/data/" />
   </include>	
 
   <!-- Run object recognition node -->

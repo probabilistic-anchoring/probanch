@@ -26,6 +26,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>anchor_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rostime</build_depend>
   <build_depend>std_msgs</build_depend>
@@ -41,6 +42,7 @@
   <build_depend>cv_bridge</build_depend><!-- Depend on cv_bridge instead of libopencv-dev to support ROS Hydro.-->
   <build_depend>image_geometry</build_depend>
 
+  <run_depend>anchor_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rostime</run_depend>
