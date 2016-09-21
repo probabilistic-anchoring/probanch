@@ -14,7 +14,7 @@ using namespace anchoring;
 // Constructor
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
   
-  _object_sub = _nh.subscribe("/objects", 10, &AnchorManagement::match, this);
+  _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
 
   // Create the anchor map

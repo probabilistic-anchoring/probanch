@@ -180,7 +180,9 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  
 	  // 1. Extract the location
 	  obj.location.data.header.stamp = cloud_msg->header.stamp;
-	  segmentation::getLocation( raw_cloud_ptr, obj.location.data.pose ); 
+	  segmentation::getLocation( raw_cloud_ptr, obj.location.data.pose );
+	  //if( obj.location.data.pose.position.x < 0.2  || obj.location.data.pose.position.y < 0.0 || obj.location.data.pose.position.y > 0.62 || obj.location.data.pose.position.z > 0.5 )
+	  //  continue;
     
 	  // 2. Extract the shape
 	  segmentation::getShape( raw_cloud_ptr, obj.shape.data );
@@ -188,10 +190,10 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
 	  std::sort( data.begin(), data.end(), std::greater<double>());
-	  if( data.front() <= 0.15 ) { // 0 - 15 [cm] = small
+	  if( data.front() <= 0.1 ) { // 0 - 15 [cm] = small
 	    obj.shape.symbols.push_back("small");
 	  }
-	  else if( data.front() <= 0.30 ) { // 16 - 30 [cm] = medium
+	  else if( data.front() <= 0.20 ) { // 16 - 30 [cm] = medium
 	    obj.shape.symbols.push_back("medium");
 	  }
 	  else {  // > 30 [cm] = large
@@ -253,16 +255,14 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 // Main function
 // ------------------
 int main(int argc, char **argv) {
-  ROS_WARN("Start up the node... ");
   
-  ros::init(argc, argv, "object_recognition_node");
+  ros::init(argc, argv, "object_segmentation_node");
   ros::NodeHandle nh;
 
   // Saftey check
   if(!ros::ok()) {
     return 0;
   }
-  ROS_WARN("Create the object... ");
 
   ObjectSegmentation node(nh);
   node.spin();

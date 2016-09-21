@@ -16,7 +16,7 @@ endif()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
+find_package( catkin REQUIRED COMPONENTS
   anchor_msgs
   roscpp
   rostime
@@ -32,7 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 
@@ -52,7 +52,7 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES object_segmentation
+#  LIBRARIES segmentation
 #  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
@@ -66,16 +66,18 @@ catkin_package(
 # include_directories(include)
 include_directories( include
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ executable
-add_executable(segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
+add_executable( object_segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(segmentation
+target_link_libraries( object_segmentation 
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}  
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )

@@ -20,6 +20,7 @@ set(Caffe_LINK_LIBRARAY ${PROJECT_SOURCE_DIR}/caffe/build/lib)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
+  anchor_msgs
   cv_bridge
   image_transport
   roscpp
@@ -77,7 +78,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES anchor_caffe
-  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs message_runtime
+  CATKIN_DEPENDS anchor_msgs cv_bridge image_transport roscpp sensor_msgs std_msgs message_runtime
 #  DEPENDS system_lib
 )
 

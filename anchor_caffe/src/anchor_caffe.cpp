@@ -15,6 +15,8 @@
 #include <anchor_caffe/CaffeService.h> 
 #include <anchor_caffe/classifier.hpp>
 
+#include <anchor_msgs/ObjectArray.h>
+
 using namespace std;
 
 class AnchorCaffe {
@@ -24,6 +26,10 @@ class AnchorCaffe {
      -------------- */
   ros::NodeHandle _nh;
   ros::ServiceServer _caffe_srv;
+
+  // Publisher /subscribers
+  ros::Subscriber obj_sub_;
+  ros::Publisher obj_pub_;
 
   // Main classifier object
   Classifier* _classifier;
@@ -35,6 +41,53 @@ class AnchorCaffe {
   string _mean_file;
   string _label_file;
   //string _image_path;
+
+
+  void process(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
+    
+    // Create a (editable) copy
+    anchor_msgs::ObjectArray output;
+    output.header = objects_msg->header;
+    output.objects = objects_msg->objects;
+    output.image = objects_msg->image;
+
+
+    // Iterate over all objects
+    for (uint i = 0; i < objects_msg->objects.size(); i++) {
+      
+      // Read percept from ROS message
+      cv_bridge::CvImagePtr cv_ptr;
+      cv::Mat img;
+      try {
+	cv_ptr = cv_bridge::toCvCopy( objects_msg->objects[i].caffe.data,
+				      sensor_msgs::image_encodings::BGR8 );
+	cv_ptr->image.copyTo(img);
+      } catch (cv_bridge::Exception& e) {
+	ROS_ERROR("[anchor_cafffe] receiving image: %s", e.what());
+	return;
+      }    
+
+      // Classify image
+      if( img.data ) {
+	vector<Prediction> predictions = this->_classifier->Classify(img, this->_N);
+	vector<Prediction>::iterator ite = predictions.begin();
+	for( ; ite != predictions.end(); ++ite ) {
+	  string str = ite->first;
+	  size_t pos = str.find(' ');
+	  str.substr( 0, pos);
+	  pos++;
+	  output.objects[i].caffe.symbols.push_back(str.substr(pos));
+	  output.objects[i].caffe.predictions.push_back(ite->second);
+	}
+	//ROS_WARN("[Caffe] object: %s", output.objects[i].caffe.symbols.front().c_str());
+      }
+    }
+    
+    // Publish the new object array
+    obj_pub_.publish(output);
+  
+  }
+
 
   // Private callback function for receiving and classifying an image
   bool classify( anchor_caffe::CaffeService::Request &req,
@@ -87,6 +140,9 @@ public:
 
     // ROS setup
     this->_caffe_srv  = _nh.advertiseService("/caffe_classifier", &AnchorCaffe::classify, this);
+    obj_sub_ = nh.subscribe("/objects/processed", 1, &AnchorCaffe::process, this);
+    obj_pub_ = nh.advertise<anchor_msgs::ObjectArray>("/objects/classified", 1);
+
   };
 
   ~AnchorCaffe() {

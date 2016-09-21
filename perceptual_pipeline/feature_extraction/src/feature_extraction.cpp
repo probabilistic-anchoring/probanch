@@ -1,9 +1,7 @@
 #include <string>
 #include <ros/ros.h>
-#include <opencv/cv.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-#include <highgui.h>
 
 #include <feature_extraction/feature_extraction.hpp>
 
