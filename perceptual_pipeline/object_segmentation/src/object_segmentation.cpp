@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <ros/ros.h>
 
 #include <pcl_conversions/pcl_conversions.h>
@@ -12,9 +13,7 @@
 
 #include <anchor_msgs/ObjectArray.h>
 
-
 #include <object_segmentation/object_segmentation.hpp>
-
 
 // ------------------------
 // Public functions
@@ -28,14 +27,14 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
 
   // Subscribers / publishers
   //image_transport::TransportHints hints(useCompressed ? "compressed" : "raw");
-  //image_sub_ = new image_transport::SubscriberFilter( it_, topicColor, "image", hints);1
+  //image_sub_ = new image_transport::SubscriberFilter( it_, topicColor, "image", hints);
 
   image_sub_ = new image_transport::SubscriberFilter( it_, "image", queueSize_);
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>( nh_, "camera_info", queueSize_);
   cloud_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>( nh_, "cloud", queueSize_);
-  seg_image_pub_ = it_.advertise("/display/segmented_image", 1);
+  seg_image_pub_ = it_.advertise("/display/segmented", 1);
 
-  obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/object/array", queueSize_);
+  obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/raw", queueSize_);
   
   // Set up sync policies
   if(useApprox) {
@@ -125,7 +124,6 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
     image_geometry::PinholeCameraModel cam_model;
     cam_model.fromCameraInfo(camera_info_msg);
 
-
     // Image & Cloud output
     anchor_msgs::ObjectArray objects;
     objects.header = cloud_msg->header;
@@ -175,19 +173,43 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
-      
-	  
+      	  
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cloud;
 	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cloud, transform);
 	  
-	  // Extract the location
+	  // 1. Extract the location
 	  obj.location.data.header.stamp = cloud_msg->header.stamp;
 	  segmentation::getLocation( raw_cloud_ptr, obj.location.data.pose ); 
     
-	  // Extract the shape
+	  // 2. Extract the shape
 	  segmentation::getShape( raw_cloud_ptr, obj.shape.data );
 
+	  // Ground shape symbols
+	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
+	  std::sort( data.begin(), data.end(), std::greater<double>());
+	  if( data.front() <= 0.15 ) { // 0 - 15 [cm] = small
+	    obj.shape.symbols.push_back("small");
+	  }
+	  else if( data.front() <= 0.30 ) { // 16 - 30 [cm] = medium
+	    obj.shape.symbols.push_back("medium");
+	  }
+	  else {  // > 30 [cm] = large
+	    obj.shape.symbols.push_back("large");
+	  }
+	  if( data[0] < data[1] * 1.1 ) {
+	    obj.shape.symbols.push_back("square");
+	  }
+	  else {
+	    obj.shape.symbols.push_back("rectangle");
+	    if( data[0] > data[1] * 1.5 ) {
+	      obj.shape.symbols.push_back("long");
+	    }
+	    else {
+	      obj.shape.symbols.push_back("short");
+	    }
+	  }
+	  
 	  // Add the object to the object array message
 	  objects.objects.push_back(obj);
 

@@ -13,10 +13,10 @@ else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-# set caffe dirs and vars
-#add_definitions(-DCPU_ONLY=1)
+# Set Caffe dirs
 set(Caffe_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/caffe/include ${PROJECT_SOURCE_DIR}/caffe/distribute/include)
 set(Caffe_LINK_LIBRARAY ${PROJECT_SOURCE_DIR}/caffe/build/lib)
+
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -31,7 +31,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
-find_package(CUDA REQUIRED)
+find_package(CUDA QUIET)
+if( NOT CUDA_FOUND )
+  # Set Caffe var for CPU only use
+  add_definitions(-DCPU_ONLY=1)
+  set(NO_CUDA TRUE)
+endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -83,14 +88,24 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-  ${CUDA_INCLUDE_DIRS}
-  ${Caffe_INCLUDE_DIRS}
-)
+if( NO_CUDA )
+  include_directories(
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+    ${Caffe_INCLUDE_DIRS}
+  )
+else()
+  include_directories(
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+    ${Caffe_INCLUDE_DIRS}
+  )
+endif()
 
+# Link the Caffe library
 link_directories(${Caffe_LINK_LIBRARAY})
 
 ## Declare a C++ library
@@ -111,14 +126,25 @@ add_executable(anchor_caffe src/anchor_caffe.cpp)
 # add_dependencies(anchor_caffe_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(
-  anchor_caffe
-   ${catkin_LIBRARIES} 
-   ${OpenCV_LIBRARIES}
-   ${CUDA_LIBRARIES}
-   caffe
-   glog
-)
+if( NO_CUDA )
+  target_link_libraries(
+    anchor_caffe
+    ${catkin_LIBRARIES} 
+    ${OpenCV_LIBRARIES}
+    caffe
+    glog
+  )
+else()
+  target_link_libraries(
+    anchor_caffe
+    ${catkin_LIBRARIES} 
+    ${OpenCV_LIBRARIES}
+    ${CUDA_LIBRARIES}
+    caffe
+    glog
+  )
+endif()
+
 
 #############
 ## Install ##

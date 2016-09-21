@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(object_segmentation)
+project(feature_extraction)
 
 # Check c++11 / c++0x
 include(CheckCXXCompilerFlag)
@@ -18,22 +18,13 @@ endif()
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
-  roscpp
-  rostime
-  std_msgs 
-  geometry_msgs
-  sensor_msgs 
-  message_filters
-  cv_bridge 
-  image_geometry
+  cv_bridge
   image_transport
-  pcl_conversions
-  pcl_ros
+  roscpp
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-find_package(PCL REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 
 ################################################
@@ -51,9 +42,9 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES object_segmentation
-#  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
+  INCLUDE_DIRS include
+#  LIBRARIES feature_extraction
+  CATKIN_DEPENDS anchor_msgs cv_bridge image_transport roscpp
 #  DEPENDS system_lib
 )
 
@@ -64,19 +55,17 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories( include
+include_directories(include
   ${catkin_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ executable
-add_executable(segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
+add_executable(extraction src/feature_extraction.cpp src/visual_features.cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(segmentation
+target_link_libraries(extraction
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
 
@@ -95,7 +84,7 @@ target_link_libraries(segmentation
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS object_segmentation object_segmentation_node
+# install(TARGETS feature_extraction feature_extraction_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -120,7 +109,7 @@ target_link_libraries(segmentation
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_object_segmentation.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_feature_extraction.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

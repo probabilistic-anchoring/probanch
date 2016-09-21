@@ -12,7 +12,6 @@
 #include <thread>
 #include <chrono>
 
-
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
