@@ -27,6 +27,7 @@ add_message_files(
    Point2d.msg  
    ShapeAttribute.msg
    Snapshot.msg
+   SnapshotArray.msg
 )
 
 ## Generate services in the 'srv' folder

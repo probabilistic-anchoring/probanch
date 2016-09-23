@@ -15,6 +15,21 @@ The code has been written and tested in Ubuntu 14.04 together with ROS Indigo. H
 
 ## Install ##
 
+First of all, the ROS environment is required for the overall system to integrate and communicate. In Ubuntu 10.04, install (and create a `catkin` workspace) by:
+
+```
+$ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+$ sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net --recv-key 0xB01FA116
+$ sudo apt-get update
+$ sudo apt-get install ros-indigo-desktop
+$ sudo rosdep init
+$ rosdep update
+$ source /opt/ros/indigo/setup.bash
+$ mkdir -p ~/<workspace>/src
+$ cd ~/<workspace>/src
+$ catkin_init_workspace
+```
+
 Download the repository to your `catkin` workspace and compile, e.g.:
 
 ```

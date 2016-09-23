@@ -6,6 +6,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <anchor_msgs/SnapshotArray.h>
+
 #include <anchoring/anchor_management.hpp>
 
 using namespace cv;
@@ -19,6 +21,9 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   _track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
 
   _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
+
+  // Publisher used for collecting bag files
+  _anchor_pub = _nh.advertise<anchor_msgs::SnapshotArray>("/anchors/snapshot", 1);
 
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
@@ -84,6 +89,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       this->_anchors->acquire(attributes, t); // ACQUIRE
     } 
   }
+
+  // Get a snapshot of all anchors seen scene at time t
+  anchor_msgs::SnapshotArray msg;
+  this->_anchors->getSnapshot( msg.anchors, t );
+  this->_anchor_pub.publish(msg);
+
   ROS_INFO("Anchors: %d", (int)this->_anchors->size());
   //ROS_INFO("Time: %.2f", t.toSec() - _time_zero);
   ROS_INFO("------------------------------");
