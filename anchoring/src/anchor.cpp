@@ -2,6 +2,7 @@
 
 
    ------------------------------------------ */
+#include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <anchoring/anchor.hpp>
 #include <anchoring/database.hpp>
@@ -262,6 +263,23 @@ namespace anchoring {
     if( this->_aging ) {
       this->_attributes.clear();
     }
+  }
+
+  std::string Anchor::toString() { 
+    std::ostringstream oss;
+    for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {   
+      oss << ite->second->toString() << " . ";
+    }
+    return oss.str();
+  }
+    
+  anchor_msgs::Snapshot Anchor::getSnapshot() {
+    anchor_msgs::Snapshot msg;
+    for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
+      msg.id = this->_id;
+      ite->second->populate(msg);
+    }
+    return msg;
   }
   
 } // namespace anchoring

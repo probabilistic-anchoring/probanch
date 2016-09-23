@@ -11,6 +11,9 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 
+#include <anchor_msgs/Snapshot.h>
+
+
 // OpenCV includes
 #include <opencv2/core/core.hpp>
 #include <anchoring/database.hpp>
@@ -46,6 +49,7 @@ namespace anchoring {
     // Virtual database methods
     virtual void serialize(MongoDatabase::Subdoc &db_sub); 
     virtual void deserialize(const MongoDatabase::Subdoc &db_sub);
+    virtual void populate(anchor_msgs::Snapshot &msg) { }
     
     // Virtual match method
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
@@ -53,6 +57,7 @@ namespace anchoring {
     // Virtual append and update methods (with default dummy)
     virtual void append(const unique_ptr<AttributeCommon> &query_ptr) { }
     virtual void update(const unique_ptr<AttributeCommon> &query_ptr) { }  
+    virtual string toString() { return ""; }
 
     string getTypeStr();
   };
@@ -85,7 +90,9 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
+    void populate(anchor_msgs::Snapshot &msg);
     float match(const AttributePtr &query_ptr);
+    string toString();
   }; 
   
 
@@ -130,9 +137,11 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
+    void populate(anchor_msgs::Snapshot &msg);
     float match(const AttributePtr &query_ptr);
     void append(const unique_ptr<AttributeCommon> &query_ptr);
     void update(const unique_ptr<AttributeCommon> &query_ptr);
+    string toString();
   }; 
   
   /**
@@ -153,7 +162,9 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
+    void populate(anchor_msgs::Snapshot &msg);
     float match(const AttributePtr &query_ptr);
+    string toString();
   }; 
 
   /**
@@ -177,7 +188,10 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
+    void populate(anchor_msgs::Snapshot &msg);
     float match(const AttributePtr &query_ptr);
+    void update(const unique_ptr<AttributeCommon> &query_ptr);
+    string toString();
   }; 
 
 } // namespace anchoring

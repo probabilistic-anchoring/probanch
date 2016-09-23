@@ -40,6 +40,9 @@ namespace anchoring {
     double getTime() { return this->_t.toSec(); }
     string getTimeStr();
     
+    string toString();
+    anchor_msgs::Snapshot getSnapshot();
+    
   private:
     
     // Private functions

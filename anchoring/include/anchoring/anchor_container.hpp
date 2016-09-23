@@ -64,6 +64,7 @@ namespace anchoring {
     void acquire(AttributeMap &attributes, const ros::Time &t);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
+    void getSnapshot(vector<anchor_msgs::Snapshot> &array, const ros::Time &t);
 
     // Map access functions
     uint size() { return this->_map.size(); }

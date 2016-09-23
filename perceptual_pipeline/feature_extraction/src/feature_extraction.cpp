@@ -38,6 +38,9 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     return;
   }
 
+  // Histogram equalization
+  img = Features::equalizeIntensity(img);
+
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
   cv::cvtColor( img, gray, CV_BGR2GRAY); // <-- Gray scale

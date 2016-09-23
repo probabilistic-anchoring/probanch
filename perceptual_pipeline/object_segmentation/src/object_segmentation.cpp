@@ -180,12 +180,14 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  
 	  // 1. Extract the location
 	  obj.location.data.header.stamp = cloud_msg->header.stamp;
-	  segmentation::getLocation( raw_cloud_ptr, obj.location.data.pose );
-	  //if( obj.location.data.pose.position.x < 0.2  || obj.location.data.pose.position.y < 0.0 || obj.location.data.pose.position.y > 0.62 || obj.location.data.pose.position.z > 0.5 )
-	  //  continue;
-    
+	  segmentation::getLocation( transformed_cloud.makeShared(), obj.location.data.pose );
+	  if( !( obj.location.data.pose.position.x > 0.2  && obj.location.data.pose.position.y > 0.0 && obj.location.data.pose.position.y < 0.62 && obj.location.data.pose.position.z < 0.5 ) )
+	    continue;
+        
+	  // std::cout << "Location: [" << obj.location.data.pose.position.x << ", " << obj.location.data.pose.position.y << ", " << obj.location.data.pose.position.z << "]" << std::endl;	  
+
 	  // 2. Extract the shape
-	  segmentation::getShape( raw_cloud_ptr, obj.shape.data );
+	  segmentation::getShape( transformed_cloud.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};

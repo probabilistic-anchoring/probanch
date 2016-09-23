@@ -1,0 +1,9 @@
+n02778669 ball
+n02876657 bottle
+n02880940 bowl
+n03147509 cup
+n03454885 grater
+n04284002 spoon
+n04380346 knife
+n04392113 tape_measure
+n13134947 fruit 

@@ -75,6 +75,7 @@ public:
   static cv::Mat filterDescriptor( const cv::Mat& descriptor,
 				   const std::vector<int>& index,
 				   int type );
+  static cv::Mat equalizeIntensity(const cv::Mat& img);
 
 private:
 

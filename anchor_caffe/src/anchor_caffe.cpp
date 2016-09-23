@@ -129,10 +129,10 @@ public:
     // Get base dir through ros path
     const string ROOT_PATH = ros::package::getPath("anchor_caffe");
     cout << ROOT_PATH<<endl;
-    _model_path = ROOT_PATH + "/model/deploy.prototxt";
-    _weights_path = ROOT_PATH + "/model/bvlc_reference_caffenet.caffemodel";
+    _model_path = ROOT_PATH + "/model/reground.prototxt";
+    _weights_path = ROOT_PATH + "/model/finetune_reground.caffemodel";
     _mean_file = ROOT_PATH + "/model/imagenet_mean.binaryproto";
-    _label_file = ROOT_PATH + "/model/synset_words.txt";
+    _label_file = ROOT_PATH + "/model/reground_words.txt";
     //_image_path = ROOT_SAMPLE + "/model/cat.jpg";
 
     // Create the classifier

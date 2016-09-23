@@ -389,3 +389,25 @@ uchar Features::colorIdx(uchar H, uchar S, uchar V) {
   }
   return 3;  // Red - defualt
 }
+
+  // Histogram equalization of RGB image 
+cv::Mat Features::equalizeIntensity(const cv::Mat& img) {
+    
+  // Check the channels
+  if( img.channels() >= 3 ) {
+    cv::Mat ycrcb;
+    cv::cvtColor( img, ycrcb, CV_BGR2YCrCb);
+    
+    std::vector<cv::Mat> channels;
+    cv::split( ycrcb, channels);
+    
+    cv::equalizeHist(channels[0], channels[0]);
+    
+    cv::Mat result;
+    cv::merge( channels, ycrcb);
+    cv::cvtColor( ycrcb, result, CV_YCrCb2BGR);
+      
+    return result;
+  }
+  return img;
+}

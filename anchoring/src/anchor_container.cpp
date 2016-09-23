@@ -168,7 +168,7 @@ namespace anchoring {
   void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
     this->_map[id]->append(attributes, t);
     if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [tracked]: %s - %s", id.c_str(), this->_map[id]->getSymbols(CAFFE).front().c_str());
+      ROS_WARN("Anchor [tracked]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
     }
     else {
       ROS_WARN("Anchor [tracked]: %s - ", id.c_str());
@@ -182,7 +182,7 @@ namespace anchoring {
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
     if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [acquired]: %s - %s", id.c_str(), this->_map[id]->getSymbols(CAFFE).front().c_str());
+      ROS_WARN("Anchor [acquired]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
     }
     else {
       ROS_WARN("Anchor [acquired]: %s - ", id.c_str());
@@ -194,7 +194,7 @@ namespace anchoring {
     MongoDatabase db(this->_collection, this->_db_name);
     this->_map[id]->update( db, attributes, t, track);
     if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [re-acquired]: %s - %s", id.c_str(), this->_map[id]->getSymbols(CAFFE).front().c_str());
+      ROS_WARN("Anchor [re-acquired]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
     }
     else {
       ROS_WARN("Anchor [re-acquired]: %s - ", id.c_str());
@@ -215,6 +215,16 @@ namespace anchoring {
       else {
 	++ite;
       }      
+    }
+  }
+
+  void AnchorContainer::getSnapshot(vector<anchor_msgs::Snapshot> &array, const ros::Time &t) {
+
+    // Iterate and get a snapshot of all anchors in current scene
+    for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
+      if( ( t.toSec() - ite->second->getTime() ) < 4.0 ) { // ...4.0 sec time diff
+	array.push_back(ite->second->getSnapshot());
+      }
     }
   }
 

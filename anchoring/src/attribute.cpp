@@ -110,6 +110,10 @@ namespace anchoring {
     // Load the symbol(s) 
     AttributeCommon::deserialize(db_sub);
   }
+
+  void ColorAttribute::populate(anchor_msgs::Snapshot &msg) {
+    msg.color = _symbols;
+  }
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
@@ -118,6 +122,19 @@ namespace anchoring {
     assert( raw_ptr != nullptr );
 
     return cv::compareHist( raw_ptr->_data, this->_data, CV_COMP_INTERSECT); // CV_COMP_CORREL
+  }
+
+  string ColorAttribute::toString() {
+    std::stringstream ss;
+    ss << "[ ";
+    for( size_t i = 0; i < _symbols.size(); i++ ) {
+      ss << _symbols[i];
+      if( i + 1 < _symbols.size() ) {
+	ss << ", ";
+      }
+    }
+    ss << "]";
+    return ss.str();
   }
 
 
@@ -254,6 +271,11 @@ namespace anchoring {
     }
   }
 
+  void LocationAttribute::populate(anchor_msgs::Snapshot &msg) {
+    msg.center = this->_array.back();
+  }
+  
+
   float LocationAttribute::match(const AttributePtr &query_ptr) {
 
     // Typecast the query pointer
@@ -263,10 +285,19 @@ namespace anchoring {
     // Match aginst the last poistion (only)
     geometry_msgs::PoseStamped train = this->_array.back();
     geometry_msgs::PoseStamped query = raw_ptr->_array.back();
+
+    // 1. Check the time
+    if( query.header.stamp.toSec() - train.header.stamp.toSec() > 1.0 ) {
+      return 0.0;
+    }
+
+    // 2. Check the distance
     double diff_x = query.pose.position.x - train.pose.position.x;
     double diff_y = query.pose.position.y - train.pose.position.y;
     double diff_z = query.pose.position.z - train.pose.position.z;
-    return sqrt( diff_x*diff_x + diff_y*diff_y + diff_z*diff_z );
+    double dist  = sqrt( diff_x*diff_x + diff_y*diff_y + diff_z*diff_z );
+
+    return 1.0 / exp(dist);
   }
 
   void LocationAttribute::append(const unique_ptr<AttributeCommon> &query_ptr) {
@@ -300,7 +331,17 @@ namespace anchoring {
     */
   }
 
+  string LocationAttribute::toString() {
+    std::stringstream ss;
+    ss << "@ {";
+    ss << " x = " << this->_array.back().pose.position.x;
+    ss << ", y = " << this->_array.back().pose.position.y;
+    ss << ", z = " << this->_array.back().pose.position.z;
+    ss << "}";
+    return ss.str();
+  }
 
+  
   /**
    * Shape attribute class methods
    */
@@ -340,6 +381,12 @@ namespace anchoring {
     AttributeCommon::deserialize(db_sub);
   }
 
+  void ShapeAttribute::populate(anchor_msgs::Snapshot &msg) {
+    msg.bounding_box = this->_data;
+    msg.size = _symbols[0];
+    msg.shape = _symbols[1];
+  }
+
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 
     // Typecast the query pointer
@@ -358,6 +405,10 @@ namespace anchoring {
       return min / max;
     }
     return 0.0;
+  }
+
+  string ShapeAttribute::toString() {
+    return _symbols[0];
   }
 
 
@@ -419,6 +470,20 @@ namespace anchoring {
     AttributeCommon::deserialize(db_sub);
   }
 
+  void CaffeAttribute::populate(anchor_msgs::Snapshot &msg) {
+    float best = 0.0;
+    int index = -1;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      if( this->_predictions[i] > best ) {
+	best = this->_predictions[i];
+	index = i;
+      }
+    }
+    if( index >= 0 ) {
+      msg.object = this->_symbols[index];
+    }
+  }
+
   float CaffeAttribute::match(const AttributePtr &query_ptr) { 
 
     // Typecast the query pointer
@@ -429,20 +494,58 @@ namespace anchoring {
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	  if( this->_predictions[i] > raw_ptr->_predictions[j] ) {
-	    if( raw_ptr->_predictions[j] / this->_predictions[i] > result ) {
-	      result = raw_ptr->_predictions[j] / this->_predictions[i];
-	    }
-	  }
-	  else {
-	    if( this->_predictions[i] / raw_ptr->_predictions[j] > result ) {
-	      result = this->_predictions[i] / raw_ptr->_predictions[j];  
-	    }
+	  float diff = 1.0 / 
+	    exp( abs( this->_predictions[i] - raw_ptr->_predictions[j] ) /
+		 ( this->_predictions[i] * raw_ptr->_predictions[j] ) );
+	  if (diff > result ) {
+	    result = diff;
 	  }
 	}
       }
     }
     return result;
+  }
+
+  void CaffeAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+    
+    // Typecast the query pointer
+    CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    // Add non-exisitng symbols
+    for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {
+      if( find( this->_symbols.begin(), this->_symbols.end(), raw_ptr->_symbols[i]) == this->_symbols.end() ) {
+	this->_symbols.push_back(raw_ptr->_symbols[i]);
+	this->_predictions.push_back(0.0);
+      }
+    }
+
+    // Update the predictions
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	  if( raw_ptr->_predictions[j] > this->_predictions[i] ) {
+	    this->_predictions[i] = raw_ptr->_predictions[j];
+	  }
+	} 
+      }
+    }   
+  }
+
+  string CaffeAttribute::toString() {
+    float best = 0.0;
+    int index = -1;
+    std::stringstream ss;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      if( this->_predictions[i] > best ) {
+	best = this->_predictions[i];
+	index = i;
+      }
+    }
+    if( index >= 0 ) {
+      ss << this->_symbols[index] << "  (" << this->_predictions[index] << ")";
+    }
+    return ss.str();
   }
 
 } // namespace anchoring

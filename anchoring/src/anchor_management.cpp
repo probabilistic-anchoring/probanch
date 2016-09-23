@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <ros/ros.h>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -16,6 +17,8 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
+
+  _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
 
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
@@ -73,7 +76,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 
     // Process matches
     string id;
-    int result = this->process( matches, id, 0.05, 0.65);
+    int result = this->process( matches, id, 0.95, 0.65);
     if( result != 0 ) {
       this->_anchors->re_acquire(id, attributes, t, (result > 0 ? true : false) ); // RE_ACQUIRE
     }
@@ -133,17 +136,18 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
 			       float rate_th ) {
  
   // Check the location (main feature for track)
-  float best = dist_th + 0.00001;  // <-- Add some momentum 
+  float best = 0.0;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    if( ite->second[LOCATION] < best ) {
+    //std::cout << "Prob. dist: " << ite->second[LOCATION] << ", prob. rate: " << ite->second[IMAGE] << std::endl;
+    if( ite->second[LOCATION] > best ) {
       best = ite->second[LOCATION];
       id = ite->first;
     }
   }
-  if( best < dist_th ) {
+  if( best > dist_th ) {
     return -1;
   }
-   
+
   // Check keypoints, caffe-result, color and shape (main feature for acquire/re_acquire)
   best = 0.0;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
@@ -163,6 +167,16 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
 
   return 0;
 }
+
+// Handle a request for a snapshot the the anchorspace
+bool AnchorManagement::request( anchor_msgs::AnchorRequest::Request &req,
+				anchor_msgs::AnchorRequest::Response &res ) {
+
+  // Get a snapshot of all anchors seen scene at time t
+  this->_anchors->getSnapshot( res.anchors, req.t );
+  return true;
+}
+
 
 // For 'ROS loop' access
 void AnchorManagement::spin() {
