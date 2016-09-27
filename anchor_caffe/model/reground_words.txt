@@ -6,4 +6,5 @@ n03454885 grater
 n04284002 spoon
 n04380346 knife
 n04392113 tape_measure
-n13134947 fruit 
+n07739125 apple
+n07753592 banana
