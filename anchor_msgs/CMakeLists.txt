@@ -20,6 +20,8 @@ add_message_files(
    ColorAttribute.msg  
    Contour.msg  
    DescriptorAttribute.msg  
+   Display.msg
+   DisplayArray.msg
    LocationAttribute.msg  
    MovementArray.msg  
    Object.msg 
