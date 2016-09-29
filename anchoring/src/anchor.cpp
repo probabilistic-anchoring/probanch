@@ -273,6 +273,7 @@ namespace anchoring {
     return oss.str();
   }
     
+  /*
   anchor_msgs::Snapshot Anchor::getSnapshot() {
     anchor_msgs::Snapshot msg;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
@@ -281,5 +282,6 @@ namespace anchoring {
     }
     return msg;
   }
+  */
   
 } // namespace anchoring

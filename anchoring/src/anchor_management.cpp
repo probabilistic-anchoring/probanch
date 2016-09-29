@@ -6,6 +6,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <anchor_msgs/DisplayArray.h>
 #include <anchor_msgs/SnapshotArray.h>
 
 #include <anchoring/anchor_management.hpp>
@@ -24,6 +25,9 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   // Publisher used for collecting bag files
   _anchor_pub = _nh.advertise<anchor_msgs::SnapshotArray>("/anchors/snapshot", 1);
+  
+  // Publischer used for displaying the anchors
+  _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
 
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
@@ -73,7 +77,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     attributes[COLOR] = AttributePtr( new ColorAttribute( object_ptr->objects[i].color.data, object_ptr->objects[i].color.symbols) );
     attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
     attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->objects[i].location.data, object_ptr->objects[i].location.symbols) );    
-    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 
+    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.border, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 
     
     // Match all attributes
     map< string, map<anchoring::AttributeType, float> > matches;
@@ -90,10 +94,18 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     } 
   }
 
+  
   // Get a snapshot of all anchors seen scene at time t
-  anchor_msgs::SnapshotArray msg;
-  this->_anchors->getSnapshot( msg.anchors, t );
-  this->_anchor_pub.publish(msg);
+  anchor_msgs::SnapshotArray snap_msg;
+  this->_anchors->getArray<anchor_msgs::Snapshot>( snap_msg.anchors, t );
+  this->_anchor_pub.publish(snap_msg);
+  
+  // Get all infromation about anchors (for display purposes )
+  anchor_msgs::DisplayArray display_msg;
+  display_msg.header = object_ptr->header;
+  display_msg.image = object_ptr->image;
+  this->_anchors->getArray<anchor_msgs::Display>( display_msg.anchors, t );
+  this->_display_pub.publish(display_msg);
 
   ROS_INFO("Anchors: %d", (int)this->_anchors->size());
   //ROS_INFO("Time: %.2f", t.toSec() - _time_zero);
@@ -184,7 +196,7 @@ bool AnchorManagement::request( anchor_msgs::AnchorRequest::Request &req,
 				anchor_msgs::AnchorRequest::Response &res ) {
 
   // Get a snapshot of all anchors seen scene at time t
-  this->_anchors->getSnapshot( res.anchors, req.t );
+  this->_anchors->getArray<anchor_msgs::Snapshot>( res.anchors, req.t );
   return true;
 }
 

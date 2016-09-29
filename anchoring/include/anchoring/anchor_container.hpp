@@ -64,12 +64,26 @@ namespace anchoring {
     void acquire(AttributeMap &attributes, const ros::Time &t);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
-    void getSnapshot(vector<anchor_msgs::Snapshot> &array, const ros::Time &t);
+    template <typename T> void getArray(vector<T> &array, const ros::Time &t);
 
     // Map access functions
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
   };
+
+
+  // ----------------------------------------
+  // Template functions.
+  // ----------------------------------------
+  template<typename T> void AnchorContainer::getArray(vector<T> &array, const ros::Time &t) {
+    
+    // Iterate and get a snapshot of all anchors in current scene
+    for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
+      if( ( t.toSec() - ite->second->getTime() ) < 4.0 ) { // ...4.0 sec time diff
+	array.push_back(ite->second->getAnchor<T>());
+      }
+    }
+  }
 }  
 
 #endif // __ANCHOR_CONTAINER_HPP__

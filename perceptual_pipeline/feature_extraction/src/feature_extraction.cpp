@@ -58,8 +58,8 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
   
     // Get the contour
     std::vector<cv::Point> contour;
-    for( uint j = 0; j < objects_msg->objects[i].border.contour.size(); j++) {
-      cv::Point p( objects_msg->objects[i].border.contour[j].x, objects_msg->objects[i].border.contour[j].y );
+    for( uint j = 0; j < objects_msg->objects[i].caffe.border.contour.size(); j++) {
+      cv::Point p( objects_msg->objects[i].caffe.border.contour[j].x, objects_msg->objects[i].caffe.border.contour[j].y );
       contour.push_back(p);
     }
 

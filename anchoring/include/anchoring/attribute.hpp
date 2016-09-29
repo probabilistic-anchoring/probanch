@@ -11,8 +11,9 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 
+#include <anchor_msgs/Contour.h>
+#include <anchor_msgs/Display.h>
 #include <anchor_msgs/Snapshot.h>
-
 
 // OpenCV includes
 #include <opencv2/core/core.hpp>
@@ -49,6 +50,7 @@ namespace anchoring {
     // Virtual database methods
     virtual void serialize(MongoDatabase::Subdoc &db_sub); 
     virtual void deserialize(const MongoDatabase::Subdoc &db_sub);
+    virtual void populate(anchor_msgs::Display &msg) { }
     virtual void populate(anchor_msgs::Snapshot &msg) { }
     
     // Virtual match method
@@ -91,6 +93,7 @@ namespace anchoring {
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
     void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
   }; 
@@ -138,6 +141,7 @@ namespace anchoring {
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
     void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     void append(const unique_ptr<AttributeCommon> &query_ptr);
     void update(const unique_ptr<AttributeCommon> &query_ptr);
@@ -163,6 +167,7 @@ namespace anchoring {
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
     void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
   }; 
@@ -174,14 +179,17 @@ namespace anchoring {
   struct CaffeAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
+    anchor_msgs::Contour _border;
  
     // Constructors
     CaffeAttribute(AttributeType type = CAFFE) : AttributeCommon(type) {}
     CaffeAttribute( const cv::Mat &data,
+		    const anchor_msgs::Contour &border,
 		    const vector<float> &predictions, 
 		    const vector<string> &symbols = vector<string>(),
 		    AttributeType type = CAFFE ) : AttributeCommon( symbols, type) {
       data.copyTo(this->_data);
+      this->_border = border;
       this->_predictions = vector<double>( predictions.begin(), predictions.end() );
     }  
 
@@ -189,6 +197,7 @@ namespace anchoring {
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
     void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     void update(const unique_ptr<AttributeCommon> &query_ptr);
     string toString();

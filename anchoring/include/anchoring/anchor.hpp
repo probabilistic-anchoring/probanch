@@ -41,7 +41,7 @@ namespace anchoring {
     string getTimeStr();
     
     string toString();
-    anchor_msgs::Snapshot getSnapshot();
+    template <typename T> T getAnchor();
     
   private:
     
@@ -66,6 +66,18 @@ namespace anchoring {
 
   // Typedefine a smart object pointer
   typedef std::shared_ptr<Anchor> AnchorPtr; 
+
+  // ----------------------------------------
+  // Template functions.
+  // ----------------------------------------
+  template <typename T>  T Anchor::getAnchor() {
+    T msg;
+    for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
+      msg.id = this->_id;
+      ite->second->populate(msg);
+    }
+    return msg;
+  }
 }
 
 #endif // __ANCHOR_HPP__

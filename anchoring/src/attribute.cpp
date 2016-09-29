@@ -114,6 +114,10 @@ namespace anchoring {
   void ColorAttribute::populate(anchor_msgs::Snapshot &msg) {
     msg.color = _symbols;
   }
+  void ColorAttribute::populate(anchor_msgs::Display &msg) {
+    msg.colors = _symbols;
+  }
+
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
@@ -274,6 +278,10 @@ namespace anchoring {
   void LocationAttribute::populate(anchor_msgs::Snapshot &msg) {
     msg.center = this->_array.back();
   }
+
+  void LocationAttribute::populate(anchor_msgs::Display &msg) {
+    msg.pos = this->_array.back();
+  }
   
 
   float LocationAttribute::match(const AttributePtr &query_ptr) {
@@ -386,6 +394,10 @@ namespace anchoring {
     msg.size = _symbols[0];
     msg.shape = _symbols[1];
   }
+  void ShapeAttribute::populate(anchor_msgs::Display &msg) {
+    msg.size = _symbols[0];
+  }
+
 
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 
@@ -484,6 +496,23 @@ namespace anchoring {
     }
   }
 
+  void CaffeAttribute::populate(anchor_msgs::Display &msg) {
+    msg.border = this->_border;
+    float best = 0.0;
+    int index = -1;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      if( this->_predictions[i] > best ) {
+	best = this->_predictions[i];
+	index = i;
+      }
+    }
+    if( index >= 0 ) {
+      msg.object = this->_symbols[index];
+      msg.prediction = this->_predictions[index];
+    }
+    
+  }
+
   float CaffeAttribute::match(const AttributePtr &query_ptr) { 
 
     // Typecast the query pointer
@@ -511,6 +540,9 @@ namespace anchoring {
     // Typecast the query pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
+
+    // Updte the contour
+    this->_border = raw_ptr->_border;
 
     // Add non-exisitng symbols
     for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {

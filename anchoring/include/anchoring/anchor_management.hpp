@@ -25,6 +25,7 @@ class AnchorManagement {
   ros::Subscriber _object_sub, _track_sub;
   ros::ServiceServer _anchor_srv;
   ros::Publisher _anchor_pub;
+  ros::Publisher _display_pub;
 
   double _time_zero;
 
