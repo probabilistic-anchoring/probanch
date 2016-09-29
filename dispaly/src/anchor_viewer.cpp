@@ -110,6 +110,26 @@ class AnchorViewer {
     cout << "  q - Quit." << endl;
     cout << "----------------------" << endl;
   }
+  
+  // Mouse click callback function(s)
+  static void click_cb(int event, int x, int y, int flags, void *obj) {
+    AnchorViewer *self = static_cast<AnchorViewer*>(obj);
+    self->click_wrapper( event, x, y, flags);
+  }
+  void click_wrapper(int event, int x, int y, int flags) {
+    for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
+
+      // Get the contour
+      std::vector<cv::Point> contour;
+      for( uint i = 0; i < ite->border.contour.size(); i++) {
+	cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
+	contour.push_back(p);
+      }	  
+      if( cv::pointPolygonTest( contour, cv::Point( x, y ), false) > 0 ) {
+	this->_highlight = ite->id;
+      }
+    }
+  }
 
 public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
@@ -117,6 +137,10 @@ public:
     // ROS subscriber
     _anchor_sub = _nh.subscribe("/dispaly/anchors", 10, &AnchorViewer::display_cb, this);
     _highlight_sub = _nh.subscribe("/dispaly/hightlight", 10, &AnchorViewer::highlight_cb, this);
+    
+    const char *window = "Anchors with information...";
+    cv::namedWindow( window, 1);
+    cv::setMouseCallback( window, &AnchorViewer::click_cb, this);
   }
   ~AnchorViewer() {}
 
