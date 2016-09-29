@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
 
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
@@ -8,6 +9,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
 
 using namespace std;
@@ -20,9 +22,11 @@ class AnchorViewer {
   ros::NodeHandle _nh; 
   ros::NodeHandle _priv_nh;
   ros::Subscriber _anchor_sub;
+  ros::Subscriber _highlight_sub;
 
   cv::Mat _img;
   vector<anchor_msgs::Display> _anchors;
+  string _highlight;
 
   // Callback function for reciving and displaying the image
   void display_cb(const anchor_msgs::DisplayArrayConstPtr& msg_ptr) {
@@ -42,9 +46,60 @@ class AnchorViewer {
     this->_anchors = msg_ptr->anchors;
   }
 
+  // Function for processing the scene image 
   cv::Mat anchor_img() {
-    return this->_img;
-    
+
+    // Draw the result
+    cv::Mat result_img(this->_img);
+    cv::Mat highlight_img(this->_img);
+    for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
+
+      // Draw the contour
+      std::vector<cv::Point> contour;
+      for( uint i = 0; i < ite->border.contour.size(); i++) {
+	cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
+	contour.push_back(p);
+      }	  
+      std::vector<std::vector<cv::Point> > contours;
+      contours.push_back(contour);
+
+      // Draw highlighted result
+      if( ite->id == this->_highlight ) {
+	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
+      }
+      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 2);
+      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 2);
+
+      // Get the bounding box
+      cv::Rect rect = cv::boundingRect(contour); 
+      std::stringstream ss;
+      ss << "Object: " << ite->object << " (" << ite->prediction * 100.0 << "%)";
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      ss.str("");
+      ss << "Color(s): [";
+      for( uint i = 0; i < ite->colors.size(); i++) {
+	ss << ite->colors[i];
+	if( i < ite->colors.size() - 1 )
+	  ss <<",";
+      }
+      ss << "]";
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 34), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 34), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      ss.str("");
+      ss << "Size: " << ite->size;
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      ss.str("");
+
+    } 
+    cv::addWeighted( result_img, 0.5, highlight_img, 0.5, 0.0, result_img);
+    return result_img;
+  }
+
+  // Callback function for reciving and displaying the image
+  void highlight_cb(const std_msgs::StringConstPtr& msg) {
+    this->_highlight = msg->data;
   }
 
   void help() {
@@ -61,7 +116,7 @@ public:
     
     // ROS subscriber
     _anchor_sub = _nh.subscribe("/dispaly/anchors", 10, &AnchorViewer::display_cb, this);
-
+    _highlight_sub = _nh.subscribe("/dispaly/hightlight", 10, &AnchorViewer::highlight_cb, this);
   }
   ~AnchorViewer() {}
 
@@ -83,7 +138,7 @@ public:
 	this->help();
       }
       else if( key == 'R' || key == 'r' ) {
-	// Reset the target anchor	
+	this->_highlight = "";
       }
 
       ros::spinOnce();
