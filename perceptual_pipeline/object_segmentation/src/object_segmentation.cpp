@@ -176,7 +176,7 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	    anchor_msgs::Point2d p;
 	    p.x = contours[0][j].x;
 	    p.y = contours[0][j].y;
-	    obj.border.contour.push_back(p);
+	    obj.caffe.border.contour.push_back(p);
 	  }
 	  
 	  // Draw the contour (for display)

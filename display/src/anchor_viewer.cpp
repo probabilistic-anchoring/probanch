@@ -54,6 +54,10 @@ class AnchorViewer {
     cv::Mat highlight_img(this->_img);
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
+      if( ite->border.contour.empty() ) {
+	continue;
+      }
+
       // Draw the contour
       std::vector<cv::Point> contour;
       for( uint i = 0; i < ite->border.contour.size(); i++) {
@@ -63,19 +67,21 @@ class AnchorViewer {
       std::vector<std::vector<cv::Point> > contours;
       contours.push_back(contour);
 
+      // Get the bounding box
+      cv::Rect rect = cv::boundingRect(contour);
+      
       // Draw highlighted result
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
       }
-      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 2);
-      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 2);
+      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
 
-      // Get the bounding box
-      cv::Rect rect = cv::boundingRect(contour); 
+      // Print infromation
       std::stringstream ss;
       ss << "Object: " << ite->object << " (" << ite->prediction * 100.0 << "%)";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
       ss.str("");
       ss << "Color(s): [";
       for( uint i = 0; i < ite->colors.size(); i++) {
@@ -84,16 +90,16 @@ class AnchorViewer {
 	  ss <<",";
       }
       ss << "]";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 34), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 34), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
       ss.str("");
       ss << "Size: " << ite->size;
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,255), 2, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
       ss.str("");
-
+      
     } 
-    cv::addWeighted( result_img, 0.5, highlight_img, 0.5, 0.0, result_img);
+    cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
     return result_img;
   }
 
@@ -114,7 +120,9 @@ class AnchorViewer {
   // Mouse click callback function(s)
   static void click_cb(int event, int x, int y, int flags, void *obj) {
     AnchorViewer *self = static_cast<AnchorViewer*>(obj);
-    self->click_wrapper( event, x, y, flags);
+    if( event == cv::EVENT_LBUTTONDOWN ) {
+      self->click_wrapper( event, x, y, flags);
+    }
   }
   void click_wrapper(int event, int x, int y, int flags) {
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
@@ -127,6 +135,8 @@ class AnchorViewer {
       }	  
       if( cv::pointPolygonTest( contour, cv::Point( x, y ), false) > 0 ) {
 	this->_highlight = ite->id;
+	ROS_WARN("Anchored selected at: x = %.2f, y = %.2f, z = %.2f", (float)ite->pos.pose.position.x, (float)ite->pos.pose.position.y, (float)ite->pos.pose.position.z);
+	break;
       }
     }
   }
@@ -135,8 +145,8 @@ public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
     
     // ROS subscriber
-    _anchor_sub = _nh.subscribe("/dispaly/anchors", 10, &AnchorViewer::display_cb, this);
-    _highlight_sub = _nh.subscribe("/dispaly/hightlight", 10, &AnchorViewer::highlight_cb, this);
+    _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
+    _highlight_sub = _nh.subscribe("/display/hightlight", 10, &AnchorViewer::highlight_cb, this);
     
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);
@@ -145,7 +155,7 @@ public:
   ~AnchorViewer() {}
 
   void spin() {
-    ros::Rate rate(15);
+    ros::Rate rate(30);
     while(ros::ok()) {
 
       // OpenCV window for display

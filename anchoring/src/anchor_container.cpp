@@ -218,7 +218,8 @@ namespace anchoring {
     }
   }
 
-  void AnchorContainer::getSnapshot(vector<anchor_msgs::Snapshot> &array, const ros::Time &t) {
+  /*
+  void AnchorContainer::getArray(vector<anchor_msgs::Snapshot> &array, const ros::Time &t) {
 
     // Iterate and get a snapshot of all anchors in current scene
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
@@ -227,5 +228,6 @@ namespace anchoring {
       }
     }
   }
+  */
 
 } // namespace anchoring
