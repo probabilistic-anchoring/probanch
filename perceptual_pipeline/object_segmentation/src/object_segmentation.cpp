@@ -49,6 +49,9 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   // Create transformation listener
   tf_listener_ = new tf::TransformListener();
   priv_nh_.param( "base_frame", base_frame_, std::string("base_link"));
+
+  // Read the compare type for to organized segmentation
+  this->priv_nh_.param( "compar_type", this->type_, 3);
 }
   
 ObjectSegmentation::~ObjectSegmentation() {
@@ -99,7 +102,7 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
   // ----------------------------------------
   segmentation::Segmentation seg(raw_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
-  seg.cluster_organized(cluster_indices, 4);
+  seg.cluster_organized(cluster_indices, this->type_);
   if( !cluster_indices.empty() ) {
  
     //ROS_WARN("Clusters: %d", (int)cluster_indices.size());

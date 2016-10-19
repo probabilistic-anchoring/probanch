@@ -58,6 +58,7 @@ class ObjectSegmentation {
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;
 
   // Private functions
+  int type_;
   void callback( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);
 
 public: 

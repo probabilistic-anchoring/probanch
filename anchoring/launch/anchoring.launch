@@ -17,6 +17,7 @@
     <remap to="/kinect2/qhd/image_color_rect" from="/image"/>	
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
+    <param name="compar_type" type="int" value="1" />	
   </node>
 
   <!-- Feature extraction node -->
