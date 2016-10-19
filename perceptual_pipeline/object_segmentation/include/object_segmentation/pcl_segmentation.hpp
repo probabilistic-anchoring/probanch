@@ -62,11 +62,6 @@ namespace segmentation {
     pcl::ExtractIndices<pcl::Normal> _extract_n; 
 
     // Private filter and sampling functions
-    void passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-			    pcl::PointCloud<Point>::Ptr &filtered_ptr,
-			    const string axis = "z",
-			    double min = -0.1,
-			    double max = 1.5 );
     void outlierFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 			pcl::PointCloud<Point>::Ptr &filtered_ptr,
 			int meanK = 50,
@@ -149,6 +144,12 @@ namespace segmentation {
   // -------------------
   // Namespace functions
   // -------------------
+  void passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+			  pcl::PointCloud<Point>::Ptr &filtered_ptr,
+			  const string axis,
+			  double min,
+			  double max,
+			  bool keep_organized = true );
   void getLocation( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 		    geometry_msgs::Pose &pos );
   void getShape( const pcl::PointCloud<Point>::Ptr &projected_cloud_ptr,

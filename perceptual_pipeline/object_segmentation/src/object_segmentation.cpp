@@ -97,10 +97,18 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
   //std::cout << "Cloud size: " << raw_cloud_ptr->width << " x " << raw_cloud_ptr->height << std::endl;
 
+  // Transform the cloud to the world frame
+  pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr;
+  pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
+
+  // Filter the cloud (to reduce the size)
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "x", 0.2, 1.2 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", 0.0, 0.5 );
 
   // Cluster cloud into objects 
   // ----------------------------------------
-  segmentation::Segmentation seg(raw_cloud_ptr);
+  segmentation::Segmentation seg(transformed_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
   seg.cluster_organized(cluster_indices, this->type_);
   if( !cluster_indices.empty() ) {
@@ -177,20 +185,26 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
       	  
+	  /*
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cloud;
 	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cloud, transform);
-	  
+	  */
+
 	  // 1. Extract the location
 	  obj.location.data.header.stamp = cloud_msg->header.stamp;
+	  segmentation::getLocation( cluster_ptr->makeShared(), obj.location.data.pose );
+	  /*
 	  segmentation::getLocation( transformed_cloud.makeShared(), obj.location.data.pose );
 	  if( !( obj.location.data.pose.position.x > 0.2  && obj.location.data.pose.position.y > 0.0 && obj.location.data.pose.position.y < 0.62 && obj.location.data.pose.position.z < 0.5 ) )
 	    continue;
-        
+	  */
+
 	  // std::cout << "Location: [" << obj.location.data.pose.position.x << ", " << obj.location.data.pose.position.y << ", " << obj.location.data.pose.position.z << "]" << std::endl;	  
 
 	  // 2. Extract the shape
-	  segmentation::getShape( transformed_cloud.makeShared(), obj.shape.data );
+	  segmentation::getShape( cluster_ptr->makeShared(), obj.shape.data );
+	  //segmentation::getShape( transformed_cloud.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
