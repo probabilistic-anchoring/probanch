@@ -60,7 +60,7 @@ namespace segmentation {
 
     // Filter and downsample the cloud (use the same cloud as input and output)
     ROS_INFO("Original cloud: %d", (int)_cloud_ptr->points.size());
-    this->passThroughFilter( _cloud_ptr, _cloud_ptr);
+    //segmentation::passThroughFilter( _cloud_ptr, _cloud_ptr);
     ROS_INFO("Filtered cloud: %d", (int)_cloud_ptr->points.size());  
     //this->outlierFilter( _cloud_ptr, _cloud_ptr);
     this->downsample( _cloud_ptr, _cloud_ptr);
@@ -116,20 +116,6 @@ namespace segmentation {
   
   /* _____________ Filter ans sampling functions ___________________ */
 
-  // Filter the a cloud based on a pass through filter
-  void Segmentation::passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-					pcl::PointCloud<Point>::Ptr &filtered_ptr,
-					const string axis,
-					double min,
-					double max ) {
-    pcl::PointCloud<Point>::Ptr result_ptr (new pcl::PointCloud<Point>);
-    pcl::PassThrough<Point> pass_;
-    pass_.setInputCloud (cloud_ptr); 
-    pass_.setFilterFieldName (axis);
-    pass_.setFilterLimits ( min, max);  
-    pass_.filter (*result_ptr);
-    filtered_ptr.swap (result_ptr);
-  }
 
   // Filter and remove remove outliers
   void Segmentation::outlierFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
@@ -436,6 +422,25 @@ namespace segmentation {
 // -------------------
 // Namespace functions
 // -------------------
+
+// Filter the a cloud based on a pass through filter
+void segmentation::passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+				      pcl::PointCloud<Point>::Ptr &filtered_ptr,
+				      const string axis,
+				      double min,
+				      double max,
+				      bool keep_organized ) {
+    pcl::PointCloud<Point>::Ptr result_ptr (new pcl::PointCloud<Point>);
+    pcl::PassThrough<Point> pass_;
+    pass_.setInputCloud (cloud_ptr); 
+    pass_.setFilterFieldName (axis);
+    pass_.setFilterLimits ( min, max);  
+    pass_.setKeepOrganized (keep_organized);
+    pass_.filter (*result_ptr);
+    filtered_ptr.swap (result_ptr);
+  }
+
+
 void segmentation::getLocation( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 				geometry_msgs::Pose &pos ) {
   Eigen::Vector4f centroid;

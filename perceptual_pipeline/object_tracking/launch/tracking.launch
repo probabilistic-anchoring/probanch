@@ -1,0 +1,11 @@
+<launch>
+
+  <!-- Laucnh Kinect2 bridge (with default parameters) -->
+  <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch" />	
+
+  <!-- Run object tracking node -->
+  <node name="object_tracking_node" pkg="object_tracking" type="object_tracking" output="screen">
+    <remap to="/kinect2/qhd/points" from="/cloud"/>
+  </node>
+
+</launch>
