@@ -14,10 +14,12 @@ else()
 endif()
 
 ## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
+  cv_bridge 
+  message_filters
+  image_geometry
+  image_transport
   pcl_conversions
   pcl_ros
   roscpp
@@ -26,6 +28,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -58,6 +61,7 @@ catkin_package(
 include_directories( include
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ executable
@@ -68,6 +72,7 @@ add_executable(object_viewer src/object_viewer.cpp)
 target_link_libraries(object_tracking 
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 target_link_libraries(object_viewer  
   ${catkin_LIBRARIES}

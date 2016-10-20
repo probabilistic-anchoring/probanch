@@ -12,6 +12,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include <anchor_msgs/ObjectArray.h>
+#include <anchor_msgs/ClusterArray.h>
 
 #include <object_segmentation/object_segmentation.hpp>
 
@@ -32,9 +33,10 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   image_sub_ = new image_transport::SubscriberFilter( it_, "image", queueSize_);
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>( nh_, "camera_info", queueSize_);
   cloud_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>( nh_, "cloud", queueSize_);
-  seg_image_pub_ = it_.advertise("/display/segmented", 1);
+  //seg_image_pub_ = it_.advertise("/display/segmented", 1);
 
   obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/raw", queueSize_);
+  cluster_pub_ = nh_.advertise<anchor_msgs::ClusterArray>("/objects/clusters", queueSize_);
   
   // Set up sync policies
   if(useApprox) {
@@ -88,33 +90,33 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
     tf_listener_->lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, transform );
   }
   catch( tf::TransformException ex) {
-    ROS_WARN("[TabletopSegmentor::process] %s" , ex.what());
+    ROS_WARN("[ObjectSegmentation::callback] %s" , ex.what());
     return;
   }
 
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
-  //std::cout << "Cloud size: " << raw_cloud_ptr->width << " x " << raw_cloud_ptr->height << std::endl;
 
+  /*
   // Transform the cloud to the world frame
-  pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr;
+  pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
-
+ 
   // Filter the cloud (to reduce the size)
   segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "x", 0.2, 1.2 );
   segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", 0.0, 0.5 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", -0.1, 0.6 ); 
+  */
 
   // Cluster cloud into objects 
   // ----------------------------------------
-  segmentation::Segmentation seg(transformed_cloud_ptr);
+  segmentation::Segmentation seg(raw_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
   seg.cluster_organized(cluster_indices, this->type_);
   if( !cluster_indices.empty() ) {
  
-    //ROS_WARN("Clusters: %d", (int)cluster_indices.size());
-
+    // Read the RGB image
     cv::Mat img;
     cv_bridge::CvImagePtr cv_ptr;
     try {
@@ -136,6 +138,7 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
     cam_model.fromCameraInfo(camera_info_msg);
 
     // Image & Cloud output
+    anchor_msgs::ClusterArray clusters;
     anchor_msgs::ObjectArray objects;
     objects.header = cloud_msg->header;
     objects.image = *image_msg;
@@ -182,29 +185,29 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	    obj.caffe.border.contour.push_back(p);
 	  }
 	  
+	  /*
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
-      	  
-	  /*
+      	  */
+	  
 	  // Transform the cloud to the world frame
-	  pcl::PointCloud<segmentation::Point> transformed_cloud;
-	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cloud, transform);
-	  */
+	  pcl::PointCloud<segmentation::Point> transformed_cluster;
+	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cluster, transform);
+	  
 
 	  // 1. Extract the location
 	  obj.location.data.header.stamp = cloud_msg->header.stamp;
-	  segmentation::getLocation( cluster_ptr->makeShared(), obj.location.data.pose );
-	  /*
-	  segmentation::getLocation( transformed_cloud.makeShared(), obj.location.data.pose );
+	  //segmentation::getLocation( cluster_ptr, obj.location.data.pose );
+	  segmentation::getLocation( transformed_cluster.makeShared(), obj.location.data.pose );
 	  if( !( obj.location.data.pose.position.x > 0.2  && obj.location.data.pose.position.y > 0.0 && obj.location.data.pose.position.y < 0.62 && obj.location.data.pose.position.z < 0.5 ) )
 	    continue;
-	  */
+	  
 
 	  // std::cout << "Location: [" << obj.location.data.pose.position.x << ", " << obj.location.data.pose.position.y << ", " << obj.location.data.pose.position.z << "]" << std::endl;	  
 
 	  // 2. Extract the shape
-	  segmentation::getShape( cluster_ptr->makeShared(), obj.shape.data );
-	  //segmentation::getShape( transformed_cloud.makeShared(), obj.shape.data );
+	  //segmentation::getShape( cluster_ptr, obj.shape.data );
+	  segmentation::getShape( transformed_cluster.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
@@ -241,12 +244,16 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  if( centroid[0] > 0.0 && centroid[1] < 0.5 && centroid[1] > -0.5 )
 	    std::cout << "Location: [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
 	  */
-	  /*
-	  sensor_msgs::PointCloud2 pc_object;
-	  pcl::toROSMsg( transformed_cloud, pc_object );
-	  //pcl::concatenatePointCloud( pc_multi, pc_object, pc_multi);
-	  new_clouds.clouds.push_back(pc_object);
-	  */
+	  
+	  // Add the (un-transformed) cluster to the array message
+	  geometry_msgs::Pose center;
+	  segmentation::getLocation( cluster_ptr, center );
+	  clusters.centers.push_back(center);
+
+	  sensor_msgs::PointCloud2 cluster;
+	  pcl::toROSMsg( *cluster_ptr, cluster );
+	  clusters.clusters.push_back(cluster);
+	  
 	}
       }
       catch( cv::Exception &exc ) {
@@ -254,16 +261,18 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
       }
     }
     
+    /*
     // Publish the segmented image (with contours)
     cv_ptr->image = img;
     cv_ptr->encoding = "bgr8";
     seg_image_pub_.publish(cv_ptr->toImageMsg());
-
+    */
     
     // Publish the object array
-    if( !objects.objects.empty() ) {
+    if( !objects.objects.empty() || !clusters.clusters.empty() ) {
       //ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
       obj_pub_.publish(objects);
+      cluster_pub_.publish(clusters);
     }
     
   }

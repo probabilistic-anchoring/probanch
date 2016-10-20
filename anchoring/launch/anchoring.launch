@@ -23,7 +23,6 @@
   <!-- Feature extraction node -->
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
 
-
   <!-- Anchor Caffe node -->
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   

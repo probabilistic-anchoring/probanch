@@ -51,8 +51,9 @@ class ObjectSegmentation {
   image_transport::SubscriberFilter *image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> *camera_info_sub_;
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
-  image_transport::Publisher seg_image_pub_;
+  //image_transport::Publisher seg_image_pub_;
   ros::Publisher obj_pub_;
+  ros::Publisher cluster_pub_;
 
   message_filters::Synchronizer<ExactSyncPolicy> *syncExact_;
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;

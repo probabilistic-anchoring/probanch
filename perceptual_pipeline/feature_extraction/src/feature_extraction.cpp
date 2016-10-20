@@ -40,7 +40,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
 
   // Histogram equalization
   img = Features::equalizeIntensity(img);
-
+  
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
   cv::cvtColor( img, gray, CV_BGR2GRAY); // <-- Gray scale
@@ -63,6 +63,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
       contour.push_back(p);
     }
 
+    
     // 1. Get keypoint features (from keypoints within the contour)
     // ---------------------------
     std::vector<int> idxs;
@@ -77,12 +78,13 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     // Filter descriptor (in case we have too many features)
     cv::Mat sub_descriptor = f.filterDescriptor( descriptor, idxs, CV_8U);
     sub_descriptor = f.filterResponseN( sub_keypoints, sub_descriptor, 2000);
-
+    
     // Add extracted descriptor 
     cv_ptr->image = sub_descriptor;
     cv_ptr->encoding = "mono8";
     cv_ptr->toImageMsg(output.objects[i].descriptor.data);      
-
+    
+    
     // 2. Extrace sub-image (based on the bounding box)
     // --------------------------- 
     cv::Rect rect = cv::boundingRect(contour); 
