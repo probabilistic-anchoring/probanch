@@ -61,7 +61,7 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
+#generate_messages(
 #   DEPENDENCIES
 #   geometry_msgs#   sensor_msgs#   std_msgs
 # )
@@ -82,8 +82,8 @@ find_package(OpenCV REQUIRED)
 catkin_package(
 #   INCLUDE_DIRS include
 #   LIBRARIES anchoring
-#   CATKIN_DEPENDS cv_bridge geometry_msgs image_geometry image_transport libpcl-all message_filters pcl_conversions pcl_ros roscpp rostime sensor_msgs std_msgs
-#   DEPENDS MongoClient
+#   CATKIN_DEPENDS anchor_msgs cv_bridge image_geometry image_transport pcl_conversions pcl_ros roscpp rostime  
+ #   DEPENDS MongoClient
 )
 
 ###########

@@ -53,7 +53,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES segmentation
-#  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
+  CATKIN_DEPENDS  anchor_msgs roscpp rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
 #  DEPENDS system_lib
 )
 
