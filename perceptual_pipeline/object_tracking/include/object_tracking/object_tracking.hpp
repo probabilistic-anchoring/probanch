@@ -1,19 +1,22 @@
 #ifndef __OBJECT_TRACKING_HPP__ 
 #define __OBJECT_TRACKING_HPP__ 
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <mutex>
 #include <thread>
 #include <chrono>
 
-// ROS specific includes
+// ROS includes
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/ros/conversions.h>
 
-// PCL specific includes
+#include <tf/transform_listener.h>
+
+// PCL includes
 #include <pcl/tracking/tracking.h>
 #include <pcl/tracking/particle_filter.h>
 #include <pcl/tracking/particle_filter_omp.h>
@@ -26,12 +29,18 @@
 #include <pcl/tracking/approx_nearest_pair_point_cloud_coherence.h>
 #include <pcl/tracking/nearest_pair_point_cloud_coherence.h>
 
+#include <pcl/search/pcl_search.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/io/openni_grabber.h>
-#include <pcl/console/parse.h>
 #include <pcl/common/time.h>
 #include <pcl/common/centroid.h>
+#include <pcl/common/transforms.h>
+
+#include <boost/foreach.hpp>
+
+// Anchoring includes
+#include <anchor_msgs/ClusterArray.h>
 
 // Macros
 #define FPS_CALC_BEGIN                          \
@@ -55,8 +64,8 @@
 }
 // ---------------------------------
 
+using namespace std;
 using namespace pcl::tracking;
-
 
 class ObjectTracking {
 
@@ -65,22 +74,9 @@ class ObjectTracking {
   typedef pcl::PointXYZ SimplePoint;
   typedef ParticleXYZRPY Particle;
 
-  /*
-  typedef pcl::PointCloud<PointType> Cloud;
-  typedef pcl::PointCloud<RefPointType> RefCloud;
-  typedef typename RefCloud::Ptr RefCloudPtr;
-  typedef typename RefCloud::ConstPtr RefCloudConstPtr;
-  typedef typename Cloud::Ptr CloudPtr;
-  typedef typename Cloud::ConstPtr CloudConstPtr;
-  typedef ParticleFilterTracker<RefPointType, ParticleT> ParticleFilter;
-  typedef typename ParticleFilter::CoherencePtr CoherencePtr;
-  typedef typename pcl::search::KdTree<PointType> KdTree;
-  typedef typename KdTree::Ptr KdTreePtr;
-  */
-
-  // Tracker
-  std::vector< boost::shared_ptr<ParticleFilterOMPTracker< Point, Particle> > > trackers_;
-  std::vector< pcl::PointCloud<Point>::Ptr > references_;
+  // Tracker variables
+  vector< boost::shared_ptr<ParticleFilterOMPTracker< Point, Particle> > > trackers_;
+  vector< pcl::PointCloud<Point>::Ptr > references_;
 
   // Variables
   double factor_;
@@ -90,7 +86,22 @@ class ObjectTracking {
   double angularTh_;
   double distanceTh_;
 
+  boost::mutex mtx_;
+
+  // Node handler(s) 
+  ros::NodeHandle nh_, priv_nh_;
+  //image_transport::ImageTransport it_;
+
+  // Tf transform listener 
+  tf::TransformListener *tf_listener_;
+  string base_frame_;
   
+  // Private functions
+  //void trackCallback( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);
+  void clustersCallback ( const anchor_msgs::ClusterArray::ConstPtr &msg);
+  void init ( const pcl::PointCloud<Point>::Ptr &pts);
+  float distance ( const Point &pt, const Eigen::Vector4f &center);
+  void drawParticles ();
 
 public: 
   ObjectTracking (ros::NodeHandle nh);
