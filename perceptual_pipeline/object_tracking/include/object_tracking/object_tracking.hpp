@@ -37,16 +37,6 @@
 #include <pcl/tracking/particle_filter_omp.h>
 #include <pcl/tracking/kld_adaptive_particle_filter_omp.h>
 
-#include <pcl/tracking/coherence.h>
-#include <pcl/tracking/distance_coherence.h>
-#include <pcl/tracking/hsv_color_coherence.h>
-#include <pcl/tracking/normal_coherence.h>
-
-#include <pcl/tracking/approx_nearest_pair_point_cloud_coherence.h>
-#include <pcl/tracking/nearest_pair_point_cloud_coherence.h>
-
-#include <pcl/search/pcl_search.h>
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/time.h>
@@ -57,34 +47,14 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/contrib/contrib.hpp> 
 
-
 // Anchoring includes
 #include <anchor_msgs/ClusterArray.h>
-
-// Macros
-#define FPS_CALC_BEGIN                          \
-    static double duration = 0;                 \
-    double start_time = pcl::getTime ();        \
-
-#define FPS_CALC_END(_WHAT_)                    \
-  {                                             \
-    double end_time = pcl::getTime ();          \
-    static unsigned count = 0;                  \
-    if (++count == 10)                          \
-    {                                           \
-      std::cout << "Average framerate("<< _WHAT_ << "): " << double(count)/double(duration) << " Hz" <<  std::endl; \
-      count = 0;                                                        \
-      duration = 0.0;                                                   \
-    }                                           \
-    else                                        \
-    {                                           \
-      duration += end_time - start_time;        \
-    }                                           \
-}
 // ---------------------------------
 
 using namespace std;
 using namespace pcl::tracking;
+
+// ---------------------------------
 
 class ObjectTracking {
 
@@ -93,13 +63,30 @@ class ObjectTracking {
   typedef pcl::PointXYZ SimplePoint;
   typedef ParticleXYZRPY Particle;
   typedef ParticleFilterTracker<Point, Particle> ParticleFilter;
+  enum {
+    MIN_ACTIVITY = 0,
+    MAX_ACTIVITY = 100,
+    DECREASE_ACTIVITY = -1
+  };
+  
+  // Tracker struct
+  struct Tracker {
 
-  // Tracker variables
-  vector< boost::shared_ptr<ParticleFilterOMPTracker< Point, Particle> > > trackers_;
-  //vector< boost::shared_ptr<KLDAdaptiveParticleFilterOMPTracker< Point, Particle> > > trackers_;
-  vector< pcl::PointCloud<Point>::Ptr > references_;
-  vector< Eigen::Vector4f > centers_;
+    // Tracker variables
+    boost::shared_ptr<ParticleFilter> tracker_;
+    int activity_;
+    Eigen::Vector4f center_;
 
+    // Constructor
+    Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr, 
+	     Eigen::Vector4f &center,
+	     bool use_fixed = false );
+    void setActivity(int activity);
+    float getActivity();
+    bool isActive();
+  };
+  vector<Tracker> trackers_;
+  /*
   // Variables
   double factor_;
   double size_;
@@ -107,7 +94,7 @@ class ObjectTracking {
   int clusterMinSize_;
   double angularTh_;
   double distanceTh_;
-
+  */
   boost::mutex mtx_;
 
   // Node handler(s) 
@@ -145,12 +132,13 @@ class ObjectTracking {
 		      const sensor_msgs::CameraInfo::ConstPtr &camera_info_msg, 
 		      const sensor_msgs::PointCloud2::ConstPtr &cloud_msg );
   void clustersCallback ( const anchor_msgs::ClusterArray::ConstPtr &msg);
-  void init ( const pcl::PointCloud<Point>::Ptr &pts);
+  void activate ( const pcl::PointCloud<Point>::Ptr &pts);
   void process (const pcl::PointCloud<Point>::Ptr &cloud_ptr);
   float distance ( const Point &pt, const Eigen::Vector4f &center);
   void drawParticles ( cv::Mat &img, const image_geometry::PinholeCameraModel &model);
-  void removeZeroPoints ( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-			  pcl::PointCloud<Point>::Ptr &result_ptr );
+  void gridSampleApprox ( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+			  pcl::PointCloud<Point>::Ptr &result_ptr, 
+			  double leaf_size = 0.002 );
 
 public: 
   ObjectTracking (ros::NodeHandle nh, bool useApprox = true);

@@ -2,11 +2,46 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
 
+#include <pcl/tracking/coherence.h>
+#include <pcl/tracking/distance_coherence.h>
+#include <pcl/tracking/hsv_color_coherence.h>
+#include <pcl/tracking/normal_coherence.h>
+
+#include <pcl/tracking/approx_nearest_pair_point_cloud_coherence.h>
+#include <pcl/tracking/nearest_pair_point_cloud_coherence.h>
+
+#include <pcl/search/pcl_search.h>
+
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/approximate_voxel_grid.h>
+
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/video.hpp>
 
 #include <object_tracking/object_tracking.hpp>
+
+// Macros
+#define FPS_CALC_BEGIN                          \
+    static double duration = 0;                 \
+    double start_time = pcl::getTime ();        \
+
+#define FPS_CALC_END(_WHAT_)                    \
+  {                                             \
+    double end_time = pcl::getTime ();          \
+    static unsigned count = 0;                  \
+    if (++count == 10)                          \
+    {                                           \
+      std::cout << "Average framerate ("<< _WHAT_ << "): " << double(count)/double(duration) << " Hz" <<  std::endl; \
+      count = 0;                                                        \
+      duration = 0.0;                                                   \
+    }                                           \
+    else                                        \
+    {                                           \
+      duration += end_time - start_time;        \
+    }                                           \
+  }
+// ---------------------------------
 
 using namespace std;
 using namespace cv;
@@ -77,6 +112,105 @@ void ObjectTracking::spin() {
   }    
 }
 
+// ------------------------------
+// Tracker struct contructor
+// ------------------------------
+ObjectTracking::Tracker::Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr, 
+				  Eigen::Vector4f &center,
+				  bool use_fixed ) : center_(center), activity_(MIN_ACTIVITY) {
+  
+
+  // Set initial parameters
+  std::vector<double> default_step_covariance = std::vector<double> (6, 0.015 * 0.015);
+  default_step_covariance[3] *= 40.0;
+  default_step_covariance[4] *= 40.0;
+  default_step_covariance[5] *= 40.0;
+    
+  std::vector<double> initial_noise_covariance = std::vector<double> (6, 0.00001);
+  std::vector<double> default_initial_mean = std::vector<double> (6, 0.0);
+  
+  if (use_fixed) {
+    boost::shared_ptr<ParticleFilterOMPTracker<Point, Particle> > tracker
+      (new ParticleFilterOMPTracker<Point, Particle> (8));
+    tracker_ = tracker;
+  }
+  else {
+    boost::shared_ptr<KLDAdaptiveParticleFilterOMPTracker<Point, Particle> > tracker 
+      (new KLDAdaptiveParticleFilterOMPTracker<Point, Particle> (8));
+    
+    Particle bin_size;
+    bin_size.x = 0.1f;
+    bin_size.y = 0.1f;
+    bin_size.z = 0.1f;
+    bin_size.roll = 0.1f;
+    bin_size.pitch = 0.1f;
+    bin_size.yaw = 0.1f;
+    tracker->setBinSize (bin_size);
+
+    tracker->setMaximumParticleNum (1000);
+    tracker->setDelta (0.99);
+    tracker->setEpsilon (0.2);
+    tracker_ = tracker;
+  }	
+
+  // Set common parameters 
+  tracker_->setStepNoiseCovariance (default_step_covariance);
+  tracker_->setInitialNoiseCovariance (initial_noise_covariance);
+  tracker_->setInitialNoiseMean (default_initial_mean);
+  tracker_->setIterationNum (1);
+  tracker_->setParticleNum (600);
+  tracker_->setResampleLikelihoodThr(0.00);
+  tracker_->setUseChangeDetector (true);
+  tracker_->setUseNormal (false);
+
+  // Set coherences
+  ApproxNearestPairPointCloudCoherence<Point>::Ptr coherence = ApproxNearestPairPointCloudCoherence<Point>::Ptr
+    (new ApproxNearestPairPointCloudCoherence<Point> ());
+    
+  boost::shared_ptr<DistanceCoherence<Point> > distance_coherence
+    = boost::shared_ptr<DistanceCoherence<Point> > (new DistanceCoherence<Point> ());
+  coherence->addPointCoherence (distance_coherence);
+    
+  boost::shared_ptr<HSVColorCoherence<Point> > color_coherence
+    = boost::shared_ptr<HSVColorCoherence<Point> > (new HSVColorCoherence<Point> ());
+  color_coherence->setWeight (0.1);
+  coherence->addPointCoherence (color_coherence);
+
+  // Set search method 	
+  boost::shared_ptr<pcl::search::Octree<Point> > search (new pcl::search::Octree<Point> (0.01));
+  coherence->setSearchMethod (search);
+  coherence->setMaximumDistance (0.01);
+  /*
+    boost::shared_ptr<pcl::search::OrganizedNeighbor<Point> > search (new pcl::search::OrganizedNeighbor<Point>);    
+    coherence->setSearchMethod (search);
+    coherence->setMaximumDistance (0.01);
+  */
+  tracker_->setCloudCoherence (coherence);
+
+  
+  // Set reference cloud
+  Eigen::Affine3f trans = Eigen::Affine3f::Identity ();
+  trans.translation ().matrix () = Eigen::Vector3f ( center[0], center[1], center[2]);
+  pcl::PointCloud<Point>::Ptr transformed_ptr (new pcl::PointCloud<Point>) ;	
+  pcl::transformPointCloud<Point> ( *cluster_ptr, *transformed_ptr, trans.inverse());
+  tracker_->setReferenceCloud (transformed_ptr);
+  tracker_->setTrans (trans);
+  tracker_->setMinIndices (int (cluster_ptr->size ()) / 2);   
+}
+
+// Activity functions
+void ObjectTracking::Tracker::setActivity(int activity) {
+  activity_ += activity;
+  activity_ = (activity_ > MAX_ACTIVITY ? MAX_ACTIVITY :		\
+	       (activity_ < MIN_ACTIVITY ? MIN_ACTIVITY : activity_) );
+}  
+float ObjectTracking::Tracker::getActivity() {
+  return (activity_ - MIN_ACTIVITY) / (float)MAX_ACTIVITY;
+}  
+bool ObjectTracking::Tracker::isActive() {
+  return (activity_ > MIN_ACTIVITY ? true : false);
+}
+
 // ------------------------------------------
 // Background subtraction function
 // ------------------------------------------
@@ -84,7 +218,6 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
 				    const sensor_msgs::Image::ConstPtr &depth_msg, 
 				    const sensor_msgs::CameraInfo::ConstPtr &camera_info_msg, 
 				    const sensor_msgs::PointCloud2::ConstPtr &cloud_msg) {
-
   // Get the transformation
   tf::StampedTransform transform;
   try{
@@ -95,7 +228,6 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
     ROS_WARN("[ObjectTracking::trackCallback] %s" , ex.what());
     return;
   }
-
 
   // Read images
   Mat rgb_mask, depth_mask, rgb_frame, depth_frame;
@@ -175,26 +307,29 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
     }
   }
 
-  // Init particle filters and tarck objects
-  //pcl_ros::transformPointCloud( *pts, *pts, transform);
-  if( trackers_.empty() )
-    this->init (pts);
-  //cout << "Active: " << trackers_.size() << " (" << references_.size() << ")" << endl; 
-  
-  // Transform the cloud to the world frame
-  //pcl::PointCloud<Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<Point>);
-  //pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);
-  this->process (raw_cloud_ptr);
+  // Activate particle filters and track objects
+  if( trackers_.empty() ) {
+    this->activate (pts);
+
+    pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
+    gridSampleApprox ( raw_cloud_ptr, downsampled_cloud_ptr);
+    this->process (downsampled_cloud_ptr);
+
+    // Draw reult (with use of camera information)
+    image_geometry::PinholeCameraModel cam_model;
+    cam_model.fromCameraInfo(camera_info_msg);
+    this->drawParticles (result, cam_model);
+  }
     
-  // Camera information
-  image_geometry::PinholeCameraModel cam_model;
-  cam_model.fromCameraInfo(camera_info_msg);
-  this->drawParticles (result, cam_model);
-  
   // OpenCV window for display
   addWeighted( result, 0.6, gray, 0.4, 0.0, result);
   cv::imshow( "Object tracking...", result );
   char key = cv::waitKey(1); 
+
+  // Transform the cloud to the world frame
+  //pcl::PointCloud<Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<Point>);
+  //pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);
+
 }
   
 
@@ -206,23 +341,22 @@ void ObjectTracking::clustersCallback (const anchor_msgs::ClusterArray::ConstPtr
   static bool got_it = false;
 
   if( !got_it ) {
-  // Receive and store all segmented clusters
-  references_.clear();
-  centers_.clear();
-  for ( auto i = 0; i < msg->clusters.size(); i++) {
-    pcl::PointCloud<Point>::Ptr raw_cluster_ptr (new pcl::PointCloud<Point>) ;   
-    pcl::fromROSMsg ( msg->clusters[i], *raw_cluster_ptr);
-    pcl::PointCloud<Point>::Ptr cluster_ptr (new pcl::PointCloud<Point>) ;
-    this->removeZeroPoints ( raw_cluster_ptr, cluster_ptr);
-    references_.push_back (cluster_ptr);
+    // Receive and store all segmented clusters
+    for ( auto i = 0; i < msg->clusters.size(); i++) {
     
-    Eigen::Vector4f center;
-    center[0] = msg->centers[i].position.x;
-    center[1] = msg->centers[i].position.y;
-    center[2] = msg->centers[i].position.z;
-    centers_.push_back(center);
-  }
-  got_it = true;
+      pcl::PointCloud<Point>::Ptr raw_cluster_ptr (new pcl::PointCloud<Point>) ;   
+      pcl::fromROSMsg ( msg->clusters[i], *raw_cluster_ptr);
+      pcl::PointCloud<Point>::Ptr downsampled_cluster_ptr (new pcl::PointCloud<Point>) ;
+      gridSampleApprox ( raw_cluster_ptr, downsampled_cluster_ptr);
+    
+      Eigen::Vector4f center;
+      center[0] = msg->centers[i].position.x;
+      center[1] = msg->centers[i].position.y;
+      center[2] = msg->centers[i].position.z;
+   
+      trackers_.push_back ( Tracker( downsampled_cluster_ptr, center) );
+    }
+    got_it = true;
   }
 }
 
@@ -230,94 +364,16 @@ void ObjectTracking::clustersCallback (const anchor_msgs::ClusterArray::ConstPtr
 // --------------------------------
 // Tracking helper functions
 // ----------------------------------------------
-void ObjectTracking::init (const pcl::PointCloud<Point>::Ptr &pts) {
-  boost::mutex::scoped_lock lock (mtx_);
-
-  trackers_.clear();
-    
-  std::vector<double> default_step_covariance = std::vector<double> (6, 0.015 * 0.015);
-  default_step_covariance[3] *= 40.0;
-  default_step_covariance[4] *= 40.0;
-  default_step_covariance[5] *= 40.0;
-    
-  std::vector<double> initial_noise_covariance = std::vector<double> (6, 0.00001);
-  std::vector<double> default_initial_mean = std::vector<double> (6, 0.0);
+void ObjectTracking::activate (const pcl::PointCloud<Point>::Ptr &pts) {
 
   // Init a list of object trackerers
-  for ( auto i = 0; i < references_.size(); i++) {
-
-    //for ( auto j = 0; j < pts.size(); j++ ) {
+  for ( auto i = 0; i < trackers_.size(); i++) {
     BOOST_FOREACH  ( const Point pt, pts->points ) {
-      if( distance( pt, centers_[i]) > 0.9 ) {
-	/*
-	boost::shared_ptr<KLDAdaptiveParticleFilterOMPTracker<Point, Particle> > tracker 
-	  (new KLDAdaptiveParticleFilterOMPTracker<Point, Particle> (8));
-	
-	Particle bin_size;
-	bin_size.x = 0.1f;
-	bin_size.y = 0.1f;
-	bin_size.z = 0.1f;
-	bin_size.roll = 0.1f;
-	bin_size.pitch = 0.1f;
-	bin_size.yaw = 0.1f;
-	tracker->setBinSize (bin_size);
-
-	tracker->setMaximumParticleNum (1000);
-	tracker->setDelta (0.99);
-	tracker->setEpsilon (0.2);	
-	*/
-
-	boost::shared_ptr<ParticleFilterOMPTracker<Point, Particle> > tracker (new ParticleFilterOMPTracker<Point, Particle> (8));
-      	tracker->setStepNoiseCovariance (default_step_covariance);
-	tracker->setInitialNoiseCovariance (initial_noise_covariance);
-	tracker->setInitialNoiseMean (default_initial_mean);
-	tracker->setIterationNum (1);
-	tracker->setParticleNum (400);
-	tracker->setResampleLikelihoodThr(0.00);
-	tracker->setUseChangeDetector (true);
-	tracker->setUseNormal (false);
-
-	// Setup coherences
-	ApproxNearestPairPointCloudCoherence<Point>::Ptr coherence = ApproxNearestPairPointCloudCoherence<Point>::Ptr
-	  (new ApproxNearestPairPointCloudCoherence<Point> ());
-    
-	boost::shared_ptr<DistanceCoherence<Point> > distance_coherence
-	  = boost::shared_ptr<DistanceCoherence<Point> > (new DistanceCoherence<Point> ());
-	coherence->addPointCoherence (distance_coherence);
-    
-	boost::shared_ptr<HSVColorCoherence<Point> > color_coherence
-	  = boost::shared_ptr<HSVColorCoherence<Point> > (new HSVColorCoherence<Point> ());
-	color_coherence->setWeight (0.1);
-	coherence->addPointCoherence (color_coherence);
-
-	// Search method used
-	
-	boost::shared_ptr<pcl::search::Octree<Point> > search (new pcl::search::Octree<Point> (0.01));
-	coherence->setSearchMethod (search);
-	coherence->setMaximumDistance (0.01);
-	
-	/*
-	boost::shared_ptr<pcl::search::OrganizedNeighbor<Point> > search (new pcl::search::OrganizedNeighbor<Point>);    
-	coherence->setSearchMethod (search);
-	coherence->setMaximumDistance (0.01);
-	*/
-	tracker->setCloudCoherence (coherence);
-
-	
-	// Set reference cloud
-	Eigen::Affine3f trans = Eigen::Affine3f::Identity ();
-	trans.translation ().matrix () = Eigen::Vector3f ( centers_[i][0], centers_[i][1], centers_[i][2]);
-	pcl::PointCloud<Point>::Ptr transformed_ptr (new pcl::PointCloud<Point>) ;	
-	pcl::transformPointCloud<Point> ( *references_[i], *transformed_ptr, trans.inverse());
-	tracker->setReferenceCloud (transformed_ptr);
-	tracker->setTrans (trans);
-	tracker->setMinIndices (int (references_[i]->size ()) / 2);   
-	
-	trackers_.push_back(tracker);
-
-	break;
+      if( distance( pt, trackers_[i].center_) > 0.9 ) {	
+	trackers_[i].setActivity(MAX_ACTIVITY);
       }
     }
+    trackers_[i].setActivity(DECREASE_ACTIVITY);
   }
 }
 
@@ -325,12 +381,14 @@ void ObjectTracking::init (const pcl::PointCloud<Point>::Ptr &pts) {
 void ObjectTracking::process (const pcl::PointCloud<Point>::Ptr &cloud_ptr) {
   boost::mutex::scoped_lock lock (mtx_);
   
-  //FPS_CALC_BEGIN;
+  FPS_CALC_BEGIN;
   for (size_t i = 0; i < trackers_.size(); i++) {
-    trackers_[i]->setInputCloud (cloud_ptr);
-    trackers_[i]->compute ();
+    if (trackers_[i].isActive()) {
+      trackers_[i].tracker_->setInputCloud (cloud_ptr);
+      trackers_[i].tracker_->compute ();
+    }
   }
-  //FPS_CALC_END("tracking");
+  FPS_CALC_END("tracking");
 }
   
 
@@ -346,40 +404,45 @@ float ObjectTracking::distance ( const Point &pt, const Eigen::Vector4f &center)
 void ObjectTracking::drawParticles (cv::Mat &img, const image_geometry::PinholeCameraModel &model) {
 
   for (size_t i = 0; i < trackers_.size(); i++) { 
-    ParticleFilter::PointCloudStatePtr particles = trackers_[i]->getParticles ();
-    if (particles) {
-      pcl::PointCloud<SimplePoint>::Ptr particle_cloud (new pcl::PointCloud<SimplePoint>);
-      for (size_t i = 0; i < particles->points.size (); i++) {
-	/*
-	SimplePoint point;
-	point.x = particles->points[i].x;
-	point.y = particles->points[i].y;
-	point.z = particles->points[i].z;
-	particle_cloud->points.push_back (point);
-	*/
-	cv::Point3d pt_cv( particles->points[i].x, 
-			   particles->points[i].y, 
-			   particles->points[i].z );
-	cv::Point2f p = model.project3dToPixel(pt_cv);
-	circle( img, p, 2, Scalar( 255, 0, 0), -1, 8, 0 );
+    if (trackers_[i].isActive()) {
+      ParticleFilter::PointCloudStatePtr particles = trackers_[i].tracker_->getParticles ();
+      if (particles) {
+	
+	// Draw (tracked) reference cloud
+	Scalar blue( trackers_[i].getActivity() * 255, 0, 0);
+	Particle result = trackers_[i].tracker_->getResult ();
+	Eigen::Affine3f transformation = trackers_[i].tracker_->toEigenMatrix (result);
+	pcl::PointCloud<Point>::Ptr result_cloud (new pcl::PointCloud<Point>);
+	pcl::transformPointCloud<Point> (*(trackers_[i].tracker_->getReferenceCloud ()), *result_cloud, transformation);
+	BOOST_FOREACH  ( const Point pt, result_cloud->points ) {
+	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
+	  cv::Point2f p = model.project3dToPixel(pt_cv);
+	  circle( img, p, 1, blue, -1, 8, 0 );
+	}
+
+	// Draw particles
+	Scalar red( 0, 0, trackers_[i].getActivity() * 255);
+	BOOST_FOREACH  ( const Particle pt, particles->points ) {
+	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
+	  cv::Point2f p = model.project3dToPixel(pt_cv);
+	  circle( img, p, 1, red, -1, 8, 0 );
+	}
       }
     }
   }
 }
 
-void  ObjectTracking::removeZeroPoints ( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-					 pcl::PointCloud<Point>::Ptr &result_ptr ) {
-  for ( auto p = cloud_ptr->begin(); p != cloud_ptr->end(); ++p) {
-    //Point p = *cloud.points[i];
-    if (!( fabs(p->x) < 0.01 &&
-	   fabs(p->y) < 0.01 &&
-	   fabs(p->z) < 0.01 ) &&
-	!pcl_isnan(p->x) &&
-	!pcl_isnan(p->y) &&
-	!pcl_isnan(p->z) ) {
-      result_ptr->push_back(*p);
-    }
-  }
+// Downsample a point cloud (for improved performance)
+void ObjectTracking::gridSampleApprox ( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+					pcl::PointCloud<Point>::Ptr &result_ptr, 
+					double leaf_size ) {
+  FPS_CALC_BEGIN;
+  //pcl::VoxelGrid<PointType> grid;
+  pcl::ApproximateVoxelGrid<Point> grid;
+  grid.setLeafSize (static_cast<float> (leaf_size), static_cast<float> (leaf_size), static_cast<float> (leaf_size));
+  grid.setInputCloud (cloud_ptr);
+  grid.filter (*result_ptr);
+  FPS_CALC_END("gridSample");
 }
 
 
