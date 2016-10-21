@@ -173,20 +173,16 @@ ObjectTracking::Tracker::Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr
     
   boost::shared_ptr<HSVColorCoherence<Point> > color_coherence
     = boost::shared_ptr<HSVColorCoherence<Point> > (new HSVColorCoherence<Point> ());
-  color_coherence->setWeight (0.1);
+  color_coherence->setWeight (0.2);
   coherence->addPointCoherence (color_coherence);
 
   // Set search method 	
-  boost::shared_ptr<pcl::search::Octree<Point> > search (new pcl::search::Octree<Point> (0.01));
+  //boost::shared_ptr<pcl::search::KdTree<Point> > search (new pcl::search::KdTree<Point>);
+  //boost::shared_ptr<pcl::search::Octree<Point> > search (new pcl::search::Octree<Point> (0.01));
+  boost::shared_ptr<pcl::search::OrganizedNeighbor<Point> > search (new pcl::search::OrganizedNeighbor<Point>);    
   coherence->setSearchMethod (search);
   coherence->setMaximumDistance (0.01);
-  /*
-    boost::shared_ptr<pcl::search::OrganizedNeighbor<Point> > search (new pcl::search::OrganizedNeighbor<Point>);    
-    coherence->setSearchMethod (search);
-    coherence->setMaximumDistance (0.01);
-  */
   tracker_->setCloudCoherence (coherence);
-
   
   // Set reference cloud
   Eigen::Affine3f trans = Eigen::Affine3f::Identity ();
@@ -308,18 +304,16 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   }
 
   // Activate particle filters and track objects
-  if( trackers_.empty() ) {
-    this->activate (pts);
+  this->activate (pts);
 
-    pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
-    gridSampleApprox ( raw_cloud_ptr, downsampled_cloud_ptr);
-    this->process (downsampled_cloud_ptr);
-
-    // Draw reult (with use of camera information)
-    image_geometry::PinholeCameraModel cam_model;
-    cam_model.fromCameraInfo(camera_info_msg);
-    this->drawParticles (result, cam_model);
-  }
+  pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
+  gridSampleApprox ( raw_cloud_ptr, downsampled_cloud_ptr);
+  this->process (downsampled_cloud_ptr);
+  
+  // Draw reult (with use of camera information)
+  image_geometry::PinholeCameraModel cam_model;
+  cam_model.fromCameraInfo(camera_info_msg);
+  this->drawParticles (result, cam_model);
     
   // OpenCV window for display
   addWeighted( result, 0.6, gray, 0.4, 0.0, result);

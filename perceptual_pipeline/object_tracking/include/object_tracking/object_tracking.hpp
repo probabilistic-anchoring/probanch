@@ -66,7 +66,7 @@ class ObjectTracking {
   enum {
     MIN_ACTIVITY = 0,
     MAX_ACTIVITY = 100,
-    DECREASE_ACTIVITY = -1
+    DECREASE_ACTIVITY = -5
   };
   
   // Tracker struct
@@ -86,15 +86,6 @@ class ObjectTracking {
     bool isActive();
   };
   vector<Tracker> trackers_;
-  /*
-  // Variables
-  double factor_;
-  double size_;
-  int planeMinSize_;
-  int clusterMinSize_;
-  double angularTh_;
-  double distanceTh_;
-  */
   boost::mutex mtx_;
 
   // Node handler(s) 
