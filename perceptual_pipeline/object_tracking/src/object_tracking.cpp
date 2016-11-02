@@ -15,6 +15,8 @@
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/approximate_voxel_grid.h>
+#include <pcl/filters/filter.h>
+#include <pcl/filters/extract_indices.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -159,7 +161,7 @@ ObjectTracking::Tracker::Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr
   tracker_->setInitialNoiseCovariance (initial_noise_covariance);
   tracker_->setInitialNoiseMean (default_initial_mean);
   tracker_->setIterationNum (1);
-  tracker_->setParticleNum (600);
+  tracker_->setParticleNum (200);
   tracker_->setResampleLikelihoodThr(0.00);
   tracker_->setUseChangeDetector (true);
   tracker_->setUseNormal (false);
@@ -243,6 +245,7 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   pcl::PointCloud<Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
 
+  FPS_CALC_BEGIN;
   // Subtract the background
   Mat frame_lab, gray;
   cvtColor( rgb_frame, frame_lab, CV_BGR2Lab);
@@ -269,7 +272,7 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
     prev_ = mask;
   }
   Mat result( past_ * 0.33);
-  GaussianBlur( result, result, Size( 9, 9 ), 0, 0 );
+  GaussianBlur( result, result, Size( 5, 5 ), 0, 0 );
   past_ = prev_;
   result = cv::max( result, prev_ * 0.66);
   GaussianBlur( result, result, Size( 7, 7 ), 0, 0 );
@@ -281,7 +284,7 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   // Saftey check
   if ( result.empty() ) 
     return;
-    
+
   // Find contours
   Mat result_mask;
   cv::threshold( result, result_mask, 200, 255, THRESH_BINARY);
@@ -303,18 +306,18 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
       }
     }
   }
+  FPS_CALC_END("processVisualData");
 
   // Activate particle filters and track objects
   this->activate (pts);
 
   // Downsample the point cloud
-  pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
-  gridSampleApprox ( raw_cloud_ptr, downsampled_cloud_ptr);
   pcl::PointCloud<Point>::Ptr filtered_cloud_ptr (new pcl::PointCloud<Point>);
-  radiusSearch ( downsampled_cloud_ptr, filtered_cloud_ptr);
-
+  radiusSearch ( raw_cloud_ptr, filtered_cloud_ptr);
+  pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
+  gridSampleApprox ( filtered_cloud_ptr, downsampled_cloud_ptr);
   // Track the particle filters
-  this->process (filtered_cloud_ptr);
+  this->process (downsampled_cloud_ptr);
   
   // Draw reult (with use of camera information)
   image_geometry::PinholeCameraModel cam_model;
@@ -370,12 +373,10 @@ void ObjectTracking::activate (const pcl::PointCloud<Point>::Ptr &pts) {
   for ( auto i = 0; i < trackers_.size(); i++) {
     BOOST_FOREACH  ( const Point pt, pts->points ) {
       float d = distance( pt, trackers_[i].center_);
-      trackers_[i].setActivity(d * MAX_ACTIVITY);
-      /*
-      if( distance( pt, trackers_[i].center_) > 0.9 ) {	
-	trackers_[i].setActivity(MAX_ACTIVITY);
+      if( d > 0.9 ) {
+	trackers_[i].setActivity(d * MAX_ACTIVITY);	
       }
-      */
+      
     }
     trackers_[i].setActivity(DECREASE_ACTIVITY);
   }
@@ -445,7 +446,7 @@ void ObjectTracking::gridSampleApprox ( const pcl::PointCloud<Point>::Ptr &cloud
   pcl::ApproximateVoxelGrid<Point> grid;
   grid.setLeafSize (static_cast<float> (leaf_size), static_cast<float> (leaf_size), static_cast<float> (leaf_size));
   grid.setInputCloud (cloud_ptr);
-  grid.filter (*result_ptr);
+    grid.filter (*result_ptr);
   FPS_CALC_END("gridSample");
 }
 
@@ -453,7 +454,7 @@ void ObjectTracking::gridSampleApprox ( const pcl::PointCloud<Point>::Ptr &cloud
 void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 				    pcl::PointCloud<Point>::Ptr &result_ptr, 
 				    double radius ) {
-
+  FPS_CALC_BEGIN;
   // Extract centre ponts of active/inactive objects
   pcl::PointCloud<Point>::Ptr pos_pts (new pcl::PointCloud<Point>);
   pcl::PointCloud<Point>::Ptr neg_pts (new pcl::PointCloud<Point>);  
@@ -471,8 +472,8 @@ void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr
   }
 
   // Create a KD-search tree
-  pcl::KdTreeFLANN<Point> kdtree;
-  kdtree.setInputCloud (cloud_ptr);
+  pcl::search::OrganizedNeighbor<Point> search;
+  search.setInputCloud (cloud_ptr);
 
   // Search points within a given radius
   std::map<int, float> ptsResult;
@@ -480,7 +481,7 @@ void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr
   BOOST_FOREACH  ( const Point pt, pos_pts->points ) {
     std::vector<int> posPtsIdx;
     std::vector<float> posPtsDistance;
-    if( kdtree.radiusSearch ( pt, radius, posPtsIdx, posPtsDistance) > 0 ) {
+    if( search.radiusSearch ( pt, radius, posPtsIdx, posPtsDistance) > 0 ) {
       for (size_t i = 0; i < posPtsIdx.size(); i++) {
 	ite = ptsResult.find (posPtsIdx[i]);
 	if ( ite != ptsResult.end() ) {
@@ -497,7 +498,7 @@ void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr
   BOOST_FOREACH  ( const Point pt, neg_pts->points ) {  
     std::vector<int> negPtsIdx;
     std::vector<float> negPtsDistance;
-    if( kdtree.radiusSearch ( pt, radius, negPtsIdx, negPtsDistance) > 0 ) {
+    if( search.radiusSearch ( pt, radius, negPtsIdx, negPtsDistance) > 0 ) {
       for (size_t i = 0; i < negPtsIdx.size(); i++) {
 	ite = ptsResult.find (negPtsIdx[i]);
 	if ( ite != ptsResult.end() ) {
@@ -508,11 +509,23 @@ void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr
       }
     }
   }
+  pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+  for ( ite = ptsResult.begin(); ite != ptsResult.end(); ++ite) {
+    inliers->indices.push_back (ite->first); 
+  }
+  pcl::ExtractIndices<Point> filter;
+  filter.setInputCloud (cloud_ptr);
+  filter.setKeepOrganized (true);
+  filter.setIndices (inliers);
+  filter.filter (*result_ptr);
 
+  /*
   // Create the result cloud
   for ( ite = ptsResult.begin(); ite != ptsResult.end(); ++ite) {
     result_ptr->push_back (cloud_ptr->points[ ite->first ]); 
   }
+  */
+  FPS_CALC_END("radiusSearch");
 }
 
 // ----------------------

@@ -133,7 +133,7 @@ class ObjectTracking {
 			  double leaf_size = 0.002 );
   void radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 		      pcl::PointCloud<Point>::Ptr &result_ptr, 
-		      double radius = 0.5 );
+		      double radius = 0.25 );
 
 public: 
   ObjectTracking (ros::NodeHandle nh, bool useApprox = true);
