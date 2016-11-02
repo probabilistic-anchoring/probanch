@@ -11,6 +11,7 @@
 #include <pcl/tracking/nearest_pair_point_cloud_coherence.h>
 
 #include <pcl/search/pcl_search.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/approximate_voxel_grid.h>
@@ -284,7 +285,7 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   // Find contours
   Mat result_mask;
   cv::threshold( result, result_mask, 200, 255, THRESH_BINARY);
-  vector<vector<Point2i> > contours;  // <-- Note. OpenCV point
+  vector<vector<Point2i> > contours;  // <-- Note. OpenCV point!
   vector<Vec4i> hierarchy;
   findContours( result_mask, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
     
@@ -306,9 +307,14 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   // Activate particle filters and track objects
   this->activate (pts);
 
+  // Downsample the point cloud
   pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
   gridSampleApprox ( raw_cloud_ptr, downsampled_cloud_ptr);
-  this->process (downsampled_cloud_ptr);
+  pcl::PointCloud<Point>::Ptr filtered_cloud_ptr (new pcl::PointCloud<Point>);
+  radiusSearch ( downsampled_cloud_ptr, filtered_cloud_ptr);
+
+  // Track the particle filters
+  this->process (filtered_cloud_ptr);
   
   // Draw reult (with use of camera information)
   image_geometry::PinholeCameraModel cam_model;
@@ -363,9 +369,13 @@ void ObjectTracking::activate (const pcl::PointCloud<Point>::Ptr &pts) {
   // Init a list of object trackerers
   for ( auto i = 0; i < trackers_.size(); i++) {
     BOOST_FOREACH  ( const Point pt, pts->points ) {
+      float d = distance( pt, trackers_[i].center_);
+      trackers_[i].setActivity(d * MAX_ACTIVITY);
+      /*
       if( distance( pt, trackers_[i].center_) > 0.9 ) {	
 	trackers_[i].setActivity(MAX_ACTIVITY);
       }
+      */
     }
     trackers_[i].setActivity(DECREASE_ACTIVITY);
   }
@@ -439,6 +449,71 @@ void ObjectTracking::gridSampleApprox ( const pcl::PointCloud<Point>::Ptr &cloud
   FPS_CALC_END("gridSample");
 }
 
+// Reduce the point cloud to the points closest to active objects 
+void ObjectTracking::radiusSearch ( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+				    pcl::PointCloud<Point>::Ptr &result_ptr, 
+				    double radius ) {
+
+  // Extract centre ponts of active/inactive objects
+  pcl::PointCloud<Point>::Ptr pos_pts (new pcl::PointCloud<Point>);
+  pcl::PointCloud<Point>::Ptr neg_pts (new pcl::PointCloud<Point>);  
+  for (size_t i = 0; i < trackers_.size(); i++) {
+    Point p;
+    p.x = trackers_[i].center_[0]; 
+    p.y = trackers_[i].center_[1]; 
+    p.z = trackers_[i].center_[2];
+    if (trackers_[i].isActive()) {
+      pos_pts->push_back (p);
+    }
+    else {
+      neg_pts->push_back (p);
+    }   
+  }
+
+  // Create a KD-search tree
+  pcl::KdTreeFLANN<Point> kdtree;
+  kdtree.setInputCloud (cloud_ptr);
+
+  // Search points within a given radius
+  std::map<int, float> ptsResult;
+  std::map<int, float>::iterator ite;
+  BOOST_FOREACH  ( const Point pt, pos_pts->points ) {
+    std::vector<int> posPtsIdx;
+    std::vector<float> posPtsDistance;
+    if( kdtree.radiusSearch ( pt, radius, posPtsIdx, posPtsDistance) > 0 ) {
+      for (size_t i = 0; i < posPtsIdx.size(); i++) {
+	ite = ptsResult.find (posPtsIdx[i]);
+	if ( ite != ptsResult.end() ) {
+	  if ( posPtsDistance[i] < ite->second ) {
+	    ite->second = posPtsDistance[i];
+	  }
+	}
+	else {
+	  ptsResult[ posPtsIdx[i] ] = posPtsDistance[i];
+	}
+      }
+    }
+  }
+  BOOST_FOREACH  ( const Point pt, neg_pts->points ) {  
+    std::vector<int> negPtsIdx;
+    std::vector<float> negPtsDistance;
+    if( kdtree.radiusSearch ( pt, radius, negPtsIdx, negPtsDistance) > 0 ) {
+      for (size_t i = 0; i < negPtsIdx.size(); i++) {
+	ite = ptsResult.find (negPtsIdx[i]);
+	if ( ite != ptsResult.end() ) {
+	  if ( ite->second > negPtsDistance[i] ) {
+	    ptsResult.erase (ite);
+	  }
+	}
+      }
+    }
+  }
+
+  // Create the result cloud
+  for ( ite = ptsResult.begin(); ite != ptsResult.end(); ++ite) {
+    result_ptr->push_back (cloud_ptr->points[ ite->first ]); 
+  }
+}
 
 // ----------------------
 // Main function
