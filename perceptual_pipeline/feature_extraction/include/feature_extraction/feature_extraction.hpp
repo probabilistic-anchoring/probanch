@@ -11,6 +11,9 @@ class FeatureExtraction {
   
 private:
 
+  // Color feature object 
+  ColorFeatures cf_; 
+
   // ROS node handles 
   ros::NodeHandle nh_; 
   ros::NodeHandle priv_nh_;

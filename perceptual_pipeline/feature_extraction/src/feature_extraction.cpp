@@ -23,7 +23,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
 
   // Instaniate main feature processor
   int numKeyPoints = objects_msg->objects.size() * 2000;
-  Features f(numKeyPoints);
+  KeypointFeatures kf(numKeyPoints);
 
   // Try to recive the image
   cv_bridge::CvImagePtr cv_ptr;
@@ -39,16 +39,16 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
   }
 
   // Histogram equalization
-  img = Features::equalizeIntensity(img);
+  img = ColorFeatures::equalizeIntensity(img);
   
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
   cv::cvtColor( img, gray, CV_BGR2GRAY); // <-- Gray scale
-  f.detect( gray, keypoints);
+  kf.detect( gray, keypoints);
    
   // Extract descriptor
   if (!keypoints.empty()) {
-    descriptor = f.extract( gray, keypoints, numKeyPoints);    
+    descriptor = kf.extract( gray, keypoints, numKeyPoints);    
   }
 
   // Go through each contour and extract features for each object
@@ -76,8 +76,8 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     }
 
     // Filter descriptor (in case we have too many features)
-    cv::Mat sub_descriptor = f.filterDescriptor( descriptor, idxs, CV_8U);
-    sub_descriptor = f.filterResponseN( sub_keypoints, sub_descriptor, 2000);
+    cv::Mat sub_descriptor = kf.filterDescriptor( descriptor, idxs, CV_8U);
+    sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 2000);
     
     // Add extracted descriptor 
     cv_ptr->image = sub_descriptor;
@@ -113,8 +113,17 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     cv::drawContours( mask, contours, -1, cv::Scalar(255), -1);
     
     // Calculate the color over the image mask
-    output.objects[i].color.num_color_samples = f.maskColors( img, mask, output.objects[i].color.data);  
-
+    //output.objects[i].color.num_color_samples = f.maskColors( img, mask, output.objects[i].color.data);  
+    cv::Mat hist;
+    cv::Mat sub_mask = mask(rect);
+    cf_.calculate( sub_img, hist, sub_mask);
+    
+    std::vector<float> preds;
+    cf_.predict( hist, preds);
+    for( int i = 0; i < preds.size(); i++ )
+      std::cout << cf_.colorSymbol(i) << ": " << (preds[i] * 100.0) << "%" << std::endl;
+    std::cout << " ---- " << std::endl;
+    /*
     // Ground color symbols
     int best = output.objects[i].color.data[0];
     for( uint j = 1; j < output.objects[i].color.data.size(); j++) {
@@ -127,6 +136,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
 	output.objects[i].color.symbols.push_back(f.colorMapping((uchar)j));
       }
     }
+    */
 
   }
 
