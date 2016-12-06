@@ -40,6 +40,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
 
   // Histogram equalization
   img = ColorFeatures::equalizeIntensity(img);
+  std::cout << "This part works.. " << std::endl;
   
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;

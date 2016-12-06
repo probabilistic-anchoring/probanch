@@ -287,12 +287,12 @@ ColorFeatures::ColorFeatures(int hbins,
   params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e10, 1e-8); // 1e-6
 
   // Train the SVM
-  this->_svm->train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+  this->_svm.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
 }
 
 // Destructor - clean up...
 ColorFeatures::~ColorFeatures() {
-  this->_svm.release();
+  //this->_svm.release();
 }
 
 // Color detection
@@ -342,7 +342,7 @@ void ColorFeatures::predict( const Mat &hist,
       for( int v = 0; v < _vbins; v++ ) 
 	if( hist.at<float>(h, s, v) > 0.0 ) {
 	  Mat sampleMat = (Mat_<float>(1,3) << h,s,v);
-	  float response = this->_svm->predict(sampleMat);
+	  float response = this->_svm.predict(sampleMat);
 	  preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
 	}
 }	

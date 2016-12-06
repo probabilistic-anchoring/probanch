@@ -20,8 +20,8 @@ class Classifier {
     public:
         Classifier(const string& model_file,
                    const string& trained_file,
-                   const string& mean_file,
-                   const string& label_file);
+                   const string& label_file,
+		   const string& mean_file = "");
 
         std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
 
@@ -45,8 +45,8 @@ class Classifier {
 
 Classifier::Classifier(const string& model_file,
                        const string& trained_file,
-                       const string& mean_file,
-                       const string& label_file) {
+                       const string& label_file,
+		       const string& mean_file) {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
 #else
@@ -59,11 +59,14 @@ Classifier::Classifier(const string& model_file,
 
     Blob<float>* input_layer = net_->input_blobs()[0];
     num_channels_ = input_layer->channels();
-
+    std::cout<< "Number of channels: " << num_channels_ << std::endl; 
     input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
+    std::cout<< "Geometry: " << input_layer->width() << " x " << input_layer->height() << std::endl;
 
     /* Load the binaryproto mean file. */
-    this->SetMean(mean_file);
+    if( !mean_file.empty() ) {
+      this->SetMean(mean_file);
+    }
 
     /* Load labels. */
     std::ifstream labels(label_file.c_str());
@@ -147,7 +150,8 @@ std::vector<float> Classifier::Predict(const cv::Mat& img) {
 
     this->Preprocess(img, &input_channels);
 
-    net_->ForwardPrefilled();
+    //net_->ForwardPrefilled();
+    net_->Forward();
 
     /* Copy the output layer to a std::vector */
     Blob<float>* output_layer = net_->output_blobs()[0];
@@ -202,7 +206,10 @@ void Classifier::Preprocess(const cv::Mat& img,
         sample_resized.convertTo(sample_float, CV_32FC1);
 
     cv::Mat sample_normalized;
-    cv::subtract(sample_float, mean_, sample_normalized);
+    if( !mean_.empty() )
+      cv::subtract(sample_float, mean_, sample_normalized);
+    else
+      cv::subtract(sample_float, cv::Scalar(104,117,123), sample_normalized);
 
     /* This operation will write the separate BGR planes directly to the
      * input layer of the network because it is wrapped by the cv::Mat

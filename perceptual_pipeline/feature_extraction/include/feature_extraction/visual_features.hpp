@@ -125,7 +125,7 @@ public:
 private:
 
   // SVM classifier
-  cv::Ptr<CvSVM> _svm;
+  CvSVM _svm;
   int _hbins;
   int _sbins;
   int _vbins;

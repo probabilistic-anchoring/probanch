@@ -79,7 +79,8 @@ class AnchorCaffe {
 	  output.objects[i].caffe.symbols.push_back(str.substr(pos));
 	  output.objects[i].caffe.predictions.push_back(ite->second);
 	}
-	//ROS_WARN("[Caffe] object: %s", output.objects[i].caffe.symbols.front().c_str());
+	ROS_INFO("[Caffe] object: %s (%.2f)", output.objects[i].caffe.symbols.front().c_str(),
+		 output.objects[i].caffe.predictions.front());
       }
     }
     
@@ -117,7 +118,7 @@ class AnchorCaffe {
 	res.symbols.push_back(str.substr(pos));
 	res.predictions.push_back(ite->second);
       }
-      //ROS_WARN("[Caffe] object: %s", res.symbols.front().c_str());
+      ROS_WARN("[Caffe] object: %s (%.2f)", res.symbols.front().c_str(), res.predictions.front());
       return true;
     }
     return false;
@@ -130,13 +131,15 @@ public:
     const string ROOT_PATH = ros::package::getPath("anchor_caffe");
     cout << ROOT_PATH<<endl;
     _model_path = ROOT_PATH + "/model/reground.prototxt";
-    _weights_path = ROOT_PATH + "/model/finetune_reground.caffemodel";
+    _weights_path = ROOT_PATH + "/model/reground_googlenet.caffemodel";
+    //_weights_path = ROOT_PATH + "/model/finetune_reground.caffemodel";
     _mean_file = ROOT_PATH + "/model/imagenet_mean.binaryproto";
     _label_file = ROOT_PATH + "/model/reground_words.txt";
     //_image_path = ROOT_SAMPLE + "/model/cat.jpg";
 
     // Create the classifier
-    this->_classifier = new Classifier( _model_path, _weights_path, _mean_file, _label_file);
+    //this->_classifier = new Classifier( _model_path, _weights_path, _label_file, _mean_file);
+    this->_classifier = new Classifier( _model_path, _weights_path, _label_file);
 
     // ROS setup
     this->_caffe_srv  = _nh.advertiseService("/caffe_classifier", &AnchorCaffe::classify, this);
