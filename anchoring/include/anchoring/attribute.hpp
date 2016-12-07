@@ -75,18 +75,17 @@ namespace anchoring {
    * -----------------------------------------------
    */
   struct ColorAttribute : public AttributeCommon {
-    int _total;
     cv::Mat _data;
- 
+    vector<double> _predictions;
+
     // Constructors
     ColorAttribute(AttributeType type = COLOR) : AttributeCommon(type) {}
-    ColorAttribute( const vector<uint16_t> &data, 
-		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = COLOR );
     ColorAttribute( const cv::Mat &data, 
+		    const vector<float> &predictions, 
 		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = COLOR )  : AttributeCommon( symbols, type) { 
-      this->_data = data;
+		    AttributeType type = CAFFE ) : AttributeCommon( symbols, type) {
+      data.copyTo(this->_data);
+      this->_predictions = vector<double>( predictions.begin(), predictions.end() );
     }    
 
     // Override methods

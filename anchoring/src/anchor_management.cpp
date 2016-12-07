@@ -59,7 +59,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 
     // Read percept from ROS message
     cv_bridge::CvImagePtr cv_ptr;
-    Mat img, descriptor;
+    Mat img, descriptor, histogram;
     try {
       cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].descriptor.data, 
 				    sensor_msgs::image_encodings::MONO8 );
@@ -67,6 +67,10 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].caffe.data,
 				    sensor_msgs::image_encodings::BGR8 );
       cv_ptr->image.copyTo(img); 
+      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data,
+				    sensor_msgs::image_encodings::TYPE_32FC1 );
+      cv_ptr->image.copyTo(histogram); 
+
     } catch (cv_bridge::Exception& e) {
       ROS_ERROR("[AnchorManagement::match] receiving descriptor or image: %s", e.what());
     }
@@ -74,7 +78,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Create a map of all object attributes
     AttributeMap attributes;
     attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
-    attributes[COLOR] = AttributePtr( new ColorAttribute( object_ptr->objects[i].color.data, object_ptr->objects[i].color.symbols) );
+    attributes[COLOR] = AttributePtr( new ColorAttribute( histogram, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].color.symbols) );
     attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
     attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->objects[i].location.data, object_ptr->objects[i].location.symbols) );    
     attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.border, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 

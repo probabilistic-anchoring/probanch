@@ -58,20 +58,6 @@ namespace anchoring {
   /**
    * Color attribute struct methods
    */  
-  ColorAttribute::ColorAttribute( const vector<uint16_t> &data,
-				  const vector<string> &symbols,
-				  AttributeType type ) 
-    : AttributeCommon( symbols, type) {
-    this->_total = 0;
-    for( uint i = 0; i < data.size(); i++) { 
-      this->_total += data[i];
-    }
-    this->_data = cv::Mat( 1, data.size(), CV_32F);
-    for( uint i = 0; i < data.size(); i++) { 
-      this->_data.at<float>( 0, i) = data[i] / (float)this->_total;
-    }  
-  }
-
   void ColorAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
   
     // Save the color
@@ -81,7 +67,9 @@ namespace anchoring {
 	array.push_back(this->_data.at<float>( 0, i));
       }
       db_sub.add<double>( "data", array);
-      db_sub.add<int>( "samples", this->_total);
+
+      // Save (color) predictions
+      db_sub.add<double>( "predictions", this->_predictions);
     }
     catch( DBException &e ) {
       cout << "[attribute] MondoDB: " << e.what() << endl;
@@ -95,13 +83,12 @@ namespace anchoring {
 
     // Load the color 
     try {
-      this->_total = db_sub.get<int>("samples");
       std::vector<double> array;
       db_sub.get<double>( "data", array);
-      this->_data = cv::Mat( 1, array.size(), CV_32F);
-      for( uint i = 0; i < array.size(); i++) {
-	this->_data.at<float>( 0, i) = (float)array[i]; 
-      }
+      this->_data = cv::Mat( 1, array.size(), CV_32F, &array.front());
+
+      // Load (caffe) predictions
+      db_sub.get<double>( "predictions", this->_predictions);
     }
     catch( DBException &e ) {
       cout << "[attribute] MondoDB: " << e.what() << endl;
@@ -112,10 +99,12 @@ namespace anchoring {
   }
 
   void ColorAttribute::populate(anchor_msgs::Snapshot &msg) {
-    msg.color = _symbols;
+    msg.colors = this->_symbols;
+    msg.color_preds = this->_predictions; 
+
   }
   void ColorAttribute::populate(anchor_msgs::Display &msg) {
-    msg.colors = _symbols;
+    msg.colors = this->_symbols;
   }
 
   
@@ -483,17 +472,8 @@ namespace anchoring {
   }
 
   void CaffeAttribute::populate(anchor_msgs::Snapshot &msg) {
-    float best = 0.0;
-    int index = -1;
-    for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      if( this->_predictions[i] > best ) {
-	best = this->_predictions[i];
-	index = i;
-      }
-    }
-    if( index >= 0 ) {
-      msg.object = this->_symbols[index];
-    }
+    msg.categories = this->_symbols;
+    msg.category_preds = this->_predictions;
   }
 
   void CaffeAttribute::populate(anchor_msgs::Display &msg) {

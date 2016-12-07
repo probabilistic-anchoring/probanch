@@ -1,3 +1,3 @@
 string[] symbols
-uint16 num_color_samples
-uint16[] data
+float32[] predictions
+sensor_msgs/Image data

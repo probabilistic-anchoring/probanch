@@ -1,7 +1,9 @@
 string id
 geometry_msgs/PoseStamped center
 geometry_msgs/Point bounding_box
-string[] color
+string[] colors
+float64[] color_preds
 string shape
 string size
-string object
+string[] categories
+float64[] category_preds

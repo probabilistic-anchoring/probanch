@@ -113,32 +113,36 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     contours.push_back(contour);
     cv::drawContours( mask, contours, -1, cv::Scalar(255), -1);
     
-    // Calculate the color over the image mask
-    //output.objects[i].color.num_color_samples = f.maskColors( img, mask, output.objects[i].color.data);  
+    // Calculate the HSV color histogram over the image mask
     cv::Mat hist;
     cv::Mat sub_mask = mask(rect);
     cf_.calculate( sub_img, hist, sub_mask);
     
+    // Classify the histogram
     std::vector<float> preds;
     cf_.predict( hist, preds);
+    cv::Mat preds_img( 1, preds.size(), CV_32FC1, &preds.front()); 
+    /*
     for( int i = 0; i < preds.size(); i++ )
       std::cout << cf_.colorSymbol(i) << ": " << (preds[i] * 100.0) << "%" << std::endl;
     std::cout << " ---- " << std::endl;
-    /*
-    // Ground color symbols
-    int best = output.objects[i].color.data[0];
-    for( uint j = 1; j < output.objects[i].color.data.size(); j++) {
-      if( output.objects[i].color.data[j] > best ) {
-	best = output.objects[i].color.data[j];  
-      }
-    }
-    for( uint j = 0; j < output.objects[i].color.data.size(); j++) {
-      if( (output.objects[i].color.data[j] / (float)best) > 0.75 ) {  // Looking for color spikes above 75 % of the best spike
-	output.objects[i].color.symbols.push_back(f.colorMapping((uchar)j));
-      }
-    }
     */
 
+    // Ground color symbols
+    double min, max;
+    cv::minMaxLoc( preds_img, &min, &max);
+    for( uint j = 0; j < preds.size(); j++) {
+      if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the best spike
+	output.objects[i].color.symbols.push_back(cf_.colorSymbol(j));
+	output.objects[i].color.predictions.push_back(preds[j]);
+      }
+    }
+
+    // Normalize the histogram and add to output
+    //cf_.normalize(hist);
+    preds_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
+    cv_ptr->encoding = "32FC1";
+    cv_ptr->toImageMsg(output.objects[i].color.data);
   }
 
   // Publish the new object array
