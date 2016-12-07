@@ -1,4 +1,6 @@
+
 #include <string>
+#include <algorithm>
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -129,18 +131,19 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     */
 
     // Ground color symbols
-    double min, max;
-    cv::minMaxLoc( preds_img, &min, &max);
+    double max = *std::max_element( preds.begin(), preds.end());
     for( uint j = 0; j < preds.size(); j++) {
-      if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the best spike
+      if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the max value
 	output.objects[i].color.symbols.push_back(cf_.colorSymbol(j));
 	output.objects[i].color.predictions.push_back(preds[j]);
       }
     }
 
     // Normalize the histogram and add to output
-    //cf_.normalize(hist);
-    preds_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
+    cv::Mat hist_reduced;
+    cf_.reduce( hist, hist_reduced);
+    cf_.normalize(hist_reduced);
+    hist_reduced.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
     cv_ptr->encoding = "32FC1";
     cv_ptr->toImageMsg(output.objects[i].color.data);
   }

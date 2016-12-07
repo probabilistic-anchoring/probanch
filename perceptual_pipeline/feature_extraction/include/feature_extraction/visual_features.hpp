@@ -116,6 +116,10 @@ public:
 
   void normalize( cv::Mat &hist );
 
+  void reduce( const cv::Mat &hist,
+	       cv::Mat &result, 
+	       int hbins = 30, int sbins = 32, int vbins = 4 );
+
   std::string colorSymbol(int idx);
 
   // Static helper functions

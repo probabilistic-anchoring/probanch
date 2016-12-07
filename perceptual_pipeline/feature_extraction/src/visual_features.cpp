@@ -240,7 +240,7 @@ cv::Mat KeypointFeatures::filterDescriptor( const Mat& descriptor,
 
 /* ----------------------------
 
-   Keypoint features
+   Color features
 
    --------------------------- */
 
@@ -337,9 +337,9 @@ void ColorFeatures::predict( const Mat &hist,
   float totVal = this->totalValue(hist);
 
   // Predict the color distribution
-  for( int h = 0; h < _hbins; h++ )
-    for( int s = 0; s < _sbins; s++ ) 
-      for( int v = 0; v < _vbins; v++ ) 
+  for( int h = 0; h < this->_hbins; h++ )
+    for( int s = 0; s < this->_sbins; s++ ) 
+      for( int v = 0; v < this->_vbins; v++ ) 
 	if( hist.at<float>(h, s, v) > 0.0 ) {
 	  Mat sampleMat = (Mat_<float>(1,3) << h,s,v);
 	  float response = this->_svm.predict(sampleMat);
@@ -352,10 +352,32 @@ void ColorFeatures::normalize( Mat &hist ) {
 
   // Calculate the max value
   float maxVal = this->maxValue(hist);
-  for( int h = 0; h < _hbins; h++ )
-    for( int s = 0; s < _sbins; s++ ) 
-      for( int v = 0; v < _vbins; v++ ) 
+  for( int h = 0; h < hist.rows; h++ )
+    for( int s = 0; s < hist.cols; s++ )
+      for( int v = 0; v < hist.channels(); v++ ) 
 	hist.at<float>(h, s, v) /= maxVal;
+}
+
+void ColorFeatures::reduce( const Mat &hist,
+			    Mat &result, 
+			    int hbins, int sbins, int vbins ) {
+  
+  // Reduce the number of bins of the histogram
+  int sz[] = { hbins, sbins, vbins};
+  result = cv::Mat( 3, sz, CV_32FC1, Scalar::all(0.0));
+  int h_idx = 0;
+  for( int h = 0; h < this->_hbins; h++ ) {
+    int s_idx = 0;
+    for( int s = 0; s < this->_sbins; s++ ) { 
+      int v_idx = 0;
+      for( int v = 0; v < this->_vbins; v++ ) { 
+	result.at<float>( h_idx, s_idx, v_idx) += hist.at<float>(h, s, v);
+	if( v % (this->_vbins / vbins) == 0 ) { v_idx++; }
+      }
+      if( s % (this->_sbins / sbins) == 0 ) { s_idx++; }
+    }
+    if( h % (this->_hbins / hbins) == 0 ) { h_idx++; }
+  }
 }
 
 // Mapping functions for converting between index and "color" symbols
@@ -402,23 +424,23 @@ void ColorFeatures::buildTrainingData( const Color index[],
 }
 
 // Helper functions for for calculating the max and total value of a histogram
-float ColorFeatures::totalValue(const cv::Mat &hist) {
+float ColorFeatures::totalValue(const Mat &hist) {
   float totVal = 0.0;
-  for( int h = 0; h < _hbins; h++ )
-    for( int s = 0; s < _sbins; s++ )
-      for( int v = 0; v < _vbins; v++ ) 
+  for( int h = 0; h < hist.rows; h++ )
+    for( int s = 0; s < hist.cols; s++ )
+      for( int v = 0; v < hist.channels(); v++ ) 
 	totVal += hist.at<float>(h, s, v);
   return totVal;
 }
-float ColorFeatures::maxValue(const cv::Mat &hist) {
+float ColorFeatures::maxValue(const Mat &hist) {
 
   float maxVal = 0.0;
-  for( int h = 0; h < _hbins; h++ )
-    for( int s = 0; s < _sbins; s++ )
-      for( int v = 0; v < _vbins; v++ ) 
+  for( int h = 0; h < hist.rows; h++ )
+    for( int s = 0; s < hist.cols; s++ )
+      for( int v = 0; v < hist.channels(); v++ )
 	if( hist.at<float>(h, s, v) > maxVal ) {
 	  maxVal = hist.at<float>(h, s, v);
-	}  
+	}
   return maxVal;
 }
 
