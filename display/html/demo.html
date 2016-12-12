@@ -3,6 +3,8 @@
 <head>
   <title>ReGround demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="./js/jquery-3.1.1.min.js"></script>
+  <script src="./js/roslib.min.js"></script>
   <link rel="stylesheet" href="./css/w3.css">
   <!--<link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">-->
   <style>
@@ -16,20 +18,43 @@
       padding: 0px;
     }
     .active {
-      color: #00ff00;
+      background: #ffffff;
+      color: #000000;
     }
+    
   </style>
-  <script type="text/javascript" src="jquery-3.1.1.min.js">
+  <script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // Create a connection to the rosbridge WebSocket server.
+  ros.connect('ws://localhost:9090');
+
+  // First, we create a Topic object with details of the topic's name and message type.
+  var cmdTest = new ROSLIB.Topic({
+    ros : ros,
+    name : '/test_topic',
+    messageType : 'std_msgs/String'
+  });
+ var test_str = new ROSLIB.Message({
+    data : { "Test"
+    }
+});
+  
+
+  
+
     $(document).ready(function(){
-      $("a.menuItem").click(function() {
-        $("a.menuItem").addClass("active");
+  // And finally, publish.
+  cmdTest.publish(test_str);
+
+      $("a.menuItem").click( function() {
+        $("a.menuItem").removeClass("active");
+        $(this).toggleClass("active");
       });
+      
     });
-
-    $(".menuItem").on( "click", function(){
-        $(this).addClass("active");
-    });
-
   </script>
 </head>
 <body class="w3-white">
@@ -38,17 +63,18 @@
 <header id="header" class="w3-container w3-top w3-black w3-padding-xxlarge">
     <h1 class="w3-xxxlarge"><b>ReGround:</b></h1>
     <h2 class="w3-text-dark-grey w3-margin-0">relational symbol grounding through affordance learning.</h2>
+
 </header>
 
 <!-- Sidenav/menu -->
 <nav class="w3-sidenav w3-black w3-animate-left w3-center w3-text-grey w3-collapse" style="width:300px;margin-top:190px;font-weight:bold"><br>
-  <li><a href="#segmentation" class="w3-padding w3-hover-black" id="menuItem">
+  <li><a href="#segmentation" class="w3-padding w3-hover-black menuItem">
     OBJECT SEGMENTATION
   </a></li> 
-  <li><a href="#tracking" class="w3-padding w3-hover-black" id="menuItem">
+  <li><a href="#tracking" class="w3-padding w3-hover-black menuItem">
     OBJECT TRACKING
   </a></li>
-  <li><a href="#extrcation" class="w3-padding w3-hover-black" id="menuItem">
+  <li><a href="#extrcation" class="w3-padding w3-hover-black menuItem">
     FEATURE EXTRACTION
   </a></li>
 </nav>
