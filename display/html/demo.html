@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ReGround demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./css/w3.css">
+  <!--<link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">-->
+  <style>
+    body,h1,h2,h3,h4,h5 {font-family: "Arial", sans-serif}
+    #header {
+      border: 1px solid black;
+      background: url(network_2.jpg);
+      background-position: right top;
+      background-size: 363px 200px;
+      background-repeat: no-repeat;
+      padding: 0px;
+    }
+    .active {
+      color: #00ff00;
+    }
+  </style>
+  <script type="text/javascript" src="jquery-3.1.1.min.js">
+    $(document).ready(function(){
+      $("a.menuItem").click(function() {
+        $("a.menuItem").addClass("active");
+      });
+    });
+
+    $(".menuItem").on( "click", function(){
+        $(this).addClass("active");
+    });
+
+  </script>
+</head>
+<body class="w3-white">
+
+<!-- Top menu on small screens -->
+<header id="header" class="w3-container w3-top w3-black w3-padding-xxlarge">
+    <h1 class="w3-xxxlarge"><b>ReGround:</b></h1>
+    <h2 class="w3-text-dark-grey w3-margin-0">relational symbol grounding through affordance learning.</h2>
+</header>
+
+<!-- Sidenav/menu -->
+<nav class="w3-sidenav w3-black w3-animate-left w3-center w3-text-grey w3-collapse" style="width:300px;margin-top:190px;font-weight:bold"><br>
+  <li><a href="#segmentation" class="w3-padding w3-hover-black" id="menuItem">
+    OBJECT SEGMENTATION
+  </a></li> 
+  <li><a href="#tracking" class="w3-padding w3-hover-black" id="menuItem">
+    OBJECT TRACKING
+  </a></li>
+  <li><a href="#extrcation" class="w3-padding w3-hover-black" id="menuItem">
+    FEATURE EXTRACTION
+  </a></li>
+</nav>
+
+
+</body>
+</html>
