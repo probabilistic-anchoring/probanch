@@ -4,80 +4,214 @@
   <title>ReGround demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="./js/jquery-3.1.1.min.js"></script>
+  <script src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
   <script src="./js/roslib.min.js"></script>
   <link rel="stylesheet" href="./css/w3.css">
   <!--<link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">-->
   <style>
     body,h1,h2,h3,h4,h5 {font-family: "Arial", sans-serif}
-    #header {
+    .header {
       border: 1px solid black;
-      background: url(network_2.jpg);
+      background-image: url(./img/network_header.jpg);
       background-position: right top;
-      background-size: 363px 200px;
+      background-size: 535px 200px;
       background-repeat: no-repeat;
       padding: 0px;
+    }
+    .footer {
+      background-image: url(./img/network_footer.jpg);
+      background-position: right bottom;
+      background-size: 318px 147px;
+      background-repeat: no-repeat;
+      padding: 0px;
+      width: 318px;
+      height: 147px;
+    }
+    li {
+      border-bottom: 1px solid white;
+      border-left: 1px solid white;
     }
     .active {
       background: #ffffff;
       color: #000000;
     }
-    
+    li a.menuItem:hover:not(.active) {
+      background-color: black;
+      color: white;
+    }    
+    li a.menuItem:hover {
+      background-color: white;
+      color: black;
+    }    
+
   </style>
   <script>
-  // Connecting to ROS
-  // -----------------
-  var ros = new ROSLIB.Ros();
 
-  // Create a connection to the rosbridge WebSocket server.
-  ros.connect('ws://localhost:9090');
-
-  // First, we create a Topic object with details of the topic's name and message type.
-  var cmdTest = new ROSLIB.Topic({
-    ros : ros,
-    name : '/test_topic',
-    messageType : 'std_msgs/String'
-  });
- var test_str = new ROSLIB.Message({
-    data : { "Test"
-    }
-});
+   
+    // Connecting to ROS
+    // -----------------
+    var ros = new ROSLIB.Ros();
   
+    // Create a connection to the rosbridge WebSocket server.
+    ros.connect('ws://localhost:9090');
 
+    // ROs log
+    ros.on( 'error', function(error) { 
+      console.log( error ); 
+    }); 
+    ros.on('connection', function() { 
+      console.log('Connection made!'); 
+    });
+
+    // Publisher/subscriber objects
+    var talker = new ROSLIB.Topic({
+      ros : ros,
+      name : '/display/trigger',
+      messageType : 'std_msgs/String'
+    });
   
+    var listener = new ROSLIB.Topic({
+      ros : ros,
+      name : '/display/base64img',
+      messageType : 'std_msgs/String'
+      //messageType : 'sensor_msgs/Image'
+    });
+  
+    // Callback function for reciving an image
+    listener.subscribe(function(message) {
+      //console.log('Received message on ' + listener.name + ': ' + message.data);
+      var imgData = "data:image/jpeg;base64," + message.data;
+      //console.log(imgData);
+      displayImg = document.getElementById("ROSImg");
+      displayImg.style.display = "inline";
+      displayImg.setAttribute( 'src', imgData);
+    });
 
+    // Handle menu item click 
     $(document).ready(function(){
-  // And finally, publish.
-  cmdTest.publish(test_str);
-
       $("a.menuItem").click( function() {
         $("a.menuItem").removeClass("active");
-        $(this).toggleClass("active");
+        $(this).addClass("active");
+
+        // Set the title text
+        var str = $(this).text();
+        str = str.substring(0, 1) + str.substring(1).toLowerCase()
+        $("h2.title").text(str);
+
+        // Create and send the ROS display trigger
+        var str = new ROSLIB.Message({
+          data : $(this).attr('href').substring(1)
+        });
+        talker.publish(str);
       });
-      
     });
   </script>
 </head>
 <body class="w3-white">
 
-<!-- Top menu on small screens -->
-<header id="header" class="w3-container w3-top w3-black w3-padding-xxlarge">
-    <h1 class="w3-xxxlarge"><b>ReGround:</b></h1>
-    <h2 class="w3-text-dark-grey w3-margin-0">relational symbol grounding through affordance learning.</h2>
-
+<!-- Header -->
+<header class="header w3-container w3-top w3-black w3-padding-xxlarge">
+    <h2 class="w3-xxxlarge" ><b>ReGround:</b></h2>
+    <h3 class="w3-text-dark-grey w3-margin-0"><b>relational symbol grounding through affordance learning.</b></h3>
 </header>
 
-<!-- Sidenav/menu -->
-<nav class="w3-sidenav w3-black w3-animate-left w3-center w3-text-grey w3-collapse" style="width:300px;margin-top:190px;font-weight:bold"><br>
-  <li><a href="#segmentation" class="w3-padding w3-hover-black menuItem">
-    OBJECT SEGMENTATION
-  </a></li> 
-  <li><a href="#tracking" class="w3-padding w3-hover-black menuItem">
-    OBJECT TRACKING
-  </a></li>
-  <li><a href="#extrcation" class="w3-padding w3-hover-black menuItem">
-    FEATURE EXTRACTION
-  </a></li>
-</nav>
+<!-- Menu - horizontal style -->
+<ul class="w3-navbar w3-animate-left w3-center w3-black w3-text-grey w3-padding-0" style="width: 100%; position: fixed; top:180px; font-weight: bold">
+  <li style="width: 16.666%; border-right: 1px solid white; border-left: 1px solid white;">
+    <a href="#segmentation" class="w3-padding menuItem active">OBJECT SEGMENTATION</a>
+  </li> 
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#tracking" class="w3-padding menuItem" >OBJECT TRACKING</a>
+  </li>
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#extraction" class="w3-padding menuItem">FEATURE EXTRACTION</a>
+  </li>
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#classificiation" class="w3-padding menuItem" >OBJECT CLASSIFICATION</a>
+  </li>
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#grounding" class="w3-padding menuItem">SYMBOL GROUNDING</a>
+  </li>
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
+  </li>
+</ul>
+
+<!-- Menu - vertical style 
+<ul class="w3-sidenav w3-animate-left w3-center w3-black w3-text-grey w3-padding-0" style="width: 250px; font-weight: bold">
+  <li>
+    <a href="#segmentation" class="w3-padding menuItem active">OBJECT SEGMENTATION</a>
+  </li> 
+  <li>
+    <a href="#tracking" class="w3-padding menuItem" >OBJECT TRACKING</a>
+  </li>
+  <li>
+    <a href="#extraction" class="w3-padding menuItem">FEATURE EXTRACTION</a>
+  </li>
+  <li>
+    <a href="#classificiation" class="w3-padding menuItem" >OBJECT CLASSIFICATION</a>
+  </li>
+  <li>
+    <a href="#grounding" class="w3-padding menuItem">SYMBOL GROUNDING</a>
+  </li>
+  <li>
+    <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
+  </li>
+</ul>
+-->
+
+<!-- Page content -->
+<div class="w3-main w3-padding" style="margin-top: 230px;">
+  <div class="w3-container w3-margin" style="float: left;">
+    <img id="ROSImg" src="" alt="ROS response image..." style="border: 1px solid black; display: none;">
+  </div> 
+  <div class="w3-container" style="width: 50%; float: left; margin-top: 32px;">
+    <h2 class="title" style="font-weight: bold; text-decoration: underline;">Object segmentation</h2>
+    <p>Text goes here...</p>
+    <p>Text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text...</p>
+  </div>
+   <div class="footer w3-container" style="position: absolute; bottom: 0px; right: 0px; height: 147px; padding: 0px; z-index: -1;"></div>
+</div>
+
+<!-- Footer -->
+ <footer class="w3-container w3-bottom w3-white w3-text-black" style="width: 50%">
+   <div class="w3-container w3-border-top w3-border-black" style="float: left; width: 100%">
+     <p style="float: left; font-weight: bold;">
+       &copy; ReGround (2016) :: Andreas Persson (andres.persson@oru.se)
+     </p>
+   </div>
+
+
+   <!-- Logo navbar 
+   <div class="w3-container" style="position: fixed; bottom: 0px; right: 0px; height: 105px; padding: 0px;">
+     <img src="network_footer.jpg" alt="Footer" style="width: 212px; height: 105px;">
+   </div>
+
+   <ul class="w3-navbar w3-white w3-hover-white w3-padding-small" style="position: fixed; bottom: 0px; right: 0px; width: 50%;">
+     <li style="float: right;">
+       <a href="https://www.oru.se/english/">  
+	 <img class="logo" src="oru_logo.svg" alt="ORU" style="height: 48px">
+       </a>
+     </li>
+     <li style="float: right;">
+       <a href="https://www.kuleuven.be/english">  
+	 <img class="logo" src="kul_logo.png" alt="KULeuven" style="height: 48px">
+       </a>
+     </li>
+     <li style="float: right;">
+       <a href="https://www.ku.edu.tr/en">  
+	 <img class="logo" src="koc_logo.jpg" alt="KOC" style="height: 48px">
+       </a>
+     </li>
+     <li style="float: right;">
+       <a href="http://www.chistera.eu/">  
+	 <img class="logo" src="chist_logo.gif" alt="Chist-Era" style="height: 48px">
+       </a>
+     </li>
+     
+   </ul>
+   -->
+</footer> 
 
 
 </body>

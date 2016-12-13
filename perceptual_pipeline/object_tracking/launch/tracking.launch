@@ -1,6 +1,6 @@
 <launch>
 
-  <!-- Laucnh Kinect2 bridge (with default parameters) -->
+  <!-- Launch Kinect2 bridge (with default parameters) -->
   <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">	
     <arg name="calib_path" value="$(find anchoring)/data/" />
     <arg name="publish_tf" value="true" />

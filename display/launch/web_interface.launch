@@ -1,0 +1,11 @@
+<launch>
+
+  <!-- Run the Websocket bridge -->
+  <node name="rosbridge_websocket_node" pkg="rosbridge_server" type="rosbridge_websocket" 
+    output="screen" />
+
+  <!-- Convert the image to bas64 string -->
+  <node name="image_converter_node" pkg="display" type="img2str" 
+    output="screen" />
+
+</launch>

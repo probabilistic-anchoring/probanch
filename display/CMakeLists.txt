@@ -88,6 +88,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  /usr/include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -102,6 +103,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(anchor_viewer src/anchor_viewer.cpp)
+add_executable(img2str src/img_to_base64.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -109,6 +111,10 @@ add_executable(anchor_viewer src/anchor_viewer.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(anchor_viewer 
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+target_link_libraries(img2str
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
