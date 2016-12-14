@@ -11,6 +11,7 @@
 #include <image_geometry/pinhole_camera_model.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <std_msgs/String.h>
 #include <anchor_msgs/ObjectArray.h>
 #include <anchor_msgs/ClusterArray.h>
 
@@ -24,7 +25,8 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   , useApprox_(useApprox)
   , it_(nh)
   , priv_nh_("~")
-  , queueSize_(5) {
+  , queueSize_(5)
+  , display_image_(false) {
 
   // Subscribers / publishers
   //image_transport::TransportHints hints(useCompressed ? "compressed" : "raw");
@@ -33,19 +35,23 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   image_sub_ = new image_transport::SubscriberFilter( it_, "image", queueSize_);
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>( nh_, "camera_info", queueSize_);
   cloud_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>( nh_, "cloud", queueSize_);
-  //seg_image_pub_ = it_.advertise("/display/segmented", 1);
-
+  
   obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/raw", queueSize_);
   cluster_pub_ = nh_.advertise<anchor_msgs::ClusterArray>("/objects/clusters", queueSize_);
+
+  // Used for the web interface
+  display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &ObjectSegmentation::triggerCb, this);
+  display_image_pub_ = it_.advertise("/display/image", 1);
+
   
   // Set up sync policies
   if(useApprox) {
     syncApproximate_ = new message_filters::Synchronizer<ApproximateSyncPolicy>(ApproximateSyncPolicy(queueSize_), *image_sub_, *camera_info_sub_, *cloud_sub_);
-    syncApproximate_->registerCallback( boost::bind( &ObjectSegmentation::callback, this, _1, _2, _3));
+    syncApproximate_->registerCallback( boost::bind( &ObjectSegmentation::segmentationCb, this, _1, _2, _3));
   }
   else {
     syncExact_ = new message_filters::Synchronizer<ExactSyncPolicy>(ExactSyncPolicy(queueSize_), *image_sub_, *camera_info_sub_, *cloud_sub_);
-    syncExact_->registerCallback( boost::bind( &ObjectSegmentation::callback, this, _1, _2, _3));
+    syncExact_->registerCallback( boost::bind( &ObjectSegmentation::segmentationCb, this, _1, _2, _3));
   }
 
   // Create transformation listener
@@ -69,6 +75,11 @@ ObjectSegmentation::~ObjectSegmentation() {
   delete tf_listener_;
 }
 
+void ObjectSegmentation::triggerCb( const std_msgs::String::ConstPtr &msg) {
+  this->display_image_ = msg->data == "segmentation" ? true : false;
+}
+
+
 void ObjectSegmentation::spin() {
   while (ros::ok()) {
     ros::spin();
@@ -79,9 +90,9 @@ void ObjectSegmentation::spin() {
 // --------------------------
 // Callback function (ROS)
 // --------------------------
-void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg, 
-				   const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
-				   const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
+void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr image_msg, 
+					 const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
+					 const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
   
   // Get the transformation
   tf::StampedTransform transform;
@@ -109,30 +120,37 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
   segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", -0.1, 0.6 ); 
   */
 
+  // Read the RGB image
+  cv::Mat img, result;
+  cv_bridge::CvImagePtr cv_ptr;
+  try {
+    cv_ptr = cv_bridge::toCvCopy( image_msg, image_msg->encoding);
+    cv_ptr->image.copyTo(img);
+  }
+  catch (cv_bridge::Exception& ex){
+    ROS_ERROR("[ObjectSegmentation::callback]: Failed to convert image.");
+    return;
+  }
+
+  // Saftey check
+  if( img.empty() ) {
+    return;
+  }
+
+  // Convert to grayscale and back (for display purposes)
+  if( display_image_ ) {
+    cv::cvtColor( img, result, CV_BGR2GRAY); 
+    cv::cvtColor( result, result, CV_GRAY2BGR);
+    result.convertTo( result, -1, 1.0, 50); 
+  }
+
   // Cluster cloud into objects 
   // ----------------------------------------
   segmentation::Segmentation seg(raw_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
   seg.cluster_organized(cluster_indices, this->type_);
   if( !cluster_indices.empty() ) {
- 
-    // Read the RGB image
-    cv::Mat img;
-    cv_bridge::CvImagePtr cv_ptr;
-    try {
-      cv_ptr = cv_bridge::toCvCopy( image_msg, image_msg->encoding);
-      cv_ptr->image.copyTo(img);
-    }
-    catch (cv_bridge::Exception& ex){
-      ROS_ERROR("[ObjectSegmentation::callback]: Failed to convert image.");
-      return;
-    }
-
-    // Saftey check
-    if( img.empty() ) {
-      return;
-    }
-    
+  
     // Camera information
     image_geometry::PinholeCameraModel cam_model;
     cam_model.fromCameraInfo(camera_info_msg);
@@ -189,6 +207,7 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
       	  */
+	  img.copyTo( result, cluster_img);
 	  
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cluster;
@@ -260,13 +279,13 @@ void ObjectSegmentation::callback( const sensor_msgs::Image::ConstPtr image_msg,
 	ROS_ERROR("[object_recognition] CV processing error: %s", exc.what() );
       }
     }
-    
-    /*
-    // Publish the segmented image (with contours)
-    cv_ptr->image = img;
-    cv_ptr->encoding = "bgr8";
-    seg_image_pub_.publish(cv_ptr->toImageMsg());
-    */
+
+    // Publish the "segmented" image
+    if( display_image_ ) {
+      cv_ptr->image = result;
+      cv_ptr->encoding = "bgr8";
+      display_image_pub_.publish(cv_ptr->toImageMsg());
+    }
     
     // Publish the object array
     if( !objects.objects.empty() || !clusters.clusters.empty() ) {
