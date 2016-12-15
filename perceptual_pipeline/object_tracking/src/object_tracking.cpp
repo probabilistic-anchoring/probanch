@@ -61,6 +61,7 @@ ObjectTracking::ObjectTracking (ros::NodeHandle nh, bool useApprox)
   , priv_nh_("~")
   , useApprox_(useApprox)
   , queueSize_(5)
+  , display_image_(false)
 {
 
   // Subscribers / publishers
@@ -69,16 +70,20 @@ ObjectTracking::ObjectTracking (ros::NodeHandle nh, bool useApprox)
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>( nh_, "camera_info", queueSize_);
   cloud_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>( nh_, "cloud", queueSize_);
 
-  clusters_sub_ = nh_.subscribe("/objects/clusters", queueSize_, &ObjectTracking::clustersCallback, this);
+  clusters_sub_ = nh_.subscribe("/objects/clusters", queueSize_, &ObjectTracking::clustersCb, this);
+
+  // Used for the web interface
+  display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &ObjectTracking::triggerCb, this);
+  display_image_pub_ = it_.advertise("/display/image", 1);
 
   // Set sync policies
   if(useApprox) {
     syncApproximate_ = new message_filters::Synchronizer<ApproximateSyncPolicy>(ApproximateSyncPolicy(queueSize_), *rgb_sub_, *depth_sub_, *camera_info_sub_, *cloud_sub_);
-    syncApproximate_->registerCallback( boost::bind( &ObjectTracking::trackCallback, this, _1, _2, _3, _4));
+    syncApproximate_->registerCallback( boost::bind( &ObjectTracking::trackCb, this, _1, _2, _3, _4));
   }
   else {
     syncExact_ = new message_filters::Synchronizer<ExactSyncPolicy>(ExactSyncPolicy(queueSize_), *rgb_sub_, *depth_sub_, *camera_info_sub_, *cloud_sub_);
-    syncExact_->registerCallback( boost::bind( &ObjectTracking::trackCallback, this, _1, _2, _3, _4));
+    syncExact_->registerCallback( boost::bind( &ObjectTracking::trackCb, this, _1, _2, _3, _4));
   }
   
   // Create transformation listener
@@ -114,6 +119,11 @@ void ObjectTracking::spin() {
     ros::spin();
   }    
 }
+
+void ObjectTracking::triggerCb( const std_msgs::String::ConstPtr &msg) {
+  this->display_image_ = (msg->data == "tracking") ? true : false;
+}
+
 
 // ------------------------------
 // Tracker struct contructor
@@ -163,7 +173,7 @@ ObjectTracking::Tracker::Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr
   tracker_->setIterationNum (1);
   tracker_->setParticleNum (200);
   tracker_->setResampleLikelihoodThr(0.00);
-  tracker_->setUseChangeDetector (true);
+  tracker_->setUseChangeDetector (false);
   tracker_->setUseNormal (false);
 
   // Set coherences
@@ -213,10 +223,10 @@ bool ObjectTracking::Tracker::isActive() {
 // ------------------------------------------
 // Background subtraction function
 // ------------------------------------------
-void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg, 
-				    const sensor_msgs::Image::ConstPtr &depth_msg, 
-				    const sensor_msgs::CameraInfo::ConstPtr &camera_info_msg, 
-				    const sensor_msgs::PointCloud2::ConstPtr &cloud_msg) {
+void ObjectTracking::trackCb( const sensor_msgs::Image::ConstPtr &rgb_msg, 
+			      const sensor_msgs::Image::ConstPtr &depth_msg, 
+			      const sensor_msgs::CameraInfo::ConstPtr &camera_info_msg, 
+			      const sensor_msgs::PointCloud2::ConstPtr &cloud_msg) {
   // Get the transformation
   tf::StampedTransform transform;
   try{
@@ -251,9 +261,11 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   cvtColor( rgb_frame, frame_lab, CV_BGR2Lab);
   cvtColor( rgb_frame, gray, CV_BGR2GRAY);
   cvtColor( gray, gray, CV_GRAY2BGR);
+  gray.convertTo( gray, -1, 1.0, 50);
 
   double learning_rate = 0.01; 
   rgb_subtractor_->operator()( frame_lab, rgb_mask, learning_rate);
+  FPS_CALC_END("processVisualData");
   depth_subtractor_->operator()( depth_frame, depth_mask, learning_rate);
     
   // Saftey check
@@ -294,6 +306,8 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
     
   // Process the result
   applyColorMap( result, result, COLORMAP_HOT);    
+  result = cv::max( gray, result);
+
   pcl::PointCloud<Point>::Ptr pts (new pcl::PointCloud<Point>);
   if( !contours.empty() ) {
     for( int i = 0; i < contours.size(); i++ ) {
@@ -306,7 +320,6 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
       }
     }
   }
-  FPS_CALC_END("processVisualData");
 
   // Activate particle filters and track objects
   this->activate (pts);
@@ -324,10 +337,34 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
   cam_model.fromCameraInfo(camera_info_msg);
   this->drawParticles (result, cam_model);
     
+  /*
   // OpenCV window for display
   addWeighted( result, 0.6, gray, 0.4, 0.0, result);
   cv::imshow( "Object tracking...", result );
   char key = cv::waitKey(1); 
+  */
+
+  // Publish the resulting tracking image
+  if( display_image_ ) {
+    //addWeighted( result, 0.6, gray, 0.4, 0.0, result);
+    //result.convertTo( result, -1, 1.0, 50);
+    /*
+    for( uint i = 0; i < result.rows; i++) {
+      for( uint j = 0; j < result.cols; j++) {	  
+	if( result.at<Vec3b>(i,j)[0] == 0 && result.at<Vec3b>(i,j)[1] == 0 && result.at<Vec3b>(i,j)[2] == 0 ) {
+	  for( uint c = 0; c < 3; c++) {
+	    result.at<Vec3b>(i,j)[c] = saturate_cast<uchar>( 1.0 * gray.at<uchar>(i,j) + 50 ); // alpha * img + beta
+	  }
+	}
+      }
+    }
+    */
+
+    cv_ptr->image = result;
+    cv_ptr->encoding = "bgr8";
+    display_image_pub_.publish(cv_ptr->toImageMsg());
+  }
+
 
   // Transform the cloud to the world frame
   //pcl::PointCloud<Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<Point>);
@@ -339,7 +376,7 @@ void ObjectTracking::trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg,
 // ---------------------------------------
 // Clusters callback function (ROS)
 // -----------------------------------------
-void ObjectTracking::clustersCallback (const anchor_msgs::ClusterArray::ConstPtr &msg)  {
+void ObjectTracking::clustersCb (const anchor_msgs::ClusterArray::ConstPtr &msg)  {
   boost::mutex::scoped_lock lock (mtx_);
   static bool got_it = false;
 
@@ -407,14 +444,14 @@ float ObjectTracking::distance ( const Point &pt, const Eigen::Vector4f &center)
 
 // Draw the resulting particles on the resulting image
 void ObjectTracking::drawParticles (cv::Mat &img, const image_geometry::PinholeCameraModel &model) {
-
+  int px_size = 1;
   for (size_t i = 0; i < trackers_.size(); i++) { 
     if (trackers_[i].isActive()) {
       ParticleFilter::PointCloudStatePtr particles = trackers_[i].tracker_->getParticles ();
       if (particles) {
 	
 	// Draw (tracked) reference cloud
-	Scalar blue( trackers_[i].getActivity() * 255, 0, 0);
+	cv::Mat blue_px( px_size, px_size, CV_8UC3, cv::Scalar( 255, 0, 0));
 	Particle result = trackers_[i].tracker_->getResult ();
 	Eigen::Affine3f transformation = trackers_[i].tracker_->toEigenMatrix (result);
 	pcl::PointCloud<Point>::Ptr result_cloud (new pcl::PointCloud<Point>);
@@ -422,15 +459,27 @@ void ObjectTracking::drawParticles (cv::Mat &img, const image_geometry::PinholeC
 	BOOST_FOREACH  ( const Point pt, result_cloud->points ) {
 	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
 	  cv::Point2f p = model.project3dToPixel(pt_cv);
-	  circle( img, p, 1, blue, -1, 8, 0 );
+	  cv::Rect rect( p, cv::Size( px_size, px_size));
+	  rect &= cv::Rect( cv::Point(0.0), img.size());
+	  cv::Mat roi = img(rect);
+	  if( roi.empty() )
+	    continue;
+	  double alpha = trackers_[i].getActivity();
+	  cv::addWeighted( blue_px, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
 
 	// Draw particles
-	Scalar red( 0, 0, trackers_[i].getActivity() * 255);
+	cv::Mat red_px( px_size, px_size, CV_8UC3, cv::Scalar( 0, 0, 255));
 	BOOST_FOREACH  ( const Particle pt, particles->points ) {
 	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
 	  cv::Point2f p = model.project3dToPixel(pt_cv);
-	  circle( img, p, 1, red, -1, 8, 0 );
+	  cv::Rect rect( p, cv::Size( px_size, px_size));
+	  rect &= cv::Rect( cv::Point(0.0), img.size());
+	  cv::Mat roi = img(rect);
+	  if( roi.empty() )
+	    continue;
+	  double alpha = trackers_[i].getActivity();
+	  cv::addWeighted( red_px, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
       }
     }

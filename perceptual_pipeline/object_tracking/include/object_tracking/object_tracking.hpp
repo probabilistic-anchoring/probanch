@@ -19,6 +19,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <std_msgs/String.h>
 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
@@ -81,7 +82,7 @@ class ObjectTracking {
     // Constructor
     Tracker( const pcl::PointCloud<Point>::Ptr &cluster_ptr, 
 	     Eigen::Vector4f &center,
-	     bool use_fixed = false );
+	     bool use_fixed = true );
     void setActivity(int activity);
     float getActivity();
     bool isActive();
@@ -101,6 +102,10 @@ class ObjectTracking {
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
   ros::Subscriber clusters_sub_;
 
+  bool display_image_;
+  ros::Subscriber display_trigger_sub_;
+  image_transport::Publisher display_image_pub_;
+
   // Defined sync policies
   bool useApprox_;
   typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> ExactSyncPolicy;
@@ -119,11 +124,12 @@ class ObjectTracking {
   cv::Ptr<cv::BackgroundSubtractor> rgb_subtractor_;
   
   // Private functions
-  void trackCallback( const sensor_msgs::Image::ConstPtr &rgb_msg, 
+  void triggerCb( const std_msgs::String::ConstPtr &msg);
+  void trackCb( const sensor_msgs::Image::ConstPtr &rgb_msg, 
 		      const sensor_msgs::Image::ConstPtr &depth_msg, 
 		      const sensor_msgs::CameraInfo::ConstPtr &camera_info_msg, 
 		      const sensor_msgs::PointCloud2::ConstPtr &cloud_msg );
-  void clustersCallback ( const anchor_msgs::ClusterArray::ConstPtr &msg);
+  void clustersCb ( const anchor_msgs::ClusterArray::ConstPtr &msg);
   void activate ( const pcl::PointCloud<Point>::Ptr &pts);
   void process (const pcl::PointCloud<Point>::Ptr &cloud_ptr);
   float distance ( const Point &pt, const Eigen::Vector4f &center);

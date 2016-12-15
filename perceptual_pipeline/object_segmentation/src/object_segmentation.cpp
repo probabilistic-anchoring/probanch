@@ -42,7 +42,6 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   // Used for the web interface
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &ObjectSegmentation::triggerCb, this);
   display_image_pub_ = it_.advertise("/display/image", 1);
-
   
   // Set up sync policies
   if(useApprox) {
@@ -75,15 +74,15 @@ ObjectSegmentation::~ObjectSegmentation() {
   delete tf_listener_;
 }
 
-void ObjectSegmentation::triggerCb( const std_msgs::String::ConstPtr &msg) {
-  this->display_image_ = msg->data == "segmentation" ? true : false;
-}
-
-
 void ObjectSegmentation::spin() {
   while (ros::ok()) {
     ros::spin();
   }    
+}
+
+void ObjectSegmentation::triggerCb( const std_msgs::String::ConstPtr &msg) {
+  this->display_image_ = (msg->data == "segmentation") ? true : false;
+  ROS_WARN("Got trigger: %s", msg->data.c_str()); 
 }
 
 
@@ -169,12 +168,18 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
   
       // Pots-process the cluster
-      std::vector<pcl::Vertices> indices;
-      seg.post_process( cluster_ptr, indices);
+      //std::vector<pcl::Vertices> indices;
+      //seg.post_process( cluster_ptr, indices);
       try {
 
 	// Create the cluster image 
 	cv::Mat cluster_img( img.size(), CV_8U, cv::Scalar(0));
+	BOOST_FOREACH  ( const segmentation::Point pt, cluster_ptr->points ) {
+	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
+	  cv::Point2f p = cam_model.project3dToPixel(pt_cv);
+	  circle( cluster_img, p, 1, cv::Scalar(255), -1, 8, 0 );
+	}
+	/*
 	for (size_t j = 0; j < indices.size (); j++) {
 	  std::vector<cv::Point> poly;
 	  for (size_t k = 0; k < indices[j].vertices.size(); k++) {
@@ -185,6 +190,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  const cv::Point *poly_ptr = &poly[0];
 	  cv::fillConvexPoly( cluster_img, poly_ptr, (int)poly.size(), cv::Scalar(255));
 	}
+	*/
 
 	// Find the contours of the cluster
 	std::vector<std::vector<cv::Point> > contours;
@@ -207,7 +213,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  // Draw the contour (for display)
 	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
       	  */
-	  img.copyTo( result, cluster_img);
 	  
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cluster;
@@ -220,6 +225,9 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  segmentation::getLocation( transformed_cluster.makeShared(), obj.location.data.pose );
 	  if( !( obj.location.data.pose.position.x > 0.2  && obj.location.data.pose.position.y > 0.0 && obj.location.data.pose.position.y < 0.62 && obj.location.data.pose.position.z < 0.5 ) )
 	    continue;
+
+	  // Add segmented object to display image
+	  img.copyTo( result, cluster_img);
 	  
 
 	  // std::cout << "Location: [" << obj.location.data.pose.position.x << ", " << obj.location.data.pose.position.y << ", " << obj.location.data.pose.position.z << "]" << std::endl;	  

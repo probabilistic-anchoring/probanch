@@ -84,8 +84,8 @@ public:
   ImageToBase64(ros::NodeHandle nh) : _nh(nh), _it(nh), _priv_nh("~") {
     
     // ROS subscriber/publisher
-    _img_sub = _it.subscribe("/display/image", 10, &ImageToBase64::imageCb, this);
-    _img_str_pub = _nh.advertise<std_msgs::String>("/display/base64img", 10);
+    _img_sub = _it.subscribe("/display/image", 1, &ImageToBase64::imageCb, this);
+    _img_str_pub = _nh.advertise<std_msgs::String>("/display/base64img", 1);
 
   }
   ~ImageToBase64() {}
@@ -163,6 +163,6 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "img_pub_node");
   ros::NodeHandle nh;
   ImageToBase64 node(nh);
-  node.spinWebCam();
+  node.spin();
   return 0;
 }

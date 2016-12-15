@@ -30,7 +30,8 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
 
   // Create the anchor map
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
+  //_anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
+  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "testspace") );
   _time_zero = -1.0;
 }
 
