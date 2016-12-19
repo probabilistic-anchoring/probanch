@@ -7,15 +7,28 @@
 
 #include <feature_extraction/feature_extraction.hpp>
 
-FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) : nh_(nh), priv_nh_("~"), it_(nh) { 
+FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
+  : nh_(nh)
+  , priv_nh_("~")
+  , it_(nh)
+  , display_image_(false)
+{ 
 
   // Publisher & subscribers
-  obj_sub_ = nh_.subscribe("/objects/raw", 1, &FeatureExtraction::process, this);
+  obj_sub_ = nh_.subscribe("/objects/raw", 1, &FeatureExtraction::processCb, this);
   obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/processed", 1);
-  boxed_pub_ = it_.advertise("/display/boxed", 1);
+  //boxed_pub_ = it_.advertise("/display/boxed", 1);
+
+  // Used for the web interface
+  display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &FeatureExtraction::triggerCb, this);
+  display_image_pub_ = it_.advertise("/display/image", 1);
 } 
 
-void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
+void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
+  this->display_image_ = (msg->data == "extraction") ? true : false;
+}
+
+void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
 
   // Create a (editable) copy
   anchor_msgs::ObjectArray output;
@@ -40,9 +53,17 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     return;
   }
 
+  // Convert to grayscale and back (for display purposes)
+  cv::Mat result;
+  if( display_image_ ) {
+    cv::cvtColor( img, result, CV_BGR2GRAY); 
+    cv::cvtColor( result, result, CV_GRAY2BGR);
+    result.convertTo( result, -1, 1.0, 50); 
+  }
+
   // Histogram equalization
   img = ColorFeatures::equalizeIntensity(img);
-  std::cout << "This part works.. " << std::endl;
+  //std::cout << "This part works.. " << std::endl;
   
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
@@ -55,8 +76,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
   }
 
   // Go through each contour and extract features for each object
-  cv::Mat result;
-  img.copyTo(result);
+  std::vector<cv::KeyPoint> total_keypoints;
   for (uint i = 0; i < objects_msg->objects.size(); i++) {
   
     // Get the contour
@@ -77,6 +97,7 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
 	sub_keypoints.push_back(keypoints[j]);
       } 
     }
+    total_keypoints.insert( total_keypoints.end(), sub_keypoints.begin(), sub_keypoints.end());  
 
     // Filter descriptor (in case we have too many features)
     cv::Mat sub_descriptor = kf.filterDescriptor( descriptor, idxs, CV_8U);
@@ -91,8 +112,8 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     // 2. Extrace sub-image (based on the bounding box)
     // --------------------------- 
     cv::Rect rect = cv::boundingRect(contour); 
-    rect = rect + cv::Size( 100, 100);  // ...add padding
-    rect = rect - cv::Point( 50, 50);
+    rect = rect + cv::Size( 50, 50);  // ...add padding
+    rect = rect - cv::Point( 25, 25);
     rect &= cv::Rect( cv::Point(0.0), img.size()); // Saftey routine! 
     cv::Mat sub_img = img(rect);
     sub_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
@@ -100,7 +121,10 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
     cv_ptr->toImageMsg(output.objects[i].caffe.data);
     
     // Draw rect on resulting display image
-    cv::rectangle( result, rect, cv::Scalar( 0, 0, 255), 2);
+    if( !result.empty() ) {
+      sub_img.copyTo(result(rect));
+    }
+    //cv::rectangle( result, rect, cv::Scalar( 0, 0, 255), 2);
 
     // Top-left corner point to message point
     output.objects[i].caffe.point.x = rect.x;
@@ -151,12 +175,24 @@ void FeatureExtraction::process(const anchor_msgs::ObjectArray::ConstPtr &object
   // Publish the new object array
   obj_pub_.publish(output);
       
+  // Publish the resulting feature image
+  if( display_image_ ) {
+    if( !total_keypoints.empty() ) {
+      cv::drawKeypoints( result, total_keypoints, result, cv::Scalar::all(-1),  cv::DrawMatchesFlags::DEFAULT); // Draw keypoint features
+    }
+    cv_ptr->image = result;
+    cv_ptr->encoding = "bgr8";
+    display_image_pub_.publish(cv_ptr->toImageMsg());
+  }
+
+  /*
   // Publish an image with bounding boxes
   cv::Mat resized;
   cv::resize( result, resized, cv::Size(), 0.5, 0.5, CV_INTER_AREA); // Reduce the size
   cv_ptr->image = resized;
   cv_ptr->encoding = "bgr8";
   boxed_pub_.publish(cv_ptr->toImageMsg());
+  */
 }
 
 
