@@ -163,13 +163,17 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       }
     }
 
-    // Normalize the histogram and add to output
+    // Normalize the histogram and add to output (skip masking to get full sub-image)
     cv::Mat hist_reduced;
     cf_.reduce( hist, hist_reduced);
     cf_.normalize(hist_reduced);
-    hist_reduced.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
-    cv_ptr->encoding = "32FC1";
-    cv_ptr->toImageMsg(output.objects[i].color.data);
+    std::vector<cv::Mat> channels;  // Split for handling of multi-channel images 
+    cv::split( hist_reduced, channels);
+    for( uint j = 0; i < channels.size(); j++) {
+      cv_ptr->image = channels[j]; 
+      cv_ptr->encoding = "32FC1";
+      output.objects[i].color.data.push_back(*cv_ptr->toImageMsg());
+    }
   }
 
   // Publish the new object array

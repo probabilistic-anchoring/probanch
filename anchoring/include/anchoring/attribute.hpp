@@ -83,7 +83,7 @@ namespace anchoring {
     ColorAttribute( const cv::Mat &data, 
 		    const vector<float> &predictions, 
 		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = CAFFE ) : AttributeCommon( symbols, type) {
+		    AttributeType type = COLOR ) : AttributeCommon( symbols, type) {
       data.copyTo(this->_data);
       this->_predictions = vector<double>( predictions.begin(), predictions.end() );
     }    

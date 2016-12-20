@@ -87,20 +87,53 @@
       displayImg.setAttribute( 'src', imgData);
     });
 
+    // Text map for changing the describing text
+    var dict_summary = {
+      "segmentation" : 
+      "<i>This object segmentation node is used in our framework for segmenting and detecting objects of interest in the scene.</i>",
+      "tracking" : 
+      "<i>The object tracking node is used to track and record swift movements in the scene.</i>",
+      "extraction" : 
+      "<i>The feature extraction node is responsible for extract both geometric and visual features of segmented objects.</i>",
+      "classification" : 
+      "<i>This symbol category classification procedure is initiated through with the goal of symbolically associating a category label to each object.</i>"
+
+    };
+
+    var dict_body = {
+      "segmentation" : 
+      "The object segmentation method is based on point cloud data, which is given as input data by an RGB-D sensor. This method relies on organized point cloud data (i.e. the organization of point cloud data is identical to the rows and columns of the imagery data from which the point cloud originates). The whole segmentation procedure can briefly be described using the following steps: <ul><li>Estimate 3D surface normals based on integral images. This function uses the algorithm for calculating average 3D gradients over six integral images, where the horizontal and vertical 3D gradients are used to compute the normal as the cross-product between two gradients.</li><li>Planar segmentation based on the calculated surface normals, where the largest segmented plan is selected as the ground plane.</li> <li>Object segmentation through clustering of the remaining points (points that are not part of the detected planar surface). This segmentation uses a connected component segmentation, where a Euclidean comparison function is used to connect the components that constitute the cloud cluster of an individual object.</li></ul>",
+      "tracking" : 
+      "This object tracking procedure utilizes a particle filter-based tracking algorithm, which is included in the Point Cloud Library (<a href='http://pointclouds.org/'>PCL</a>). However, a drawback of such particle filter algorithm is that the algorithm is designed for tracking only one object of interest at a time. A pool of particle filters (one filter for each detected object) have therefore been employed in our system setup, and where only the particle filters in the approximation of scene movements are active during the tracking process.",
+      "extraction" : 
+      "The first step of the feature extraction node is to extract both a <i>shape attribute</i> as the 3D bounding box around each segmented object, and a 3D <i>position attribute</i> as the centre of the segmented point cloud. Next, both a <i>position attribute</i> and a <i>descriptor attribute</i> are extracted from each corresponding visual data of each segmented object. A color attribute is measured as a color histogram (in the HSV color space). However, for the descriptor attribute, a more complicated procedure is invoked, which can be described using the following steps: <ul><li>Detect distinct image key-points through the use of the ORB key-point detector (Oriented FAST and Rotated BRIEF).</li><li>Extract binary feature descriptors by the use of the Fast Retina Keypoint (FREAK), in which a cascade of binary strings is computed as the intensities over retinal sampling patterns of a key-point patch.</li></ul>",
+      "classification" : 
+      "For this classification, we exploit recent advancements in deep learning through the <a href='http://caffe.berkeleyvision.org/'>Caffe deep learning framework</a>. The Convolutional Neural Network (CNN) architecture used in this case is based on the GoogLeNet model, which originally was trained on the ILSVRC 2012 data set. However, for our work, we have fine-tuned the model for objects categories that are relevant for a kitchen domain, e.g. <i>\'coffee mug\', \'spoon\', \'orange\', \'tomato\'</i>, etc. In the context of anchoring, we further assume that all trained object categories are part of the set of possible predicate symbols that the system have at disposal.",
+    };
+
     // Handle menu item click 
     $(document).ready(function(){
       $("a.menuItem").click( function() {
         $("a.menuItem").removeClass("active");
         $(this).addClass("active");
-
+        
+        // Get the identifier 
+        var key = $(this).attr('href').substring(1)
+        
         // Set the title text
         var str = $(this).text();
-        str = str.substring(0, 1) + str.substring(1).toLowerCase()
-        $("h2.title").text(str);
+        str = str.split(" ");
+        str[0] = str[0].substring(0, 1) + str[0].substring(1).toLowerCase()
+        str[1] = str[1].substring(0, 1) + str[1].substring(1).toLowerCase()
+        $("h2.title").text(str[0] + " " + str[1]);
+
+        // Set the summary and body text 
+        $("p.summary").html(dict_summary[key])
+        $("p.body").html(dict_body[key])
 
         // Create and send the ROS display trigger
         var str = new ROSLIB.Message({
-          data : $(this).attr('href').substring(1)
+          data : key
         });
         talker.publish(str);
       });
@@ -129,12 +162,14 @@
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#classification" class="w3-padding menuItem" >OBJECT CLASSIFICATION</a>
   </li>
+  <!--
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#grounding" class="w3-padding menuItem">SYMBOL GROUNDING</a>
   </li>
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
   </li>
+  -->
 </ul>
 
 <!-- Menu - vertical style 
@@ -166,9 +201,9 @@
     <img id="ROSImg" src="" alt="ROS response image..." style="width: 960px; height: 540px; border: 1px solid black; display: none;">
   </div> 
   <div class="w3-container" style="width: 40%; float: left; margin-top: 32px;">
-    <h2 class="title" style="font-weight: bold; text-decoration: underline;">Object segmentation</h2>
-    <p>Text goes here...</p>
-    <p>Text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text...</p>
+    <h2 class="title" style="font-weight: bold; text-decoration: underline;"></h2>
+    <p class="summary"></p>
+    <p class="body"></p>
   </div>
    <div class="footer w3-container" style="position: absolute; bottom: 0px; right: 0px; height: 147px; padding: 0px; z-index: -1;"></div>
 </div>

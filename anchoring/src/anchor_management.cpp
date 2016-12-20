@@ -66,16 +66,20 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].descriptor.data, 
 				    sensor_msgs::image_encodings::MONO8 );
       cv_ptr->image.copyTo(descriptor);
-      ROS_WARN("Fine #1!");
       cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].caffe.data,
 				    sensor_msgs::image_encodings::BGR8 );
-      cv_ptr->image.copyTo(img); 
-      ROS_WARN("Fine #2!");
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data,
-				    sensor_msgs::image_encodings::TYPE_32FC1 );
-      cv_ptr->image.copyTo(histogram); 
-      ROS_WARN("Fine #3!");
-      
+      cv_ptr->image.copyTo(img);
+
+      // Get the multi-channel color histogram
+      Mat ch;
+      vector<Mat> channels;
+      for( uint j = 0; j < object_ptr->objects[i].color.data.size(); j++) { 
+	cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data[j],
+				      sensor_msgs::image_encodings::TYPE_32FC1 );
+	cv_ptr->image.copyTo(ch);
+	channels.push_back(ch);
+      }
+      merge(channels, histogram); 
     } catch (cv_bridge::Exception& e) {
       ROS_ERROR("[AnchorManagement::match] receiving descriptor or image: %s", e.what());
       return;
