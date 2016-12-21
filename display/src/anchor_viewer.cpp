@@ -21,12 +21,21 @@ class AnchorViewer {
      -------------- */
   ros::NodeHandle _nh; 
   ros::NodeHandle _priv_nh;
+  image_transport::ImageTransport _it;
   ros::Subscriber _anchor_sub;
   ros::Subscriber _highlight_sub;
+
+  bool _display_web_image;
+  ros::Subscriber _display_trigger_sub;
+  image_transport::Publisher _display_image_pub;
 
   cv::Mat _img;
   vector<anchor_msgs::Display> _anchors;
   string _highlight;
+
+  void trigger_cb( const std_msgs::String::ConstPtr &msg) {
+    this->_display_web_image = (msg->data == "anchoring") ? true : false;
+  }
 
   // Callback function for reciving and displaying the image
   void display_cb(const anchor_msgs::DisplayArrayConstPtr& msg_ptr) {
@@ -52,6 +61,13 @@ class AnchorViewer {
     // Draw the result
     cv::Mat result_img(this->_img);
     cv::Mat highlight_img(this->_img);
+    /*
+    cv::Mat result_img;
+    cv::cvtColor( ithis->_img, result_img, CV_BGR2GRAY); 
+    cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
+    result_img.convertTo( result_img, -1, 1.0, 50); 
+    cv::Mat highlight_img(result_img);
+    */
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
       if( ite->border.contour.empty() ) {
@@ -74,14 +90,14 @@ class AnchorViewer {
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
       }
-      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
-      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      cv::drawContours( result_img, contours, -1, cv::Scalar::all(192), 1);
+      cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(192), 1);
 
       // Print infromation
       std::stringstream ss;
       ss << "Object: " << ite->object << " (" << ite->prediction * 100.0 << "%)";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
       ss.str("");
       ss << "Color(s): [";
       for( uint i = 0; i < ite->colors.size(); i++) {
@@ -90,16 +106,25 @@ class AnchorViewer {
 	  ss <<",";
       }
       ss << "]";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
       ss.str("");
       ss << "Size: " << ite->size;
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0,0,255), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
       ss.str("");
       
     } 
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
+
+    // Publish the resulting anchor image
+    if( this->_display_web_image ) {
+      cv_bridge::CvImagePtr cv_ptr;
+      cv_ptr->image = result_img;
+      cv_ptr->encoding = "bgr8";
+      _display_image_pub.publish(cv_ptr->toImageMsg());
+    }
+
     return result_img;
   }
 
@@ -142,11 +167,16 @@ class AnchorViewer {
   }
 
 public:
-  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
+  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh), _display_web_image(false) {
     
     // ROS subscriber
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _highlight_sub = _nh.subscribe("/display/hightlight", 10, &AnchorViewer::highlight_cb, this);
+
+    // Used for the web interface
+    _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);
+    _display_image_pub = _it.advertise("/display/image", 1);
+
     
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);

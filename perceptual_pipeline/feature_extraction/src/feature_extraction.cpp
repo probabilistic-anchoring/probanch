@@ -123,6 +123,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     // Draw rect on resulting display image
     if( !result.empty() ) {
       sub_img.copyTo(result(rect));
+      cv::rectangle( result, rect, cv::Scalar::all(192), 2);
     }
     //cv::rectangle( result, rect, cv::Scalar( 0, 0, 255), 2);
 
