@@ -70,6 +70,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 				    sensor_msgs::image_encodings::BGR8 );
       cv_ptr->image.copyTo(img);
 
+      /*
       // Get the multi-channel color histogram
       Mat ch;
       vector<Mat> channels;
@@ -79,7 +80,11 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 	cv_ptr->image.copyTo(ch);
 	channels.push_back(ch);
       }
-      merge(channels, histogram); 
+      merge(channels, histogram);
+      */ 
+      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data,
+				    sensor_msgs::image_encodings::TYPE_32FC1 );
+      cv_ptr->image.copyTo(histogram);
     } catch (cv_bridge::Exception& e) {
       ROS_ERROR("[AnchorManagement::match] receiving descriptor or image: %s", e.what());
       return;
@@ -88,9 +93,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Create a map of all object attributes
     AttributeMap attributes;
     attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
-    ROS_WARN("[Descriptor] fine!");
     attributes[COLOR] = AttributePtr( new ColorAttribute( histogram, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].color.symbols) );
-    ROS_WARN("[Color] fine!");
     attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
     attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->objects[i].location.data, object_ptr->objects[i].location.symbols) );    
     attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.border, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 

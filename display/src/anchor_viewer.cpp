@@ -53,6 +53,13 @@ class AnchorViewer {
 
     // Store the anchor information
     this->_anchors = msg_ptr->anchors;
+
+    // Publish the resulting anchor image
+    if( this->_display_web_image ) {
+      cv_ptr->image = this->anchor_img();
+      cv_ptr->encoding = "bgr8";
+      _display_image_pub.publish(cv_ptr->toImageMsg());
+    }
   }
 
   // Function for processing the scene image 
@@ -90,14 +97,14 @@ class AnchorViewer {
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
       }
-      cv::drawContours( result_img, contours, -1, cv::Scalar::all(192), 1);
-      cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(192), 1);
+      cv::drawContours( result_img, contours, -1, cv::Scalar::all(64), 1);
+      cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(64), 1);
 
       // Print infromation
       std::stringstream ss;
       ss << "Object: " << ite->object << " (" << ite->prediction * 100.0 << "%)";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
       ss.str("");
       ss << "Color(s): [";
       for( uint i = 0; i < ite->colors.size(); i++) {
@@ -106,24 +113,16 @@ class AnchorViewer {
 	  ss <<",";
       }
       ss << "]";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
       ss.str("");
       ss << "Size: " << ite->size;
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(192), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
       ss.str("");
       
     } 
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
-
-    // Publish the resulting anchor image
-    if( this->_display_web_image ) {
-      cv_bridge::CvImagePtr cv_ptr;
-      cv_ptr->image = result_img;
-      cv_ptr->encoding = "bgr8";
-      _display_image_pub.publish(cv_ptr->toImageMsg());
-    }
 
     return result_img;
   }
@@ -175,7 +174,7 @@ public:
 
     // Used for the web interface
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);
-    _display_image_pub = _it.advertise("/display/image", 1);
+    _display_image_pub = _it.advertise("/display/image", 10);
 
     
     const char *window = "Anchors with information...";

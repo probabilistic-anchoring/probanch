@@ -62,6 +62,7 @@ namespace anchoring {
   
     // Save the color
     try {
+      /*
       db_sub.add<int>( "hbins", (int)this->_data.rows);
       db_sub.add<int>( "sbins", (int)this->_data.cols);
       db_sub.add<int>( "vbins", (int)this->_data.channels());
@@ -71,14 +72,14 @@ namespace anchoring {
 	  for( int v = 0; v < this->_data.channels(); v++ ) 
 	    array.push_back(this->_data.at<float>( h, s, v));
       db_sub.add<double>( "data", array);
-
-      /*
+      */
+      
       std::vector<double> array;      
       for( int i = 0; i < this->_data.cols; i++) {
 	array.push_back(this->_data.at<float>( 0, i));
       }
       db_sub.add<double>( "data", array);
-      */
+      
 
       // Save (color) predictions
       db_sub.add<double>( "predictions", this->_predictions);
@@ -95,6 +96,7 @@ namespace anchoring {
 
     // Load the color 
     try {
+      /*
       int hbins = db_sub.get<int>("hbins");
       int sbins = db_sub.get<int>("sbins");
       int vbins = db_sub.get<int>("vbins");
@@ -111,12 +113,11 @@ namespace anchoring {
 	    this->_data.at<float>( h, s, v) = array[idx];
 	    idx++;
 	  }
-
-      /*
+      */
+      
       std::vector<double> array;
       db_sub.get<double>( "data", array);
       this->_data = cv::Mat( 1, array.size(), CV_32F, &array.front());
-      */
 
       // Load (caffe) predictions
       db_sub.get<double>( "predictions", this->_predictions);

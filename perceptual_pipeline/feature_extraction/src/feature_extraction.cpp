@@ -95,14 +95,14 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     for (uint j = 0; j < keypoints.size(); j++) {
       if( cv::pointPolygonTest( contour, keypoints[j].pt, false ) > 0.0 ) { 
 	idxs.push_back(j);
-	//sub_keypoints.push_back(keypoints[j]);
+	sub_keypoints.push_back(keypoints[j]);
       } 
     }
     //total_keypoints.insert( total_keypoints.end(), sub_keypoints.begin(), sub_keypoints.end());  
 
     // Filter descriptor (in case we have too many features)
     cv::Mat sub_descriptor = kf.filterDescriptor( descriptor, idxs, CV_8U);
-    sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 1000);
+    sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 500);
 
     total_keypoints.push_back(sub_keypoints);
     total_descriptor.push_back(sub_descriptor);
@@ -175,17 +175,24 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       }
     }
 
+    // Create the output "image"
+    cv_ptr->image = preds_img;
+    cv_ptr->encoding = "32FC1";
+    cv_ptr->toImageMsg(output.objects[i].color.data);
+    /*
     // Normalize the histogram and add to output (skip masking to get full sub-image)
     cv::Mat hist_reduced;
     cf_.reduce( hist, hist_reduced);
     cf_.normalize(hist_reduced);
     std::vector<cv::Mat> channels;  // Split for handling of multi-channel images 
     cv::split( hist_reduced, channels);
+    std::cout << "Number of channels: " << channels.size() << std::endl;
     for( uint j = 0; i < channels.size(); j++) {
-      cv_ptr->image = channels[j]; 
+      channels[j].copyTo(cv_ptr->image); 
       cv_ptr->encoding = "32FC1";
       output.objects[i].color.data.push_back(*cv_ptr->toImageMsg());
     }
+    */
   }
 
   // Publish the new object array
@@ -193,19 +200,28 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       
   // Publish the resulting feature image
   if( display_image_ ) {
+    
     for (uint i = 0; i < total_keypoints.size() - 1; i++) {
+      if( total_keypoints[i].empty() ) 
+	continue;
+
       for (uint j = i + 1; j < total_keypoints.size(); j++) {
+	if( total_keypoints[j].empty() ) 
+	  continue;
+
 	std::vector<cv::DMatch> matches;
 	kf.match( total_descriptor[i], total_descriptor[j], matches);
 	for( uint k = 0; k < matches.size(); k++ ) {
 	  cv::Point2f p1 = total_keypoints[i][matches[k].queryIdx].pt;
 	  cv::Point2f p2 = total_keypoints[j][matches[k].trainIdx].pt;
-	  cv::line( result, p1, p2, cv::Scalar(0, 255, 0), 1);
+	  cv::line( result, p1, p2, cv::Scalar( 51, 92, 255), 1, 8);
 	}
       }
     }
+    
     for (uint i = 0; i < total_keypoints.size(); i++) {
-      cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 0, 255, 0), cv::DrawMatchesFlags::DEFAULT);
+      if( !total_keypoints[i].empty() )
+	cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
     }
 
     /*
