@@ -122,7 +122,7 @@ class AnchorCaffe {
 	int y = objects_msg->objects[i].caffe.point.y;
 	cv::Rect rect( cv::Point(x,y), img.size());
 	img.copyTo(result(rect));
-	cv::rectangle( result, rect, cv::Scalar::all(64), 2);
+	cv::rectangle( result, rect, cv::Scalar::all(64), 1);
 
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;

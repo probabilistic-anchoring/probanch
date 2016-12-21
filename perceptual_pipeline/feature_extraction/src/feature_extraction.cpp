@@ -76,7 +76,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   }
 
   // Go through each contour and extract features for each object
-  std::vector<cv::KeyPoint> total_keypoints;
+  std::vector< std::vector< cv::KeyPoint> > total_keypoints;
+  std::vector<cv::Mat> total_descriptor;
   for (uint i = 0; i < objects_msg->objects.size(); i++) {
   
     // Get the contour
@@ -94,15 +95,18 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     for (uint j = 0; j < keypoints.size(); j++) {
       if( cv::pointPolygonTest( contour, keypoints[j].pt, false ) > 0.0 ) { 
 	idxs.push_back(j);
-	sub_keypoints.push_back(keypoints[j]);
+	//sub_keypoints.push_back(keypoints[j]);
       } 
     }
-    total_keypoints.insert( total_keypoints.end(), sub_keypoints.begin(), sub_keypoints.end());  
+    //total_keypoints.insert( total_keypoints.end(), sub_keypoints.begin(), sub_keypoints.end());  
 
     // Filter descriptor (in case we have too many features)
     cv::Mat sub_descriptor = kf.filterDescriptor( descriptor, idxs, CV_8U);
-    sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 2000);
-    
+    sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 1000);
+
+    total_keypoints.push_back(sub_keypoints);
+    total_descriptor.push_back(sub_descriptor);
+
     // Add extracted descriptor 
     cv_ptr->image = sub_descriptor;
     cv_ptr->encoding = "mono8";
@@ -120,12 +124,13 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv_ptr->encoding = "bgr8";
     cv_ptr->toImageMsg(output.objects[i].caffe.data);
     
+    /*
     // Draw rect on resulting display image
     if( !result.empty() ) {
       sub_img.copyTo(result(rect));
-      cv::rectangle( result, rect, cv::Scalar::all(192), 2);
+      cv::rectangle( result, rect, cv::Scalar::all(64), 2);
     }
-    //cv::rectangle( result, rect, cv::Scalar( 0, 0, 255), 2);
+    */
 
     // Top-left corner point to message point
     output.objects[i].caffe.point.x = rect.x;
@@ -138,7 +143,13 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::Mat mask( img.size(), CV_8U, cv::Scalar(0) );
     std::vector<std::vector<cv::Point> > contours;
     contours.push_back(contour);
-    cv::drawContours( mask, contours, -1, cv::Scalar(255), -1);
+    cv::drawContours( mask, contours, -1, cv::Scalar(255), CV_FILLED);
+
+    // Draw masked image on resulting display image
+    if( !result.empty() ) {
+      img.copyTo( result, mask);
+      cv::drawContours( result, contours, -1, cv::Scalar::all(64), 1);
+    }
     
     // Calculate the HSV color histogram over the image mask
     cv::Mat hist;
@@ -182,9 +193,26 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       
   // Publish the resulting feature image
   if( display_image_ ) {
+    for (uint i = 0; i < total_keypoints.size() - 1; i++) {
+      for (uint j = i + 1; j < total_keypoints.size(); j++) {
+	std::vector<cv::DMatch> matches;
+	kf.match( total_descriptor[i], total_descriptor[j], matches);
+	for( uint k = 0; k < matches.size(); k++ ) {
+	  cv::Point2f p1 = total_keypoints[i][matches[k].queryIdx].pt;
+	  cv::Point2f p2 = total_keypoints[j][matches[k].trainIdx].pt;
+	  cv::line( result, p1, p2, cv::Scalar(0, 255, 0), 1);
+	}
+      }
+    }
+    for (uint i = 0; i < total_keypoints.size(); i++) {
+      cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 0, 255, 0), cv::DrawMatchesFlags::DEFAULT);
+    }
+
+    /*
     if( !total_keypoints.empty() ) {
       cv::drawKeypoints( result, total_keypoints, result, cv::Scalar::all(-1),  cv::DrawMatchesFlags::DEFAULT); // Draw keypoint features
     }
+    */
     cv_ptr->image = result;
     cv_ptr->encoding = "bgr8";
     display_image_pub_.publish(cv_ptr->toImageMsg());
