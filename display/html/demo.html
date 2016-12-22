@@ -96,7 +96,11 @@
       "extraction" : 
       "<i>The feature extraction node is responsible for extract both geometric and visual features of segmented objects.</i>",
       "classification" : 
-      "<i>This symbol category classification procedure is initiated with the goal of symbolically associating a category label to each object.</i>"
+      "<i>This symbol category classification procedure is initiated with the goal of symbolically associating a category label to each object.</i>",
+      "grounding" : 
+      "<i>In parallel with the category classification procedure is this predicate grounder node used for establishing the connection between measured attributes and semantic symbols.</i>",
+      "anchoring" : 
+      "<i>The object anchoring node is responsible for creating and maintaining consistent representations of objects, both in time and space.</i>",
 
     };
 
@@ -109,7 +113,12 @@
       "The first step of the feature extraction node is to extract both a <i>shape attribute</i> as the 3D bounding box around each segmented object, and a 3D <i>position attribute</i> as the centre of the segmented point cloud. Next, both a <i>color attribute</i> and a <i>descriptor attribute</i> are extracted from each corresponding visual data of each segmented object. A color attribute is here measured as a color histogram (in the HSV color space). However, for the descriptor attribute, a more complicated procedure is invoked, which can be described using the following steps: <ul><li>Detect distinct image key-points through the use of the ORB key-point detector (Oriented FAST and Rotated BRIEF).</li><li>Extract binary feature descriptors by the use of the Fast Retina Keypoint (FREAK), in which a cascade of binary strings is computed as the intensities over retinal sampling patterns of a key-point patch.</li></ul>",
       "classification" : 
       "For this classification, we exploit recent advancements in deep learning through the <a href='http://caffe.berkeleyvision.org/'>Caffe deep learning framework</a>. The Convolutional Neural Network (CNN) architecture used in this case is based on the GoogLeNet model, which originally was trained on the ILSVRC 2012 data set. However, for our work, we have fine-tuned the model for objects categories that are relevant for a kitchen domain, e.g. <i>\'coffee mug\', \'spoon\', \'orange\', \'tomato\'</i>, etc. In the context of anchoring, we further assume that all trained object categories are part of the set of possible predicate symbols that the system have at disposal.",
+      "grounding" : 
+      "This predicate grounder is here responsible for grounding each measured attribute to a predicate grounding symbol, e.g. a certain peek in a color histogram, measured as a color attribute, is grounded to the symbol <i>\'red\'</i>. More specifically, we here rely on color theory and that a color <i>tone</i> is expressed as a mixture of the base color mixed with either <i>tint</i> (mixture of white) or <i>shade</i> (mixture of black), such that an elemental color term, e.g. <i>\'red\'</i>, can be defined as a set of color tones of different color shades of the (base) color term, e.g. <i>shades of red</i>. This information is publicly available on-line through <a href='https://en.wikipedia.org/wiki/List_of_colors_by_shade'>Wikipedia</a>. Our approach for grounding color predicates utilize this information in order to train a Support Vector Machine (SVM) classifier, which has been trained with sets of HSV color values for color shade of 13 elemental color terms (<i>\'white\', \'gray\', \'black\', \'magenta\', \'pink\', \'red\', \'brown\', \'orange\', \'yellow\', \'green\', \'cyan\', \'blue\',</i> and <i>\'violet\'</i>). Hence, the color predicate grounding is given by the color prediction of the most dominant peeks of the HSV color histogram that compose a color attribute.",
+      "anchoring" : 
+      "The entry point for the object anchoring node is a matching procedure. This procedure follows a bottom-up approach to perceptual anchoring, where the system constantly receives anchors and invokes a number of different matching algorithms (one matching algorithm for each measured attribute ) in order to determine if a candidate anchor has previously been perceived or not. Depending on the result of the matching procedure, anchors are subsequently maintained in memory through two functionalities:<ul><li><i>Acquire</i> -- stores a new anchor whenever a candidate anchor is received which currently does not match any attributes of an existing anchor.</li><li><i>Re-acquire</i> -- update an existing anchor whenever a candidate anchor is received which matches the attributes of an existing anchor. This functionality assures that the percepts pointed to by the anchor are the most recent and adequate perceptual representation of the object.</li></ul>"
     };
+
 
     // Handle menu item click 
     $(document).ready(function(){
@@ -162,11 +171,9 @@
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#classification" class="w3-padding menuItem" >OBJECT CLASSIFICATION</a>
   </li>
-  <!--
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#grounding" class="w3-padding menuItem">SYMBOL GROUNDING</a>
   </li>
-  -->
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
   </li>

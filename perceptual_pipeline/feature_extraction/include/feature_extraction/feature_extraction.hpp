@@ -25,7 +25,7 @@ private:
   ros::Publisher obj_pub_;
   //image_transport::Publisher boxed_pub_;
 
-  bool display_image_;
+  std::string display_image_;
   ros::Subscriber display_trigger_sub_;
   image_transport::Publisher display_image_pub_;
 

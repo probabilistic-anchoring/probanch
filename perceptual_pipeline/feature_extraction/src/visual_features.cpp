@@ -352,9 +352,9 @@ void ColorFeatures::normalize( Mat &hist ) {
 
   // Calculate the max value
   float maxVal = this->maxValue(hist);
-  for( int h = 0; h < hist.rows; h++ )
-    for( int s = 0; s < hist.cols; s++ )
-      for( int v = 0; v < hist.channels(); v++ ) 
+  for( int h = 0; h < this->_hbins; h++ )
+    for( int s = 0; s < this->_sbins; s++ ) 
+      for( int v = 0; v < this->_vbins; v++ ) 
 	hist.at<float>(h, s, v) /= maxVal;
 }
 
@@ -384,6 +384,27 @@ void ColorFeatures::reduce( const Mat &hist,
 string ColorFeatures::colorSymbol(int idx) {
   return color_shade_names[idx];
 }
+
+Scalar ColorFeatures::getColor( int pred ) {
+  Scalar c;
+  switch(pred) {
+  case 0: c = Scalar( 250, 250, 255); break; // white
+  case 1: c = Scalar( 181, 190, 178); break; // gray
+  case 2: c = Scalar( 27, 27, 27); break;    // black
+  case 3: c = Scalar( 192, 15, 252); break;  // magenta
+  case 4: c = Scalar( 203, 192, 255); break; // pink
+  case 5: c = Scalar( 52, 66, 227); break;   // red
+  case 6: c = Scalar( 50, 127, 205); break;  // brown
+  case 7: c = Scalar( 0, 159, 255); break;   // orange
+  case 8: c = Scalar( 0, 216, 255); break;   // yellow
+  case 9: c = Scalar( 50, 205, 50); break;   // green
+  case 10: c = Scalar( 235, 218, 128); break; // cyan
+  case 11: c = Scalar( 207, 115, 0); break;   // blue
+  case 12: c = Scalar( 133, 69, 142); break;  // violet
+  }
+  return c;
+}
+
 
 // Histogram equalization of RGB image 
 cv::Mat ColorFeatures::equalizeIntensity(const Mat& img) {
@@ -426,18 +447,18 @@ void ColorFeatures::buildTrainingData( const Color index[],
 // Helper functions for for calculating the max and total value of a histogram
 float ColorFeatures::totalValue(const Mat &hist) {
   float totVal = 0.0;
-  for( int h = 0; h < hist.rows; h++ )
-    for( int s = 0; s < hist.cols; s++ )
-      for( int v = 0; v < hist.channels(); v++ ) 
+  for( int h = 0; h < this->_hbins; h++ )
+    for( int s = 0; s < this->_sbins; s++ ) 
+      for( int v = 0; v < this->_vbins; v++ ) 
 	totVal += hist.at<float>(h, s, v);
   return totVal;
 }
 float ColorFeatures::maxValue(const Mat &hist) {
 
   float maxVal = 0.0;
-  for( int h = 0; h < hist.rows; h++ )
-    for( int s = 0; s < hist.cols; s++ )
-      for( int v = 0; v < hist.channels(); v++ )
+  for( int h = 0; h < this->_hbins; h++ )
+    for( int s = 0; s < this->_sbins; s++ ) 
+      for( int v = 0; v < this->_vbins; v++ ) 
 	if( hist.at<float>(h, s, v) > maxVal ) {
 	  maxVal = hist.at<float>(h, s, v);
 	}

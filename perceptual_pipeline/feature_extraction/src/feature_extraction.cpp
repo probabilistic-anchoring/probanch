@@ -5,13 +5,16 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 #include <feature_extraction/feature_extraction.hpp>
 
 FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
   : nh_(nh)
   , priv_nh_("~")
   , it_(nh)
-  , display_image_(false)
+  , display_image_("")
 { 
 
   // Publisher & subscribers
@@ -25,7 +28,12 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
 } 
 
 void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
-  this->display_image_ = (msg->data == "extraction") ? true : false;
+  if( msg->data == "extraction" || msg->data == "grounding" ) {
+    this->display_image_ = msg->data;
+  }
+  else {
+    this->display_image_ = "";
+  }
 }
 
 void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
@@ -55,7 +63,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 
   // Convert to grayscale and back (for display purposes)
   cv::Mat result;
-  if( display_image_ ) {
+  if( !display_image_.empty() ) {
     cv::cvtColor( img, result, CV_BGR2GRAY); 
     cv::cvtColor( result, result, CV_GRAY2BGR);
     result.convertTo( result, -1, 1.0, 50); 
@@ -86,7 +94,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       cv::Point p( objects_msg->objects[i].caffe.border.contour[j].x, objects_msg->objects[i].caffe.border.contour[j].y );
       contour.push_back(p);
     }
-
     
     // 1. Get keypoint features (from keypoints within the contour)
     // ---------------------------
@@ -98,14 +105,16 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	sub_keypoints.push_back(keypoints[j]);
       } 
     }
-    //total_keypoints.insert( total_keypoints.end(), sub_keypoints.begin(), sub_keypoints.end());  
 
     // Filter descriptor (in case we have too many features)
     cv::Mat sub_descriptor = kf.filterDescriptor( descriptor, idxs, CV_8U);
     sub_descriptor = kf.filterResponseN( sub_keypoints, sub_descriptor, 500);
 
-    total_keypoints.push_back(sub_keypoints);
-    total_descriptor.push_back(sub_descriptor);
+    // Add to total containers
+    if( display_image_ == "extraction" ) {
+      total_keypoints.push_back(sub_keypoints);
+      total_descriptor.push_back(sub_descriptor);
+    }
 
     // Add extracted descriptor 
     cv_ptr->image = sub_descriptor;
@@ -124,14 +133,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv_ptr->encoding = "bgr8";
     cv_ptr->toImageMsg(output.objects[i].caffe.data);
     
-    /*
-    // Draw rect on resulting display image
-    if( !result.empty() ) {
-      sub_img.copyTo(result(rect));
-      cv::rectangle( result, rect, cv::Scalar::all(64), 2);
-    }
-    */
-
     // Top-left corner point to message point
     output.objects[i].caffe.point.x = rect.x;
     output.objects[i].caffe.point.y = rect.y; 
@@ -146,7 +147,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::drawContours( mask, contours, -1, cv::Scalar(255), CV_FILLED);
 
     // Draw masked image on resulting display image
-    if( !result.empty() ) {
+    if( !display_image_.empty() ) {
       img.copyTo( result, mask);
       cv::drawContours( result, contours, -1, cv::Scalar::all(64), 1);
     }
@@ -155,16 +156,31 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::Mat hist;
     cv::Mat sub_mask = mask(rect);
     cf_.calculate( sub_img, hist, sub_mask);
-    
+
     // Classify the histogram
     std::vector<float> preds;
     cf_.predict( hist, preds);
     cv::Mat preds_img( 1, preds.size(), CV_32FC1, &preds.front()); 
+    
     /*
     for( int i = 0; i < preds.size(); i++ )
       std::cout << cf_.colorSymbol(i) << ": " << (preds[i] * 100.0) << "%" << std::endl;
     std::cout << " ---- " << std::endl;
     */
+
+    if( display_image_ == "grounding" ) {
+      cv::Point2f p1(rect.x, rect.y + 10);
+      cv::Point2f p2(rect.x + 105, rect.y + 10);
+      cv::line( result, p1, p2, cv::Scalar::all(64), 1, 8);
+      p1.x += 7;
+      p1.y -= 1;
+      for( int i = 0; i < preds.size(); i++ ) {
+	p2.x = p1.x + 6;
+	p2.y = p1.y - (int)(preds[i] * 50.0);
+	cv::rectangle( result, p1, p2, cf_.getColor(i), CV_FILLED);
+	p1.x += 7;
+      }  
+    }
 
     // Ground color symbols
     double max = *std::max_element( preds.begin(), preds.end());
@@ -199,36 +215,33 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   obj_pub_.publish(output);
       
   // Publish the resulting feature image
-  if( display_image_ ) {
-    
-    for (uint i = 0; i < total_keypoints.size() - 1; i++) {
-      if( total_keypoints[i].empty() ) 
-	continue;
+  if( !display_image_.empty() ) {
 
-      for (uint j = i + 1; j < total_keypoints.size(); j++) {
-	if( total_keypoints[j].empty() ) 
+    if( display_image_ == "extraction"  ) {
+    
+      for (uint i = 0; i < total_keypoints.size() - 1; i++) {
+	if( total_keypoints[i].empty() ) 
 	  continue;
 
-	std::vector<cv::DMatch> matches;
-	kf.match( total_descriptor[i], total_descriptor[j], matches);
-	for( uint k = 0; k < matches.size(); k++ ) {
-	  cv::Point2f p1 = total_keypoints[i][matches[k].queryIdx].pt;
-	  cv::Point2f p2 = total_keypoints[j][matches[k].trainIdx].pt;
-	  cv::line( result, p1, p2, cv::Scalar( 51, 92, 255), 1, 8);
+	for (uint j = i + 1; j < total_keypoints.size(); j++) {
+	  if( total_keypoints[j].empty() ) 
+	    continue;
+
+	  std::vector<cv::DMatch> matches;
+	  kf.match( total_descriptor[i], total_descriptor[j], matches);
+	  for( uint k = 0; k < matches.size(); k++ ) {
+	    cv::Point2f p1 = total_keypoints[i][matches[k].queryIdx].pt;
+	    cv::Point2f p2 = total_keypoints[j][matches[k].trainIdx].pt;
+	    cv::line( result, p1, p2, cv::Scalar( 51, 92, 255), 1, 8);
+	  }
 	}
       }
-    }
     
-    for (uint i = 0; i < total_keypoints.size(); i++) {
-      if( !total_keypoints[i].empty() )
-	cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
+      for (uint i = 0; i < total_keypoints.size(); i++) {
+	if( !total_keypoints[i].empty() )
+	  cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
+      }
     }
-
-    /*
-    if( !total_keypoints.empty() ) {
-      cv::drawKeypoints( result, total_keypoints, result, cv::Scalar::all(-1),  cv::DrawMatchesFlags::DEFAULT); // Draw keypoint features
-    }
-    */
     cv_ptr->image = result;
     cv_ptr->encoding = "bgr8";
     display_image_pub_.publish(cv_ptr->toImageMsg());

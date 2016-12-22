@@ -121,6 +121,7 @@ public:
 	       int hbins = 30, int sbins = 32, int vbins = 4 );
 
   std::string colorSymbol(int idx);
+  cv::Scalar getColor(int pred);
 
   // Static helper functions
   static cv::Mat equalizeIntensity(const cv::Mat& img);
