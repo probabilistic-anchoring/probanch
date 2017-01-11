@@ -8,7 +8,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/ml/ml.hpp>
 
-#include <feature_extraction/colors.hpp>
+#include <feature_extraction/shades.hpp>
 
 // --------------------------
 // Class for handling keypoint features

@@ -252,20 +252,21 @@ ColorFeatures::ColorFeatures(int hbins,
   // Classifier training data
   Mat labelsMat(0, 1, CV_32FC1);
   Mat dataMat(0, 1, CV_8UC3);
-  buildTrainingData( white_shades, color_shade_numbers[SHADE_OF_WHITE], (float)SHADE_OF_WHITE, dataMat, labelsMat);
-  buildTrainingData( gray_shades, color_shade_numbers[SHADE_OF_GRAY], (float)SHADE_OF_GRAY, dataMat, labelsMat);
-  buildTrainingData( black_shades, color_shade_numbers[SHADE_OF_BLACK], (float)SHADE_OF_BLACK, dataMat, labelsMat);
-  buildTrainingData( magenta_shades, color_shade_numbers[SHADE_OF_MAGENTA], (float)SHADE_OF_MAGENTA, dataMat, labelsMat);
-  buildTrainingData( pink_shades, color_shade_numbers[SHADE_OF_PINK], (float)SHADE_OF_PINK, dataMat, labelsMat);
-  buildTrainingData( red_shades, color_shade_numbers[SHADE_OF_RED], (float)SHADE_OF_RED, dataMat, labelsMat);
-  buildTrainingData( brown_shades, color_shade_numbers[SHADE_OF_BROWN], (float)SHADE_OF_BROWN, dataMat, labelsMat);
-  buildTrainingData( orange_shades, color_shade_numbers[SHADE_OF_ORANGE], (float)SHADE_OF_ORANGE, dataMat, labelsMat);
-  buildTrainingData( yellow_shades, color_shade_numbers[SHADE_OF_YELLOW], (float)SHADE_OF_YELLOW, dataMat, labelsMat);
-  buildTrainingData( green_shades, color_shade_numbers[SHADE_OF_GREEN], (float)SHADE_OF_GREEN, dataMat, labelsMat);
-  buildTrainingData( cyan_shades, color_shade_numbers[SHADE_OF_CYAN], (float)SHADE_OF_CYAN, dataMat, labelsMat);
-  buildTrainingData( blue_shades, color_shade_numbers[SHADE_OF_BLUE], (float)SHADE_OF_BLUE, dataMat, labelsMat);
-  buildTrainingData( violet_shades, color_shade_numbers[SHADE_OF_VIOLET], (float)SHADE_OF_VIOLET, dataMat, labelsMat);
-
+  buildTrainingData( white_shades, color_shade_numbers[SHADES_OF_WHITE], (float)SHADES_OF_WHITE, dataMat, labelsMat);
+  buildTrainingData( gray_shades, color_shade_numbers[SHADES_OF_GRAY], (float)SHADES_OF_GRAY, dataMat, labelsMat);
+  buildTrainingData( black_shades, color_shade_numbers[SHADES_OF_BLACK], (float)SHADES_OF_BLACK, dataMat, labelsMat);
+  buildTrainingData( magenta_shades, color_shade_numbers[SHADES_OF_MAGENTA], (float)SHADES_OF_MAGENTA, dataMat, labelsMat);
+  buildTrainingData( pink_shades, color_shade_numbers[SHADES_OF_PINK], (float)SHADES_OF_PINK, dataMat, labelsMat);
+  buildTrainingData( red_low_shades, color_shade_numbers[SHADES_OF_RED_LOW], (float)SHADES_OF_RED_LOW, dataMat, labelsMat);
+  buildTrainingData( red_high_shades, color_shade_numbers[SHADES_OF_RED_HIGH], (float)SHADES_OF_RED_HIGH, dataMat, labelsMat);
+  buildTrainingData( brown_shades, color_shade_numbers[SHADES_OF_BROWN], (float)SHADES_OF_BROWN, dataMat, labelsMat);
+  buildTrainingData( orange_shades, color_shade_numbers[SHADES_OF_ORANGE], (float)SHADES_OF_ORANGE, dataMat, labelsMat);
+  buildTrainingData( yellow_shades, color_shade_numbers[SHADES_OF_YELLOW], (float)SHADES_OF_YELLOW, dataMat, labelsMat);
+  buildTrainingData( green_shades, color_shade_numbers[SHADES_OF_GREEN], (float)SHADES_OF_GREEN, dataMat, labelsMat);
+  buildTrainingData( cyan_shades, color_shade_numbers[SHADES_OF_CYAN], (float)SHADES_OF_CYAN, dataMat, labelsMat);
+  buildTrainingData( blue_shades, color_shade_numbers[SHADES_OF_BLUE], (float)SHADES_OF_BLUE, dataMat, labelsMat);
+  buildTrainingData( violet_shades, color_shade_numbers[SHADES_OF_VIOLET], (float)SHADES_OF_VIOLET, dataMat, labelsMat);
+  buildTrainingData( purple_shades, color_shade_numbers[SHADES_OF_PURPLE], (float)SHADES_OF_VIOLET, dataMat, labelsMat);
 
   // Convert training data to HSV color space
   Mat trainingDataMat(0, 3, CV_32FC1); 
@@ -280,11 +281,13 @@ ColorFeatures::ColorFeatures(int hbins,
 
   // Set up SVM's parameters
   CvSVMParams params;
-  params.svm_type    = CvSVM::C_SVC; //CvSVM::NU_SVC;
+  params.svm_type    = CvSVM::NU_SVC; // CvSVM::C_SVC | CvSVM::NU_SVC
   params.kernel_type = CvSVM::LINEAR;
   params.nu = 0.1; // 0.1
   params.C = 0.01;
-  params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e10, 1e-8); // 1e-6
+  params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e6, 1e-7); // (int)1e9, 1e-6
+
+  //params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e10, 1e-8); // 1e-6
 
   // Train the SVM
   this->_svm.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
@@ -345,6 +348,8 @@ void ColorFeatures::predict( const Mat &hist,
 	  float response = this->_svm.predict(sampleMat);
 	  preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
 	}
+  preds[SHADES_OF_RED_LOW] += preds[SHADES_OF_RED_HIGH];
+  preds[SHADES_OF_RED_HIGH] = 0.0;
 }	
 
 
@@ -393,14 +398,16 @@ Scalar ColorFeatures::getColor( int pred ) {
   case 2: c = Scalar( 27, 27, 27); break;    // black
   case 3: c = Scalar( 192, 15, 252); break;  // magenta
   case 4: c = Scalar( 203, 192, 255); break; // pink
-  case 5: c = Scalar( 52, 66, 227); break;   // red
-  case 6: c = Scalar( 50, 127, 205); break;  // brown
-  case 7: c = Scalar( 0, 159, 255); break;   // orange
-  case 8: c = Scalar( 0, 216, 255); break;   // yellow
-  case 9: c = Scalar( 50, 205, 50); break;   // green
-  case 10: c = Scalar( 235, 218, 128); break; // cyan
-  case 11: c = Scalar( 207, 115, 0); break;   // blue
-  case 12: c = Scalar( 133, 69, 142); break;  // violet
+  case 5: c = Scalar( 42, 36, 227); break;   // red
+  case 6: c = Scalar( 42, 36, 227); break;   // red
+  case 7: c = Scalar( 50, 127, 205); break;  // brown
+  case 8: c = Scalar( 0, 159, 255); break;   // orange
+  case 9: c = Scalar( 0, 216, 255); break;   // yellow
+  case 10: c = Scalar( 50, 205, 50); break;   // green
+  case 11: c = Scalar( 235, 218, 128); break; // cyan
+  case 12: c = Scalar( 207, 115, 0); break;   // blue
+  case 13: c = Scalar( 133, 69, 142); break;  // violet
+  case 14: c = Scalar( 132, 60, 72); break;  // purple
   }
   return c;
 }
