@@ -393,21 +393,21 @@ string ColorFeatures::colorSymbol(int idx) {
 Scalar ColorFeatures::getColor( int pred ) {
   Scalar c;
   switch(pred) {
-  case 0: c = Scalar( 250, 250, 255); break; // white
-  case 1: c = Scalar( 181, 190, 178); break; // gray
+  case 0: c = Scalar( 242, 242, 242); break; // white
+  case 1: c = Scalar( 181, 181, 181); break; // gray
   case 2: c = Scalar( 27, 27, 27); break;    // black
-  case 3: c = Scalar( 192, 15, 252); break;  // magenta
-  case 4: c = Scalar( 203, 192, 255); break; // pink
-  case 5: c = Scalar( 42, 36, 227); break;   // red
-  case 6: c = Scalar( 42, 36, 227); break;   // red
-  case 7: c = Scalar( 50, 127, 205); break;  // brown
-  case 8: c = Scalar( 0, 159, 255); break;   // orange
-  case 9: c = Scalar( 0, 216, 255); break;   // yellow
-  case 10: c = Scalar( 50, 205, 50); break;   // green
-  case 11: c = Scalar( 235, 218, 128); break; // cyan
-  case 12: c = Scalar( 207, 115, 0); break;   // blue
-  case 13: c = Scalar( 133, 69, 142); break;  // violet
-  case 14: c = Scalar( 132, 60, 72); break;  // purple
+  case 3: c = Scalar( 252, 15, 252); break;  // magenta
+  case 4: c = Scalar( 253, 116, 252); break; // pink
+  case 5: c = Scalar( 15, 15, 255); break;   // red
+  case 6: c = Scalar( 15, 15, 255); break;   // red
+  case 7: c = Scalar( 42, 42, 165); break;  // brown
+  case 8: c = Scalar( 15, 127, 255); break;   // orange
+  case 9: c = Scalar( 15, 255, 255); break;   // yellow
+  case 10: c = Scalar( 15, 255, 15); break;   // green
+  case 11: c = Scalar( 242, 242, 128); break; // cyan
+  case 12: c = Scalar( 255, 15, 15); break;   // blue
+  case 13: c = Scalar( 255, 15, 143); break;  // violet
+  case 14: c = Scalar( 127, 15, 127); break;  // purple
   }
   return c;
 }

@@ -2485,7 +2485,7 @@ const ColorInfo color_data[COLOR_NAMES_MAX] = {
   { "Tropical rain forest", "#00755E", { 0 , 117, 94  }, { 84, 100, 46  } },
   { "Tropical violet", "#CDA4DE", { 205, 164, 222 }, { 141, 26, 87  } },
   { "True Blue", "#0073CF", { 0 , 115, 207 }, { 103, 100, 81  } },
-  { "Tufts Blue", "#3E8EDE", { 62 , 142, 222 }, { 105, 70.7 , 87.1  } },
+  { "Tufts Blue", "#3E8EDE", { 62 , 142, 222 }, { 105, 70, 87  } },
   { "Tulip", "#FF878D", { 255, 135, 141 }, { 178, 47 , 100 } },
   { "Tumbleweed", "#DEAA88", { 222, 170, 136 }, { 12, 39 , 87  } },
   { "Turkish rose", "#B57281", { 181, 114, 129 }, { 173, 37 , 71  } },

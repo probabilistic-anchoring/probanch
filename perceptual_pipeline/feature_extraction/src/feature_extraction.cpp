@@ -70,7 +70,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   }
 
   // Histogram equalization
-  img = ColorFeatures::equalizeIntensity(img);
+  //img = ColorFeatures::equalizeIntensity(img);
   //std::cout << "This part works.. " << std::endl;
   
   // Detect keypoints (for the entire image)
@@ -175,7 +175,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       p1.x += 7;
       p1.y -= 1;
       for( int i = 0; i < preds.size(); i++ ) {
-	if( i == SHADES_OF_RED_HIGH == i )
+	if( SHADES_OF_RED_HIGH == i )
 	  continue;
 	p2.x = p1.x + 6;
 	p2.y = p1.y - (int)(preds[i] * 50.0);
