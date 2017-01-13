@@ -43,10 +43,12 @@
 namespace segmentation {
 
   // Constructor
-  Segmentation::Segmentation(const pcl::PointCloud<Point>::Ptr &cloud_ptr) : _cloud_ptr(cloud_ptr),
-									     _normals_ptr(new pcl::PointCloud<pcl::Normal>) {
+  Segmentation::Segmentation(const pcl::PointCloud<Point>::Ptr &cloud_ptr) : 
+    _cloud_ptr(cloud_ptr),
+    _normals_ptr(new pcl::PointCloud<pcl::Normal>)
+  {
     // Create a KD-Tree
-    this->_tree = boost::make_shared<pcl::search::KdTree<Point> >();
+    //this->_tree = boost::make_shared<pcl::search::KdTree<Point> >();
 
     // Create comparator objects
     plane_comparator_.reset (new pcl::PlaneCoefficientComparator<Point, pcl::Normal> ());
@@ -91,7 +93,6 @@ namespace segmentation {
     
     // Cluster the point cloud
     this->segmentOrganized( _cloud_ptr, _normals_ptr, cluster_indices, type);
-    //ROS_INFO("[Segmentation::cluster] clusters: %d", (int)clusters.size());
   }
   
   void Segmentation::cluster_lccp(vector<pcl::PointIndices> &cluster_indices) {
@@ -200,7 +201,7 @@ namespace segmentation {
     boost::shared_ptr<pcl::EdgeAwarePlaneComparator<Point, pcl::Normal> > eapc = 
       boost::dynamic_pointer_cast<pcl::EdgeAwarePlaneComparator<Point, pcl::Normal> >(this->edge_aware_comparator_);
     eapc->setDistanceMap (distance_map);
-    eapc->setDistanceThreshold (0.01f, false);  
+    eapc->setDistanceThreshold ( (factor * 0.5), false);  
   }
 
 
@@ -271,7 +272,7 @@ namespace segmentation {
 				       int clusterMinSize,
 				       double angularTh,    
 				       double distanceTh ) {
-    
+
     // Output data structures (use in subsequent processing)
     std::vector<pcl::PlanarRegion<Point>, Eigen::aligned_allocator<pcl::PlanarRegion<Point> > > regions;
     std::vector<pcl::ModelCoefficients> model_coefficients;
@@ -317,7 +318,7 @@ namespace segmentation {
       cluster_comparator_->setInputCloud (cloud_ptr);
       cluster_comparator_->setLabels (labels);
       cluster_comparator_->setExcludeLabels (plane_labels);
-      cluster_comparator_->setDistanceThreshold ( 0.01f, false); // 0.01f
+      cluster_comparator_->setDistanceThreshold ( distanceTh * 0.5, false); // 0.01f
 
       pcl::PointCloud<pcl::Label> euclidean_labels;
       std::vector<pcl::PointIndices> euclidean_indices;

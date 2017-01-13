@@ -34,7 +34,7 @@ namespace segmentation {
   // -----------------------------
   class Segmentation {
   public:
-    ros::NodeHandle nh_;
+    ros::NodeHandle _nh;
 
     // Constructor and destructor
     Segmentation(const pcl::PointCloud<Point>::Ptr &cloud_ptr);
@@ -82,7 +82,7 @@ namespace segmentation {
 		       double radius = 0.03f );
     void integralEstimate( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 			   pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
-			   double factor = 0.02f, // 0.03f
+			   double factor = 0.02f, // 0.02f
 			   double size = 20.0f ); // 10.0f
 
     // Private segmentation functions
@@ -97,14 +97,16 @@ namespace segmentation {
 			  vector<pcl::PointIndices> &cluster_indices,
 	   		  double tolerance = 0.03f,
 			  int clusterSize = 100 );
+
     void segmentOrganized( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 			   const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
 			  vector<pcl::PointIndices> &cluster_indices,
-			   int comparatorType = 0,
+			   int comparatorType = 3,
 			   int planeMinSize = 20000,
-			   int clusterMinSize = 1000,
+			   int clusterMinSize = 500,
 			   double angularTh = 3.0f,     // degrees (3.0f)
-			   double distanceTh = 0.01f );  // (0.02f)
+			   double distanceTh = 0.02f );  // (0.02f)
+    
     void segmentLCCP( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 		      const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
 		      vector<pcl::PointIndices> &cluster_indices,
