@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
+   Anchor.msg
+   AnchorArray.msg
    CaffeAttribute.msg
    ClusterArray.msg
    ColorAttribute.msg  
@@ -23,14 +25,12 @@ add_message_files(
    DescriptorAttribute.msg  
    Display.msg
    DisplayArray.msg
-   LocationAttribute.msg  
    MovementArray.msg  
    Object.msg 
    ObjectArray.msg 
-   Point2d.msg  
+   Point2d.msg
+   PositionAttribute.msg  
    ShapeAttribute.msg
-   Snapshot.msg
-   SnapshotArray.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -75,4 +75,3 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
-

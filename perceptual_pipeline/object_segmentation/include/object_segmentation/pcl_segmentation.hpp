@@ -152,7 +152,7 @@ namespace segmentation {
 			  double min,
 			  double max,
 			  bool keep_organized = true );
-  void getLocation( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+  void getPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 		    geometry_msgs::Pose &pos );
   void getShape( const pcl::PointCloud<Point>::Ptr &projected_cloud_ptr,
 		 geometry_msgs::Point &dim );

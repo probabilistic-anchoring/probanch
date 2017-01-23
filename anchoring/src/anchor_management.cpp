@@ -7,7 +7,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include <anchor_msgs/DisplayArray.h>
-#include <anchor_msgs/SnapshotArray.h>
+#include <anchor_msgs/AnchorArray.h>
 
 #include <anchoring/anchor_management.hpp>
 
@@ -24,7 +24,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
 
   // Publisher used for collecting bag files
-  _anchor_pub = _nh.advertise<anchor_msgs::SnapshotArray>("/anchors/snapshot", 1);
+  _anchor_pub = _nh.advertise<anchor_msgs::AnchorArray>("/anchors", 1);
   
   // Publischer used for displaying the anchors
   _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
@@ -95,7 +95,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
     attributes[COLOR] = AttributePtr( new ColorAttribute( histogram, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].color.symbols) );
     attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
-    attributes[LOCATION] = AttributePtr( new LocationAttribute( object_ptr->objects[i].location.data, object_ptr->objects[i].location.symbols) );    
+    attributes[POSITION] = AttributePtr( new PositionAttribute( object_ptr->objects[i].position.data, object_ptr->objects[i].position.symbols) );    
     attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.border, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 
     
     // Match all attributes
@@ -115,9 +115,9 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 
   
   // Get a snapshot of all anchors seen scene at time t
-  anchor_msgs::SnapshotArray snap_msg;
-  this->_anchors->getArray<anchor_msgs::Snapshot>( snap_msg.anchors, t );
-  this->_anchor_pub.publish(snap_msg);
+  anchor_msgs::AnchorArray msg;
+  this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
+  this->_anchor_pub.publish(msg);
   
   // Get all infromation about anchors (for display purposes )
   anchor_msgs::DisplayArray display_msg;
@@ -139,7 +139,7 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
   // Maintain all incoming object movmements
   for( uint i = 0; i < movement_ptr->movements.size(); i++) {
     anchoring::AttributeMap attributes;
-    attributes[LOCATION] = AttributePtr( new LocationAttribute(movement_ptr->movements[i]) );    
+    attributes[POSITION] = AttributePtr( new PositionAttribute(movement_ptr->movements[i]) );    
 
     // Match the location attribute
     map< string, map<AttributeType, float> > matches;
@@ -180,9 +180,9 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
   // Check the location (main feature for track)
   float best = 0.0;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    //std::cout << "Prob. dist: " << ite->second[LOCATION] << ", prob. rate: " << ite->second[IMAGE] << std::endl;
-    if( ite->second[LOCATION] > best ) {
-      best = ite->second[LOCATION];
+    //std::cout << "Prob. dist: " << ite->second[POSITION] << ", prob. rate: " << ite->second[IMAGE] << std::endl;
+    if( ite->second[POSITION] > best ) {
+      best = ite->second[POSITION];
       id = ite->first;
     }
   }
@@ -215,7 +215,7 @@ bool AnchorManagement::request( anchor_msgs::AnchorRequest::Request &req,
 				anchor_msgs::AnchorRequest::Response &res ) {
 
   // Get a snapshot of all anchors seen scene at time t
-  this->_anchors->getArray<anchor_msgs::Snapshot>( res.anchors, req.t );
+  this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
   return true;
 }
 

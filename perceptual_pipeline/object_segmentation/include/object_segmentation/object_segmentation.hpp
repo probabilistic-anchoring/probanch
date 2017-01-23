@@ -54,6 +54,7 @@ class ObjectSegmentation {
 
   ros::Publisher obj_pub_;
   ros::Publisher cluster_pub_;
+  ros::Publisher move_pub_;
 
   bool display_image_;
   ros::Subscriber display_trigger_sub_;

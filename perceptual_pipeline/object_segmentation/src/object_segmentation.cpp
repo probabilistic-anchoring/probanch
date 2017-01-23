@@ -14,6 +14,7 @@
 #include <std_msgs/String.h>
 #include <anchor_msgs/ObjectArray.h>
 #include <anchor_msgs/ClusterArray.h>
+#include <anchor_msgs/MovementArray.h>
 
 #include <object_segmentation/object_segmentation.hpp>
 
@@ -38,6 +39,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   
   obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/raw", queueSize_);
   cluster_pub_ = nh_.advertise<anchor_msgs::ClusterArray>("/objects/clusters", queueSize_);
+  move_pub_ = nh_.advertise<anchor_msgs::MovementArray>("/movements", queueSize_);
 
   // Used for the web interface
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &ObjectSegmentation::triggerCb, this);
@@ -157,6 +159,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     // Image & Cloud output
     anchor_msgs::ClusterArray clusters;
     anchor_msgs::ObjectArray objects;
+    anchor_msgs::MovementArray movements;
     objects.header = cloud_msg->header;
     objects.image = *image_msg;
 
@@ -219,18 +222,25 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cluster, transform);
 	  
 
-	  // 1. Extract the location
-	  obj.location.data.header.stamp = cloud_msg->header.stamp;
-	  //segmentation::getLocation( cluster_ptr, obj.location.data.pose );
-	  segmentation::getLocation( transformed_cluster.makeShared(), obj.location.data.pose );
-	  if( !( obj.location.data.pose.position.x > 0.2  && obj.location.data.pose.position.y > 0.0 && obj.location.data.pose.position.y < 0.62 && obj.location.data.pose.position.z < 0.5 ) )
+	  // 1. Extract the position
+	  geometry_msgs::PoseStamped pose;
+	  pose.header.stamp = cloud_msg->header.stamp;
+	  //obj.position.data.header.stamp = cloud_msg->header.stamp;
+	  //segmentation::getPosition( cluster_ptr, obj.position.data.pose );
+	  //segmentation::getPosition( transformed_cluster.makeShared(), obj.position.data.pose );
+	  segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
+	  obj.position.data = pose;
+	  if( !( obj.position.data.pose.position.x > 0.2  && obj.position.data.pose.position.y > 0.0 && obj.position.data.pose.position.y < 0.62 && obj.position.data.pose.position.z < 0.5 ) )
 	    continue;
+
+	  // Add the position to the movement array
+	  movements.movements.push_back(pose);
 
 	  // Add segmented object to display image
 	  img.copyTo( result, cluster_img);
 	  
 
-	  // std::cout << "Location: [" << obj.location.data.pose.position.x << ", " << obj.location.data.pose.position.y << ", " << obj.location.data.pose.position.z << "]" << std::endl;	  
+	  // std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
 
 	  // 2. Extract the shape
 	  //segmentation::getShape( cluster_ptr, obj.shape.data );
@@ -269,12 +279,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  pcl::compute3DCentroid ( transformed_cloud, centroid);
 
 	  if( centroid[0] > 0.0 && centroid[1] < 0.5 && centroid[1] > -0.5 )
-	    std::cout << "Location: [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
+	    std::cout << "Position [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
 	  */
 	  
 	  // Add the (un-transformed) cluster to the array message
 	  geometry_msgs::Pose center;
-	  segmentation::getLocation( cluster_ptr, center );
+	  segmentation::getPosition( cluster_ptr, center );
 	  clusters.centers.push_back(center);
 
 	  sensor_msgs::PointCloud2 cluster;
@@ -300,6 +310,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       //ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
       obj_pub_.publish(objects);
       cluster_pub_.publish(clusters);
+      move_pub_.publish(movements);      
     }
     
   }

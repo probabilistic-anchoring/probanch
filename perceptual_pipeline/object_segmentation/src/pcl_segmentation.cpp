@@ -442,7 +442,7 @@ void segmentation::passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_p
   }
 
 
-void segmentation::getLocation( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+void segmentation::getPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 				geometry_msgs::Pose &pos ) {
   Eigen::Vector4f centroid;
   pcl::compute3DCentroid (*cloud_ptr, centroid);

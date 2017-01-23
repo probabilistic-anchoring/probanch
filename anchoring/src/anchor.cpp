@@ -65,8 +65,8 @@ namespace anchoring {
 	case COLOR:
 	  this->_attributes[COLOR] = AttributePtr( new ColorAttribute(type) );
 	  break;
-	case LOCATION:
-	  this->_attributes[LOCATION] = AttributePtr( new LocationAttribute(type) );
+	case POSITION:
+	  this->_attributes[POSITION] = AttributePtr( new PositionAttribute(type) );
 	  break;
 	case SHAPE:
 	  this->_attributes[SHAPE] = AttributePtr( new ShapeAttribute(type) );

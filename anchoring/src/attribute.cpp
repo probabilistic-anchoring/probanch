@@ -48,7 +48,7 @@ namespace anchoring {
     case DESCRIPTOR: result = "descriptor"; break;
     case COLOR:      result = "color"; break;
     case SHAPE:      result = "shape"; break;
-    case LOCATION:   result = "location"; break;
+    case POSITION:   result = "position"; break;
     default:         result = "image"; break;
     }
     return result;
@@ -130,10 +130,13 @@ namespace anchoring {
     AttributeCommon::deserialize(db_sub);
   }
 
-  void ColorAttribute::populate(anchor_msgs::Snapshot &msg) {
-    msg.colors = this->_symbols;
-    msg.color_preds = this->_predictions; 
-
+  void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::ColorAttribute color_msg;
+    color_msg.symbols = this->_symbols;
+    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
+      color_msg.predictions.push_back((float)*ite);
+    }
+    msg.color = color_msg;
   }
   void ColorAttribute::populate(anchor_msgs::Display &msg) {
     msg.colors = this->_symbols;
@@ -214,9 +217,9 @@ namespace anchoring {
 
 
   /**
-   * Location attribute class methods
+   * Position attribute class methods
    */
-  void LocationAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
+  void PositionAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
   
     // Save the location
     try {
@@ -255,7 +258,7 @@ namespace anchoring {
     }
   }
 
-  void LocationAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void PositionAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
     
     // Load the location
     try {
@@ -296,19 +299,21 @@ namespace anchoring {
     }
   }
 
-  void LocationAttribute::populate(anchor_msgs::Snapshot &msg) {
-    msg.center = this->_array.back();
+  void PositionAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::PositionAttribute pose_msg;
+    pose_msg.data = this->_array.back();
+    msg.position = pose_msg;
   }
 
-  void LocationAttribute::populate(anchor_msgs::Display &msg) {
+  void PositionAttribute::populate(anchor_msgs::Display &msg) {
     msg.pos = this->_array.back();
   }
   
 
-  float LocationAttribute::match(const AttributePtr &query_ptr) {
+  float PositionAttribute::match(const AttributePtr &query_ptr) {
 
     // Typecast the query pointer
-    LocationAttribute *raw_ptr = dynamic_cast<LocationAttribute*>(query_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Match aginst the last poistion (only)
@@ -329,10 +334,10 @@ namespace anchoring {
     return 1.0 / exp(dist);
   }
 
-  void LocationAttribute::append(const unique_ptr<AttributeCommon> &query_ptr) {
+  void PositionAttribute::append(const unique_ptr<AttributeCommon> &query_ptr) {
     
     // Typecast the query pointer
-    LocationAttribute *raw_ptr = dynamic_cast<LocationAttribute*>(query_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Append the location (including a timestamp)
@@ -344,10 +349,10 @@ namespace anchoring {
     }  
   }
 
-  void LocationAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  void PositionAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
     
     // Typecast the query pointer
-    LocationAttribute *raw_ptr = dynamic_cast<LocationAttribute*>(query_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Update the location
@@ -360,7 +365,7 @@ namespace anchoring {
     */
   }
 
-  string LocationAttribute::toString() {
+  string PositionAttribute::toString() {
     std::stringstream ss;
     ss << "@ {";
     ss << " x = " << this->_array.back().pose.position.x;
@@ -410,10 +415,11 @@ namespace anchoring {
     AttributeCommon::deserialize(db_sub);
   }
 
-  void ShapeAttribute::populate(anchor_msgs::Snapshot &msg) {
-    msg.bounding_box = this->_data;
-    msg.size = _symbols[0];
-    msg.shape = _symbols[1];
+  void ShapeAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::ShapeAttribute shape_msg;
+    shape_msg.data = this->_data;
+    shape_msg.symbols = this->_symbols;
+    msg.shape = shape_msg;
   }
   void ShapeAttribute::populate(anchor_msgs::Display &msg) {
     msg.size = _symbols[0];
@@ -503,9 +509,13 @@ namespace anchoring {
     AttributeCommon::deserialize(db_sub);
   }
 
-  void CaffeAttribute::populate(anchor_msgs::Snapshot &msg) {
-    msg.categories = this->_symbols;
-    msg.category_preds = this->_predictions;
+  void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::CaffeAttribute caffe_msg;
+    caffe_msg.symbols = this->_symbols;
+    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
+      caffe_msg.predictions.push_back((float)*ite);
+    }
+    msg.caffe = caffe_msg;
   }
 
   void CaffeAttribute::populate(anchor_msgs::Display &msg) {

@@ -8,12 +8,12 @@
 
 // ROS includes
 #include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Point.h>
+//#include <geometry_msgs/PoseStamped.h>
+//#include <geometry_msgs/Point.h>
 
 #include <anchor_msgs/Contour.h>
 #include <anchor_msgs/Display.h>
-#include <anchor_msgs/Snapshot.h>
+#include <anchor_msgs/Anchor.h>
 
 // OpenCV includes
 #include <opencv2/core/core.hpp>
@@ -30,7 +30,7 @@ namespace anchoring {
     DESCRIPTOR = 0,
     COLOR      = 1,
     SHAPE      = 2,
-    LOCATION   = 3,
+    POSITION   = 3,
     CAFFE      = 4
   };
 
@@ -51,7 +51,7 @@ namespace anchoring {
     virtual void serialize(MongoDatabase::Subdoc &db_sub); 
     virtual void deserialize(const MongoDatabase::Subdoc &db_sub);
     virtual void populate(anchor_msgs::Display &msg) { }
-    virtual void populate(anchor_msgs::Snapshot &msg) { }
+    virtual void populate(anchor_msgs::Anchor &msg) { }
     
     // Virtual match method
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
@@ -91,7 +91,7 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
-    void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
@@ -121,17 +121,17 @@ namespace anchoring {
   }; 
   
   /**
-   * Location attribute struct
+   * Position attribute struct
    * -----------------------------------------------
    */
-  struct LocationAttribute : public AttributeCommon {
+  struct PositionAttribute : public AttributeCommon {
     vector<geometry_msgs::PoseStamped> _array;  
 
     // Constructors
-    LocationAttribute(AttributeType type = LOCATION) : AttributeCommon(type) {}
-    LocationAttribute( const geometry_msgs::PoseStamped &data, 
+    PositionAttribute(AttributeType type = POSITION) : AttributeCommon(type) {}
+    PositionAttribute( const geometry_msgs::PoseStamped &data, 
 		       const vector<string> &symbols = vector<string>(),
-		       AttributeType type = LOCATION ) : AttributeCommon( symbols, type) {
+		       AttributeType type = POSITION ) : AttributeCommon( symbols, type) {
       // Add the data (including a timestamp)
       this->_array.push_back(data);
     }
@@ -139,7 +139,7 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
-    void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     void append(const unique_ptr<AttributeCommon> &query_ptr);
@@ -165,7 +165,7 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
-    void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
@@ -195,7 +195,7 @@ namespace anchoring {
     // Override methods
     void serialize(MongoDatabase::Subdoc &db_sub); 
     void deserialize(const MongoDatabase::Subdoc &db_sub);
-    void populate(anchor_msgs::Snapshot &msg);
+    void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     void update(const unique_ptr<AttributeCommon> &query_ptr);
