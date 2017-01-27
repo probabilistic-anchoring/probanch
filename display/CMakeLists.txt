@@ -104,6 +104,7 @@ include_directories(
 ## Declare a C++ executable
 add_executable(anchor_viewer src/anchor_viewer.cpp)
 add_executable(img2str src/img_to_base64.cpp)
+add_executable(anchor_recorder src/anchor_recorder.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -115,6 +116,10 @@ target_link_libraries(anchor_viewer
    ${OpenCV_LIBRARIES}
 )
 target_link_libraries(img2str
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+target_link_libraries(anchor_recorder 
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
