@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <chrono>
+#include <thread>
 
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
@@ -23,7 +25,7 @@ class AnchorRecorder {
 
   image_transport::ImageTransport _it;
   image_transport::Subscriber _img_sub;
-  ros::Publsicher _trigger_pub;
+  ros::Publisher _trigger_pub;
 
   cv::Mat _img;
   std::string _trigger_str;
@@ -35,7 +37,8 @@ class AnchorRecorder {
     cv_bridge::CvImagePtr cv_ptr;
     try {
       cv_ptr = cv_bridge::toCvCopy( msg_ptr, sensor_msgs::image_encodings::BGR8);
-      cv_ptr->image.copyTo(this->_img);
+      //cv_ptr->image.copyTo(this->_img);
+      this->_img = textImg(cv_ptr->image);
     }
     catch (cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -55,19 +58,19 @@ class AnchorRecorder {
   std::string getCation() {
     std::string result = "";
     if( this->_trigger_str == "segmentation") {
-      result = "Object Segmentation"
+      result = "Object Segmentation";
     }
     else if( this->_trigger_str == "tracking" ) {
-      result = "Object Tracking"
+      result = "Object Tracking";
     }
     else if( this->_trigger_str == "classification" ) {
-      result = "Object Classification"
+      result = "Object Classification";
     }
     else if( this->_trigger_str == "grounding" ) {
-      result = "Feature Extraction & Symbol Grounding"
+      result = "Feature Extraction & Symbol Grounding";
     }
     else if( this->_trigger_str == "anchoring" ) {
-      result = "Object Anchoring"
+      result = "Object Anchoring";
     }
     return result;
   }
@@ -75,31 +78,33 @@ class AnchorRecorder {
   std::string getDescription() {
     std::string result = "";
     if( this->_trigger_str == "segmentation") {
-      result = "  ...detect and segment objects of interest from a stream of RGB-D data given by a Kinect v2 sensor."
+      result = "  ...detect and segment objects of interest from a stream of RGB-D data given by a Kinect v2 sensor.";
     }
     else if( this->_trigger_str == "tracking" ) {
-      result = "  ..tracks segmented objects on a perceptual level."
+      result = "  ..tracks segmented objects on a perceptual level.";
     }
     else if( this->_trigger_str == "classification" ) {
-      result = "  ...classifies objects, through the use of a Convolutional Neural Network (CNN), with the goal of symbolically associating a category label with each object."
+      result = "  ...classifies objects, through the use of a Convolutional Neural Network (CNN), with the goal of symbolically associating a category label with each object.";
     }
     else if( this->_trigger_str == "grounding" ) {
-      result = "  ...extracts measurable attributes, e.g. color histograms, and establishes the connection between measured attributes and semantic symbols, e.g. a certain peek in a color histogram is associated with the symbol 'red'."
+      result = "  ...extracts measurable attributes, e.g. color histograms, and establishes the connection between measured attributes and semantic symbols, e.g. a certain peek in a color histogram is associated with the symbol 'red'.";
     }
     else if( this->_trigger_str == "anchoring" ) {
-      result = "  ...creates and maintains consistent representations of objects, both in time and space."
+      result = "  ...creates and maintains consistent representations of objects, both in time and space.";
     }
     return result;
   }
 
-  cv::Mat textImg() {
+  cv::Mat textImg(const cv::Mat &img) {
 
     // Draw the result image
-    cv::Mat result(this->_img);
+    cv::Mat result(img);
 
     // Print infromation
-    cv::putText( result_img, this->getCation(), cv::Point( 20, 20), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar( 57, 104, 205), 1, 8);
-    cv::putText( result_img, this->getDescription(), cv::Point( 20, 36), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 4);
+    cv::putText( result, this->getCation(), cv::Point( 20, 42), cv::FONT_HERSHEY_COMPLEX, 0.8, cv::Scalar( 57, 104, 205), 2, CV_AA);
+    //cv::putText( result, this->getDescription(), cv::Point( 20, 72), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar::all(32), 1, CV_AA);
+
+    return result;
   }
   
   // Helper functions
@@ -128,12 +133,25 @@ public:
   ~AnchorRecorder() {}
 
   void spin() {
+
+    cv::VideoWriter video( "out.avi", CV_FOURCC('M','J','P','G'), 20, cv::Size( 960/2, 540/2), true);
+    //cv::VideoWriter video( "out.avi", CV_FOURCC('P','I','M','1'), 20, cv::Size( 960/2, 540/2), true);
+    if ( !video.isOpened() ) {
+      cout << "ERROR: Failed to write the video" << endl;
+      return;
+    }
+
     ros::Rate rate(30);
     while(ros::ok()) {
 
       // OpenCV window for display
       if( !this->_img.empty() ) {
-	cv::imshow( "Anchors demo...", this->textImg() );
+	cv::imshow( "Anchors demo...", this->_img );
+	if( this->_recording ) {
+	  cv::Mat scaled;
+	  cv::resize( this->_img, scaled, cv::Size( 960/2, 540/2));
+	  video.write(scaled);
+	}
       }
 
       // Wait for a keystroke in the window
@@ -146,6 +164,7 @@ public:
       }
       else if( key == '1' ) {
 	this->triggerPub("segmentation");
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
       }
       else if( key == '2' ) {
 	this->triggerPub("tracking");
