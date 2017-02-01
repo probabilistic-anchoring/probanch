@@ -25,6 +25,8 @@ add_message_files(
    DescriptorAttribute.msg  
    Display.msg
    DisplayArray.msg
+   Inference.msg      # Logic
+   InferenceArray.msg # Logic
    MovementArray.msg  
    Object.msg 
    ObjectArray.msg 
