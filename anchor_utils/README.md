@@ -18,7 +18,6 @@ $ sudo apt-get install -y mongodb-org
 ```
 *Note, instructions above is for Ubuntu 14.04, for other versions, see [official install instruction](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/).*
 
-
 2. Install/update cmake (resion 3.2 is required):
 ```
 $ sudo apt-get install software-properties-common 
@@ -26,7 +25,6 @@ $ sudo add-apt-repository ppa:george-edison55/cmake-3.x
 $ sudo apt-get update
 $ sudo apt-get install cmake
 ```
-
 
 3. Install MongoDB C drivers:
 ```
@@ -38,8 +36,7 @@ $ ./autogen.sh --with-libbson=bundled --enable-static
 $ make
 $ sudo make install
 ```
-*Note, in later Ubuntu versions can the instructions above be substituted by: `$ sudo apt-get install libmongoc-1.0-0`*
-
+*Note, in later Ubuntu versions can the instructions above be substituted by:* `$ sudo apt-get install libmongoc-1.0-0`
 
 4. Install MongoDB C++ drivers:
 ```
@@ -49,5 +46,5 @@ $ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
 $ sudo make EP_mnmlstc_core # For MNMLSTC polyfill
 $ make && sudo make install
 ```
-*Note, make sure that library path of the install libraries, e.g. `/usr/local/lib`, is part of your `LD_LIBRARY_PAHT`.*
+*Note, make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
 
