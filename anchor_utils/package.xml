@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>anchor_utils</name>
+  <version>0.0.1</version>
+  <description>The anchor_utils package</description>
+  <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+
+  <export>
+    <build_export_depend>libbsoncxx</build_export_depend>
+    <build_export_depend>libmongocxx</build_export_depend>
+  </export>
+</package>

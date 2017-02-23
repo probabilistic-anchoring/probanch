@@ -5,6 +5,7 @@ This repository contains the source code of the anchoring system. The overall sy
 * **anchoring**: the main anchoring management system.
 * **anchor_caffe**: an ROS wrapper for the Caffe framework (for object recognition/classification).
 * **anchor_msgs**: a separate package for all anchor specific ROS messages.
+* **anchor_utils**: a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
 * **perceptual_pipeline**: a package for all processing (object segmentation, feature extraction, etc.) of sensor data.
 
 ## Dependencies ##
@@ -15,7 +16,7 @@ The code has been written and tested in Ubuntu 14.04 together with ROS Indigo. H
 
 ## Install ##
 
-First of all, the ROS environment is required for the overall system to integrate and communicate. In Ubuntu 10.04, install (and create a `catkin` workspace) by:
+First of all, the ROS environment is required for the overall system to integrate and communicate. In Ubuntu 14.04, install (and create a `catkin` workspace) by:
 
 ```
 $ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'

@@ -1,14 +1,11 @@
-# The Anchoring Management System #
+# Anchoring Management System #
 
-This repository contains the ROS packages that constitutes the anchoring management system. This system is responsible for the long-term management of anchors through the three anchoring functions: acquire, re-acquire and track.
+This repository contains the ROS packages that constitutes the anchoring management system. This system is responsible for the long-term management of anchors through the three anchoring functions: *acquire, re-acquire and track*.
 
 ## Dependencies ##
 
-The anchoring management system uses a [MongoDB NoSQL database](https://www.mongodb.com/) for persistent storage of anchors. 
-MongoDB can simply be installed in Ubuntu (version 14.04 >) through the use of the standard package manager:
+*Note, this package is now dependent of the `ancor_utils` library, which includes an interface for storing and retrieving anchors in a MongoDB database.*
+*See the `ancor_utils` package for further instructions of dependencies.*
 
-```
-$ sudo apt-get install mongodb libmongo-client-dev
-```
 
 
