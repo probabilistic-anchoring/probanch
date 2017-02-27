@@ -49,14 +49,12 @@ namespace anchoring {
 
   // Read all identifiers from db
   void AnchorContainer::identifiers(vector<string> &ids, int size) {
-    MongoDatabase db( this->_collection, this->_db_name);
     try {
-      db.getIdAll(ids, size); // Default size = 0 (umlimited)
+      mongo::Database::id_array( this->_db_name, this->_collection, ids, size); // Default size = -1 (umlimited)
     }
-    catch( DBException &e ) {
-      cout << "[AnchorContainer::identifiers] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e ) {
+      std::cout << "[AnchorContainer::identifiers]" << e.what() << std::endl;
     }
-    db.close();
   }
 
   // Split list of identifiers
@@ -79,22 +77,20 @@ namespace anchoring {
 
   // Thread init function
   void AnchorContainer::run(const vector<string> &ids) {
-    MongoDatabase db(this->_collection, this->_db_name);
+    mongo::Database db(this->_db_name, this->_collection);
     try { 
       for( auto ite = ids.begin(); ite != ids.end(); ++ite ) {
 	AnchorPtr anchor( new Anchor(*ite) );
-	db.prepareGet(*ite);
-	anchor->load(db);  
+	mongo::Database::Document doc = db.get(*ite); // Load a sub document
+	anchor->load(doc);  
 	this->_mtx.lock();
 	this->_map[*ite] = anchor;
 	this->_mtx.unlock();
-	db.clear();
       }
     }
-    catch( DBException &e ) {
-      cout << "[AnchorContainer:init] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e ) {
+      std::cout << "[AnchorContainer::init]" << e.what() << std::endl;
     }
-    db.close();
   }
 
   /*
@@ -191,7 +187,7 @@ namespace anchoring {
   
   // Re-acquire an exisitng anchor
   void AnchorContainer::re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track ) {
-    MongoDatabase db(this->_collection, this->_db_name);
+    mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->update( db, attributes, t, track);
     if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
       ROS_WARN("Anchor [re-acquired]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
@@ -199,7 +195,6 @@ namespace anchoring {
     else {
       ROS_WARN("Anchor [re-acquired]: %s - ", id.c_str());
     }
-    db.close();
   }
   
   // Maintain the anchor space

@@ -23,8 +23,8 @@ namespace anchoring {
     ~Anchor();
 
     // Anchoring helper functions
-    void load(const MongoDatabase &db); 
-    void update(MongoDatabase &db, AttributeMap &attributes, const ros::Time &t, bool append = false);
+    void load(const mongo::Database::Document &doc); 
+    void update(mongo::Database &db, AttributeMap &attributes, const ros::Time &t, bool append = false);
     void append(AttributeMap &attributes, const ros::Time &t);
     bool invalid() { return this->_attributes.empty(); }
     
@@ -46,7 +46,7 @@ namespace anchoring {
   private:
     
     // Private functions
-    void save(MongoDatabase &db); 
+    void save(mongo::Database &db); 
 
     // Unique id for each anchor
     string _id;

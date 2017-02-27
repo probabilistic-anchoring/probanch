@@ -7,14 +7,58 @@ namespace mongo {
   using namespace mongocxx;
   using namespace bsoncxx;
 
+  // Constructor
   Database::Database( const std::string &db, const std::string &collection ) :
     _db(db),
-    _collection(collection) //, _active_doc(P_NONE) 
+    _collection(collection)
   {
     _client_ptr = std::unique_ptr<mongocxx::client>(new mongocxx::client(mongocxx::uri{}));
     auto database = _client_ptr->database(db);
     _coll_ptr = mongocxx::stdx::make_unique<mongocxx::collection>(database[collection]);
   }
+  
+  // Document constructor
+  Database::Document::Document(const std::string &id) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    if( !id.empty() ) {
+      _doc = document{} << "_id" << bsoncxx::oid{ id } << finalize;
+    }
+    else {
+      _doc = document{} << finalize;
+    }
+  }
+
+  // Copy assignment operator 
+  Database::Document& Database::Document::operator=(const Database::Document &other) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using bsoncxx::builder::concatenate;
+    if (this != &other) {
+      this->_doc = document{} << concatenate(other._doc->view()) << finalize;
+      for( const auto& el : other._sub_doc ) {
+	this->_sub_doc[ el.first ] = el.second;
+      }
+      for( const auto& el : other._sub_array ) {
+	this->_sub_array[ el.first ] = el.second;
+      }
+    }
+    return *this;
+  }
+  /*
+  Database::Document& Database::Document::operator=(Database::Document &&other) {
+    if (this != &other) {
+      _doc = std::move(other._doc);
+      for( const auto& el : other._sub_doc ) {
+	this->_sub_doc[ el.first ] = std::move(el.second);
+      }
+      for( const auto& el : other._sub_array ) {
+	this->_sub_array[ el.first ] = std::move(el.second);
+      }
+    }
+    return *this;
+  }
+  */
 
   // ----------------------------
   // Static methods
@@ -72,7 +116,6 @@ namespace mongo {
     }
     
   }
-
   
   // Method for generate and return a unique id
   std::string Database::generate_id() {
@@ -81,77 +124,15 @@ namespace mongo {
   }
 
 
-  // ----------------------------
-  // Insert / Query documents
-  // -----------------------------------
- 
-  void Database::prepare( PrepareType type, const std::string &id) {
-    if( type == P_QUERY ) { // Prepare a query result document.
-      if( !id.empty() ) {
-	this->_query_doc = this->get_document(id);
-      }
-      else {
-	cout << "[mongocxx::warning]: given id is empty, query result will be empty." << endl;
-      }
-    }
-    else if( type == P_SUB_DOC || type == P_SUB_ARRAY ) {
-      _active_doc = (type == P_SUB_DOC) ? P_SUB_DOC : P_SUB_ARRAY;
-      _sub_doc.clear();
-      _sub_array.clear();
-    }
-    else { // Prepare an insert stream builder document.
-      _active_doc = P_INSERT;
-      _insert_doc.clear();
-      if( !id.empty() ) {
-	using builder::stream::document;
-	using builder::stream::finalize;
-	_insert_doc.push_back(document{} << "_id" <<  bsoncxx::oid{ id } << finalize);
-	std::cout << bsoncxx::to_json(_insert_doc.front().view()) << std::endl;
-      }
-    }
-  }
-
-  // Release a query document
-  void Database::release() {
-    this->_query_doc = mongocxx::stdx::optional<bsoncxx::document::value> (); // Create new empty unique ptr.
-  }
-
   // ----------------------
-  // Insert methods
-  // -----------------------------
-  
-  // Append a sub document to a sub array
-  void Database::append() {
-    using builder::stream::document;
-    using builder::concatenate;
-    if( _sub_doc.empty() ) {
-      cout << "[mongocxx::warning]: sub document is empty, nothing will be appended to sub array." << endl;
-    }
-    else {
-      auto doc = document{};
-      for( auto &el : _sub_doc) {
-	doc << concatenate(el.view());
-      }
-      _sub_array.push_back(doc.extract());
-      _sub_doc.clear();
-    }
-  }
-
-  // Insert the actual document.
+  // Insert method
   // --------------------------------
   // Return: '_id' of inserted document
   // --------------------------------------
-  std::string Database::insert() {
+  std::string Database::insert(Database::Document &doc) {
     std::string result = "";
-    using builder::stream::document;
-    using builder::stream::finalize;
-    using builder::concatenate;
-    auto doc = document{};
-    for( auto &el : _insert_doc) {
-      doc << concatenate(el.view());
-    }
     try {
-      auto response = this->_coll_ptr->insert_one( doc.view() );
+      auto response = this->_coll_ptr->insert_one( doc.serialize().view() );
       if( !response ) {
 	throw std::logic_error("[mongocxx::error]: could not insert document.");
       }
@@ -161,81 +142,132 @@ namespace mongo {
       }    
     }
     catch(const mongocxx::bulk_write_exception& e) {
-      throw std::logic_error("[mongocxx::error]: a document with given _id already exists (try to update instead)."); //  + std::string(e.what())
+      throw std::logic_error("[mongocxx::error]: a document with given _id already exists (try to update instead)."); 
     }
     return result;
   }  
 
   // ----------------------------------
-  // Sub- document / array access methods
+  // Sub- document methods
   // ---------------------------------------
 
-  // Iterator methods for accessing sub-array
-  inline 
-  const mongo_iterator Database::begin(const std::string &key) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
+  // Return an nested sub-document
+  Database::Document Database::Document::get(const std::string &key) {
+    if( _sub_doc.find(key) == _sub_doc.end() ) {
+      cout << "[mongocxx::warning]: there exist no sub-document with key '" + key +"', result document will be empty." << endl;
+      return Database::Document();
     }
-    if( _sub_array.empty() ) {
-      extract(key);
-    }
-    return _sub_array.begin();
-  }  
-  inline 
-  const mongo_iterator Database::end() {
-    return _sub_array.end();
-  }  
-
-  // Access a sub-document
-  inline
-  const document::value Database::operator() (const std::string &key) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
-    }
-    bsoncxx::document::element el = get_element( _query_doc->view(), key );
-    if( el.type() != type::k_document ) {
-      throw std::logic_error("[mongocxx::error]: sub element '" + key + "' is not a document.");
-    }
-    return bsoncxx::document::value(el.get_document());
+    return _sub_doc[key];
   }
 
-  // Access an indexed element of extracted sub-array
-  inline
-  const document::value Database::operator() (const std::string &key, std::size_t idx) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
+  
+  // Return an iterator pointer to a nested sub-array
+  vector<Database::Document>::const_iterator Database::Document::begin(const std::string &key) const {
+    if( _sub_array.find(key) == _sub_array.end() ) {
+      throw std::logic_error("[mongocxx::error]: there exist no sub-array with key '" + key +"'.");
     }
-    if( _sub_array.empty() ) {
-      extract(key);
-    }
-    if( !(idx >= 0 && idx < _sub_array.size()) ) {
-      throw std::logic_error("[mongocxx::error]: sub array index out of bounds.");
-    }
-    return _sub_array[idx];
+    return _sub_array.at(key).begin();
   }
 
-  // Extract a sub-array (from prepared query document).
-  void Database::extract(const std::string &key) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
+  // ...corresponding end iterator pointer
+  vector<Database::Document>::const_iterator Database::Document::end(const std::string &key) const {
+    if( _sub_array.find(key) == _sub_array.end() ) {
+      throw std::logic_error("[mongocxx::error]: there exist no sub-array with key '" + key +"'.");
     }
-    else {
-      bsoncxx::document::element el = get_element( _query_doc->view(), key );
-      if( el.type() == type::k_array ) {
+    return _sub_array.at(key).end();
+  }
+  
+  // Access a sub-array
+  const vector<Database::Document> &Database::Document::access(const std::string &key) {
+    if( _sub_array.find(key) == _sub_array.end() ) {
+      throw std::logic_error("[mongocxx::error]: there exist no sub-array with key '" + key +"'.");
+    }
+    return _sub_array[key];
+  }
+  
+  // Seralize the document structure and return a database document value
+  document::value Database::Document::serialize() {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using bsoncxx::builder::concatenate;
+    auto builder = document{};
+    
+    // Add all sub documents
+    if( !_sub_doc.empty() ) {
+      using builder::stream::open_document;
+      using builder::stream::close_document;
+      for( auto &doc : _sub_doc ) {
+	builder << doc.first << open_document << concatenate(doc.second.serialize().view()) << close_document;
+      }
+    }
+
+    // Add all sub arrays
+    if( !_sub_array.empty() ) {    
+      using builder::stream::open_array;
+      using builder::stream::close_array;
+      for( auto &doc : _sub_array ) {
+	auto arr = builder << doc.first << open_array;
+	for( auto &el : doc.second ) {
+	  arr << concatenate(el.serialize().view());
+	}
+	arr << close_array;
+      }
+    }
+
+    auto result = document{} << concatenate(_doc->view()) << concatenate(builder.view()) << finalize;
+    return result;
+  }
+
+  // Recursivly deseralize the document structure
+  void Database::Document::deserialize() {
+    for( auto &el : _doc->view() ) {
+      if( el.type() == type::k_document ) {
+	Database::Document doc(document::value(el.get_document()));
+	doc.deserialize();
+	this->_sub_doc[std::string(el.key())] = doc;
+      }
+      else if( el.type() == type::k_array ) {
+	
 	bsoncxx::array::view subarr{el.get_array().value};
-	for( bsoncxx::array::element el : subarr ) {
-	  if( el.type() == type::k_document ) {
-	    _sub_array.push_back(bsoncxx::document::value(el.get_document()));
+	for( bsoncxx::array::element subdoc : subarr ) {
+	  if( subdoc.type() != type::k_document ) {
+	    break;
 	  }
+	  Database::Document doc(document::value(subdoc.get_document()));
+	  doc.deserialize();
+	  this->_sub_array[std::string(el.key())].push_back(doc);
 	}      
       }
-      else {
-	cout << "[mongocxx::warning]: element '" + key +"' is not an array, result will be empty.." << endl;
-      }
     }
   }
 
+  // Extract a sub-document
+  Database::Document Database::get(const std::string &id) const {
+    auto result = this->get_document(id);
+    if( result ) {
+      return Database::Document(*result);
+    }
+    return Database::Document();
+  }  
 
+
+  // --------------------
+  // Update methods
+  // ----------------------
+
+  // Update a document (recursivly)
+  void Database::update(const std::string &id, const std::string &key, Database::Document &doc) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    using builder::concatenate;
+    _coll_ptr->update_one( this->get_query(id),
+			   document{} << "$set" << open_document << 
+			   key << concatenate(doc.serialize().view()) << close_document << finalize );    
+  }
+
+  
   // --------------------
   // Remove methods
   // ----------------------
@@ -266,7 +298,7 @@ namespace mongo {
     return oid.to_string();
   }
   
-  bsoncxx::document::value Database::get_query(const std::string &id) {
+  bsoncxx::document::value Database::get_query(const std::string &id) const {
     using builder::stream::document;
     using builder::stream::finalize;
     auto doc = document{} << "_id" << bsoncxx::oid{ id } << finalize;
@@ -287,12 +319,12 @@ namespace mongo {
     }
     
     if( !el ) {
-      throw std::logic_error("[mongocxx::error]: could not find element '" + key + "' in doccument id: '" + this->get_id(view) + "'");
+      throw std::logic_error("[mongocxx::error]: could not find element '" + key + "' in doccument id: '" + get_id(view) + "'");
     }
     return el;
   }
 
-  mongocxx::stdx::optional<bsoncxx::document::value> Database::get_document(const std::string &id) {
+  mongocxx::stdx::optional<bsoncxx::document::value> Database::get_document(const std::string &id) const {
     mongocxx::stdx::optional<bsoncxx::document::value> doc =
       _coll_ptr->find_one( this->get_query(id) );
     if( !doc ) {
@@ -318,7 +350,24 @@ namespace mongo {
 	bsoncxx::to_string(val.type()) + "', which is different from standard type 'unsigned char*'" +
 	" - default 'nullptr' will be returned." << endl;
     }
+    if( result == nullptr ) {
+      cout << "Getting shitty binary." << endl;
+    }
     return result;
+  }
+
+  // Get value - type: bool (true/false)
+  template<> bool Database::get_value<bool>( const bsoncxx::types::value &val, 
+					     const std::string &key ) {
+    if( val.type() == type::k_bool ) {
+      return val.get_bool().value;
+    }
+    else {
+      cout << "[mongocxx::warning]: value for element '" + key + "' is of type '" + 
+	bsoncxx::to_string(val.type()) + "', which is different from standard type 'bool'" +
+	" - default 'false' will be returned." << endl;
+    }
+    return false;
   }
 
   // Get value - type: std::size_t
@@ -387,64 +436,31 @@ namespace mongo {
 
   // Add value - type: unsigned char* (binary data)
   template<> 
-  void Database::add<unsigned char*>(const std::string &key, unsigned char* val, std::size_t length) {
+  void Database::Document::add<unsigned char*>(const std::string &key, unsigned char* val, std::size_t length) {
     using builder::stream::document;
     using builder::stream::finalize;
+    using bsoncxx::builder::concatenate;
     bsoncxx::types::b_binary array;
     array.bytes = val;
     array.size = length;
-    if( _active_doc == P_INSERT ) {
-      _insert_doc.push_back(document{} << key << array << finalize);
-    }
-    else {
-      _sub_doc.push_back(document{} << key << array << finalize);
-    }
+    _doc = document{} << concatenate(_doc->view()) << key << array << finalize;
   }
 
-  // Special case, use the PrepareType to add sub- docs. and arrays.
+  // Update value - type: unsigned char* (binary data)
   template<> 
-  void Database::add(const std::string &key, PrepareType val, std::size_t length) {
+  void Database::update<unsigned char*>( const std::string &id, 
+					const std::string &key, 
+					unsigned char* val, 
+					std::size_t length ) {
     using builder::stream::document;
-    using builder::concatenate;
-    if( val == P_SUB_DOC ) {
-
-      if( _sub_doc.empty() ) {
-	cout << "[mongocxx::warning]: sub document is empty, nothing will be added." << endl;
-      }
-      else {
-	auto doc = document{};
-	doc << key << builder::stream::open_document;
-	for( auto &el : _sub_doc) {
-	  doc << concatenate(el.view());
-	}
-	doc << builder::stream::close_document;
-	_insert_doc.push_back(doc.extract());
-	_sub_doc.clear();
-	_active_doc = P_INSERT;      
-      }
-    }
-    else if( val == P_SUB_ARRAY ){
-      if( _sub_array.empty() ) {
-	cout << "[mongocxx::warning]: sub array is empty, nothing will be added." << endl;
-      }
-      else {
-	if( !_sub_doc.empty() ) {
-	  this->append();
-	}
-
-	auto doc = document{};
-	auto array =  doc << key << builder::stream::open_array;
-	for( auto &el : _sub_array) {
-	  array << concatenate(el.view());
-	}
-	array << builder::stream::close_array;
-	_insert_doc.push_back(doc.extract());
-	_sub_doc.clear();
-	_sub_array.clear();
-	_active_doc = P_INSERT;      
-      }
-    }
-    
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    bsoncxx::types::b_binary array;
+    array.bytes = val;
+    array.size = length;
+    _coll_ptr->update_one( this->get_query(id),
+			   document{} << "$set" << open_document << 
+			   key << array << close_document << finalize );    
   }
-
 } // namespace 'mongo'

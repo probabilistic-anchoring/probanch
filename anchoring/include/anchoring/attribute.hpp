@@ -8,24 +8,23 @@
 
 // ROS includes
 #include <ros/ros.h>
-//#include <geometry_msgs/PoseStamped.h>
-//#include <geometry_msgs/Point.h>
 
+// OpenCV includes
+#include <opencv2/core/core.hpp>
+
+// Anchor includes
 #include <anchor_msgs/Contour.h>
 #include <anchor_msgs/Display.h>
 #include <anchor_msgs/Anchor.h>
 
-// OpenCV includes
-#include <opencv2/core/core.hpp>
-#include <anchoring/database.hpp>
+#include <anchor_utils/database.hpp>
 
+// --[ anchoring namespace... 
 namespace anchoring {
 
   using namespace std;
 
-  /**
-   * Different attribute types 
-   */
+  // ---[ Different attribute types ]---
   enum AttributeType {
     DESCRIPTOR = 0,
     COLOR      = 1,
@@ -34,12 +33,10 @@ namespace anchoring {
     CAFFE      = 4
   };
 
-  /**
-   * Common attribute base struct
-   * -----------------------------------------------
-   */
+  // ---[ Common attribute base struct 
+  // -----------------------------------------------
   struct AttributeCommon {
-    vector<string> _symbols;
+    vector<std::string> _symbols;
     AttributeType _type;
 
     // Constructor/destrcutor
@@ -48,8 +45,8 @@ namespace anchoring {
     virtual ~AttributeCommon() {}
 
     // Virtual database methods
-    virtual void serialize(MongoDatabase::Subdoc &db_sub); 
-    virtual void deserialize(const MongoDatabase::Subdoc &db_sub);
+    virtual mongo::Database::Document serialize(); 
+    virtual void deserialize(const mongo::Database::Document &doc);
     virtual void populate(anchor_msgs::Display &msg) { }
     virtual void populate(anchor_msgs::Anchor &msg) { }
     
@@ -62,18 +59,19 @@ namespace anchoring {
     virtual string toString() { return ""; }
 
     string getTypeStr();
-  };
+
+  }; // ...base attribute struct ]---
   
-  // Type defined attribute pointer containers    
+
+  // ---[ Type defined attribute pointer containers ]---    
+  //------------------------------------------------------------
   typedef unique_ptr<AttributeCommon> AttributePtr;
   typedef map<AttributeType, AttributePtr> AttributeMap;
   typedef map<AttributeType, float> MatchMap;
   
-
-  /**
-   * Color attribute struct
-   * -----------------------------------------------
-   */
+  
+  // ---[ Color attribute struct ]---
+  //-----------------------------------------------
   struct ColorAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
@@ -89,8 +87,8 @@ namespace anchoring {
     }    
 
     // Override methods
-    void serialize(MongoDatabase::Subdoc &db_sub); 
-    void deserialize(const MongoDatabase::Subdoc &db_sub);
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
@@ -98,10 +96,8 @@ namespace anchoring {
   }; 
   
 
-  /**
-   * Descriptor attribute struct
-   * -----------------------------------------------
-   */
+  // ---[ Descriptor attribute struct ]---
+  //-----------------------------------------------
   struct DescriptorAttribute : public AttributeCommon {
     cv::Mat _data;
 
@@ -115,15 +111,14 @@ namespace anchoring {
     }
 
     // Override methods
-    void serialize(MongoDatabase::Subdoc &db_sub); 
-    void deserialize(const MongoDatabase::Subdoc &db_sub);
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
     virtual float match(const AttributePtr &query_ptr) { return 0.0; }
   }; 
   
-  /**
-   * Position attribute struct
-   * -----------------------------------------------
-   */
+
+  // ---[ Position attribute struct ]---
+  //-----------------------------------------------
   struct PositionAttribute : public AttributeCommon {
     vector<geometry_msgs::PoseStamped> _array;  
 
@@ -137,8 +132,8 @@ namespace anchoring {
     }
     
     // Override methods
-    void serialize(MongoDatabase::Subdoc &db_sub); 
-    void deserialize(const MongoDatabase::Subdoc &db_sub);
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
@@ -147,10 +142,9 @@ namespace anchoring {
     string toString();
   }; 
   
-  /**
-   * Shape attribute struct
-   * -----------------------------------------------
-   */
+
+  // ---[ Shape attribute struct ]---
+  //-----------------------------------------------
   struct ShapeAttribute : public AttributeCommon {
     geometry_msgs::Point _data;
 
@@ -163,18 +157,17 @@ namespace anchoring {
     }
 
     // Override methods
-    void serialize(MongoDatabase::Subdoc &db_sub); 
-    void deserialize(const MongoDatabase::Subdoc &db_sub);
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
   }; 
 
-  /**
-   * Caffe attribute struct
-   * -----------------------------------------------
-   */
+
+  // ---[ Caffe attribute struct ]---
+  //-----------------------------------------------
   struct CaffeAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
@@ -193,8 +186,8 @@ namespace anchoring {
     }  
 
     // Override methods
-    void serialize(MongoDatabase::Subdoc &db_sub); 
-    void deserialize(const MongoDatabase::Subdoc &db_sub);
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
@@ -202,6 +195,6 @@ namespace anchoring {
     string toString();
   }; 
 
-} // namespace anchoring
+} // namespace anchoring ]---
   
 #endif // __ATTRIBUTE_HPP__ 

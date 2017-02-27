@@ -16,28 +16,30 @@ namespace anchoring {
 
   using namespace std;
 
-  /**
-   * Common attribute base struct methods
-   */
-  void AttributeCommon::serialize(MongoDatabase::Subdoc &db_sub) {
+  // ---------------------------------------
+  // Common attribute base struct methods
+  // ------------------------------------------
+  mongo::Database::Document AttributeCommon::serialize() {
+    mongo::Database::Document doc;
 
     // Save the symbols
     try {
-      db_sub.add<string>( "symbols", this->_symbols);
+      doc.add<string>( "symbols", this->_symbols);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[AttributeCommon::serialize]" << e.what() << endl;
     }
+    return doc;
   }
 
-  void AttributeCommon::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void AttributeCommon::deserialize(const mongo::Database::Document &doc) {
 
     // Load the symbols
     try {
-      db_sub.get<string>( "symbols", this->_symbols);
+      doc.get<string>( "symbols", this->_symbols);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[AttributeCommon::deserialize]" << e.what() << endl;
     }
   }
 
@@ -55,79 +57,49 @@ namespace anchoring {
   }
 
 
-  /**
-   * Color attribute struct methods
-   */  
-  void ColorAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
+  // --------------------------------
+  // Color attribute methods
+  // ------------------------------------  
+  mongo::Database::Document ColorAttribute::serialize() {
   
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
+
     // Save the color
-    try {
-      /*
-      db_sub.add<int>( "hbins", (int)this->_data.rows);
-      db_sub.add<int>( "sbins", (int)this->_data.cols);
-      db_sub.add<int>( "vbins", (int)this->_data.channels());
-      std::vector<double> array;      
-      for( int h = 0; h < this->_data.rows; h++ ) 
-	for( int s = 0; s < this->_data.cols; s++ ) 
-	  for( int v = 0; v < this->_data.channels(); v++ ) 
-	    array.push_back(this->_data.at<float>( h, s, v));
-      db_sub.add<double>( "data", array);
-      */
-      
-      std::vector<double> array;      
+    try {      
+      vector<double> array;      
       for( int i = 0; i < this->_data.cols; i++) {
 	array.push_back(this->_data.at<float>( 0, i));
       }
-      db_sub.add<double>( "data", array);
-      
+      doc.add<double>( "data", array);
 
       // Save (color) predictions
-      db_sub.add<double>( "predictions", this->_predictions);
+      doc.add<double>( "predictions", this->_predictions);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[ColorAttribute::serialize]" << e.what() << endl;
     }
-    
-    // Save the symbol(s)
-    AttributeCommon::serialize(db_sub);
+    return doc;
   }
 
-  void ColorAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void ColorAttribute::deserialize(const mongo::Database::Document &doc) {
 
     // Load the color 
     try {
-      /*
-      int hbins = db_sub.get<int>("hbins");
-      int sbins = db_sub.get<int>("sbins");
-      int vbins = db_sub.get<int>("vbins");
-
-      int sz[] = { hbins, sbins, vbins};
-      this->_data = cv::Mat( 3, sz, CV_32FC1);
-
-      std::vector<double> array;
-      db_sub.get<double>( "data", array);
-      int idx = 0;
-      for( int h = 0; h < hbins; h++ ) 
-	for( int s = 0; s < sbins; s++ ) 
-	  for( int v = 0; v < vbins; v++ ) {
-	    this->_data.at<float>( h, s, v) = array[idx];
-	    idx++;
-	  }
-      */
       
-      std::vector<double> array;
-      db_sub.get<double>( "data", array);
+      vector<double> array;
+      doc.get<double>( "data", array);
       this->_data = cv::Mat( 1, array.size(), CV_32F, &array.front());
 
-      // Load (caffe) predictions
-      db_sub.get<double>( "predictions", this->_predictions);
+      // Load (color) predictions
+      doc.get<double>( "predictions", this->_predictions);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[ColorAttribute::deserialize]" << e.what() << endl;
     }
 
     // Load the symbol(s) 
-    AttributeCommon::deserialize(db_sub);
+    AttributeCommon::deserialize(doc);
   }
 
   void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
@@ -166,80 +138,71 @@ namespace anchoring {
   }
 
 
-  /**
-   * Descriptor attribute class methods
-   */
-  void DescriptorAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
+  // ------------------------------------
+  // Descriptor attribute methods
+  // --------------------------------------------
+  mongo::Database::Document DescriptorAttribute::serialize() {
+
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
   
     // Save the descriptor
     try {
-      db_sub.add<int>( "rows", (int)this->_data.rows);
-      db_sub.add<int>( "cols", (int)this->_data.cols);
+      doc.add<int>( "rows", (int)this->_data.rows);
+      doc.add<int>( "cols", (int)this->_data.cols);
 
-      uint length = this->_data.rows * this->_data.cols;
-      unsigned char* array = new unsigned char[length];
-      for( int i = 0; i < this->_data.rows; i++) { 
-	unsigned char* ptr = this->_data.ptr<unsigned char>(i);
-	for( int j = 0; j < this->_data.cols; j++) {
-	  array[i * this->_data.cols + j] = ptr[j];
-	}      
-      }
-      db_sub.addBinary( "data", array, length);
-      delete array;
+      std::size_t length = this->_data.rows * this->_data.cols;
+      doc.add<unsigned char*>( "data", this->_data.data, length);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[DescriptorAttribute::serialize]" << e.what() << endl;
     }
-
-    // Save the symbol(s)
-    AttributeCommon::serialize(db_sub);
+    return doc;
   }
 
-  void DescriptorAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void DescriptorAttribute::deserialize(const mongo::Database::Document &doc) {
 
     // Load the descriptor
     try {
-      int rows = db_sub.get<int>("rows");
-      int cols = db_sub.get<int>("cols");
-      unsigned char* array = new unsigned char[rows * cols];
-      db_sub.getBinary( "data", array);
-      cv::Mat descriptor( rows, cols, CV_8U, array);
-      descriptor.copyTo(this->_data);
-      delete array;
+      int rows = doc.get<int>( "rows");
+      int cols = doc.get<int>( "cols");
+      unsigned char* array = doc.get<unsigned char*>( "data");
+      this->_data = cv::Mat( rows, cols, CV_8U, array);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
-    }    
+    catch( const std::exception &e) {
+      cout << "[DescriptorAttribute::deserialize]" << e.what() << endl;
+    }
 
     // Load the symbol(s) 
-    AttributeCommon::deserialize(db_sub);
+    AttributeCommon::deserialize(doc);
   }
 
 
-  /**
-   * Position attribute class methods
-   */
-  void PositionAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
-  
+  // ----------------------------------
+  // Position attribute methods
+  // ---------------------------------------
+  mongo::Database::Document PositionAttribute::serialize() {
+
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
+    
     // Save the location
     try {
-      //vector<string>::iterator ite_s = this->_symbols.begin();
+      
       vector<geometry_msgs::PoseStamped>::iterator ite_d = this->_array.begin();
-      MongoDatabase::Subdoc sub;
-      for( ; ite_d != this->_array.end(); ++ite_d /*, ++ite_s*/ ) {  
+      for( ; ite_d != this->_array.end(); ++ite_d ) {  
 
-	// Add symbol
-	//sub.add<string>( "symbol", *ite_s);
+	mongo::Database::Document subdoc;
 
 	// Add time
-	sub.add<double>( "t", ite_d->header.stamp.toSec());
+	subdoc.add<double>( "t", ite_d->header.stamp.toSec());
 
 	// Add position
 	std::vector<double> position; 
 	position.push_back(ite_d->pose.position.x);
 	position.push_back(ite_d->pose.position.y);
 	position.push_back(ite_d->pose.position.z);
-	sub.add<double>( "data.position", position);
+	subdoc.add<double>( "data.position", position);
 
 	// Add orientation
 	std::vector<double> orientation;
@@ -247,30 +210,28 @@ namespace anchoring {
 	orientation.push_back(ite_d->pose.orientation.y);
 	orientation.push_back(ite_d->pose.orientation.z);
 	orientation.push_back(ite_d->pose.orientation.w);
-	sub.add<double>( "data.orientation", orientation);
+	subdoc.add<double>( "data.orientation", orientation);
 
-	sub.push();
+	doc.append( "array", subdoc);
       }
-      db_sub.add( "array", sub);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[PositionAttribute::serialize]" << e.what() << endl;
     }
+    return doc;
   }
 
-  void PositionAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void PositionAttribute::deserialize(const mongo::Database::Document &doc) {
     
-    // Load the location
+    // Load the positions
     try {
       
-      // Read a series of location data
-      MongoDatabase::Subdoc sub;
-      db_sub.get( "array", sub);
-      while( !sub.empty() ) {
+      // Read a series of position data
+      for( mongo::document_iterator ite = doc.begin("array"); ite != doc.end("array"); ++ite) {
 	geometry_msgs::PoseStamped data;
 
 	// Read the time
-	data.header.stamp = ros::Time(sub.get<double>("t"));	
+	data.header.stamp = ros::Time(ite->get<double>("t"));	
 
 	// Read the symbol
 	//string symbol = sub.get<string>("symbol");
@@ -278,25 +239,26 @@ namespace anchoring {
 
 	// Read the data
 	std::vector<double> position;
-	sub.get<double>( "data.position", position);
+	ite->get<double>( "data.position", position);
 	data.pose.position.x = position[0];
 	data.pose.position.y = position[1];
 	data.pose.position.z = position[2];
 	
 	std::vector<double> orientation;
-	sub.get<double>( "data.orientation", orientation);
+	ite->get<double>( "data.orientation", orientation);
 	data.pose.orientation.x = orientation[0];
 	data.pose.orientation.y = orientation[1];
 	data.pose.orientation.z = orientation[2];
 	data.pose.orientation.w = orientation[3];
 	this->_array.push_back(data);
-
-	sub.pop(); // Get next
       }
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[PositionAttribute::deserialize]" << e.what() << endl;
     }
+
+    // Load the symbol(s) 
+    AttributeCommon::deserialize(doc);
   }
 
   void PositionAttribute::populate(anchor_msgs::Anchor &msg) {
@@ -309,7 +271,6 @@ namespace anchoring {
     msg.pos = this->_array.back();
   }
   
-
   float PositionAttribute::match(const AttributePtr &query_ptr) {
 
     // Typecast the query pointer
@@ -376,43 +337,44 @@ namespace anchoring {
   }
 
   
-  /**
-   * Shape attribute class methods
-   */
-  void ShapeAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
+  // --------------------------------
+  // Shape attribute class methods
+  // -------------------------------------
+  mongo::Database::Document ShapeAttribute::serialize() {
   
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
+
     // Save the shape
     try {
       std::vector<double> shape;
       shape.push_back(this->_data.x);
       shape.push_back(this->_data.y);
       shape.push_back(this->_data.z);
-      db_sub.add<double>( "data", shape);
+      doc.add<double>( "data", shape);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[ShapeAttribute::serialize]" << e.what() << endl;
     }
-
-    // Save the symbol(s)
-    AttributeCommon::serialize(db_sub);
+    return doc;
   }
 
-  void ShapeAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void ShapeAttribute::deserialize(const mongo::Database::Document &doc) {
 
     // Load the shape
     try {
-      std::vector<double> shape;
-      db_sub.get<double>( "data", shape);
+      vector<double> shape;
+      doc.get<double>( "data", shape);
       this->_data.x = shape[0];
       this->_data.y = shape[1];
       this->_data.z = shape[2];
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;;
-    }    
+    catch( const std::exception &e) {
+      cout << "[ShapeAttribute::deserialize]" << e.what() << endl;
+    }
 
     // Load the symbol(s) 
-    AttributeCommon::deserialize(db_sub);
+    AttributeCommon::deserialize(doc);
   }
 
   void ShapeAttribute::populate(anchor_msgs::Anchor &msg) {
@@ -451,10 +413,13 @@ namespace anchoring {
   }
 
 
-  /**
-   * Caffe attribute class methods
-   */
-  void CaffeAttribute::serialize(MongoDatabase::Subdoc &db_sub) {
+  // -------------------------------
+  // Caffe attribute class methods
+  // ----------------------------------
+  mongo::Database::Document CaffeAttribute::serialize() {
+
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
 
     // Compress the image  
     vector<uchar> buff;
@@ -465,48 +430,38 @@ namespace anchoring {
 
     // Save the image (to DB)
     try {
-      int length = (int)buff.size();
-      db_sub.add<int>( "length", length);
-      unsigned char* array = new unsigned char[length];
-      for( uint i = 0; i < buff.size(); i++) { 
-	array[i] = buff[i];      
-      }
-      db_sub.addBinary( "data", array, length);
-      delete array;
+      std::size_t length = buff.size();
+      doc.add<unsigned char*>( "data", buff.data(), length);
 
       // Save (caffe) predictions
-      db_sub.add<double>( "predictions", this->_predictions);
+      doc.add<double>( "predictions", this->_predictions);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[CaffeAttribute::serialize]" << e.what() << endl;
     }
-
-    // Save the symbol(s)
-    AttributeCommon::serialize(db_sub);
+    return doc;
   }
 
-  void CaffeAttribute::deserialize(const MongoDatabase::Subdoc &db_sub) {
+  void CaffeAttribute::deserialize(const mongo::Database::Document &doc) {
   
     // Load the image -- from DB
     try {
-      int length = db_sub.get<int>("length");
-      unsigned char* array = new unsigned char[length];
-      db_sub.getBinary( "data", array);
+      std::size_t length = doc.get<std::size_t>("data");
+      unsigned char* array = doc.get<unsigned char*>("data");
 
       // Decompress the image      
       vector<uchar> buff( array, array + length);
       this->_data = cv::imdecode( cv::Mat(buff), CV_LOAD_IMAGE_COLOR);
-      delete array;
 
       // Load (caffe) predictions
-      db_sub.get<double>( "predictions", this->_predictions);
+      doc.get<double>( "predictions", this->_predictions);
     }
-    catch( DBException &e ) {
-      cout << "[attribute] MondoDB: " << e.what() << endl;
+    catch( const std::exception &e) {
+      cout << "[CaffeAttribute::deserialize]" << e.what() << endl;
     }
 
     // Load the symbol(s) 
-    AttributeCommon::deserialize(db_sub);
+    AttributeCommon::deserialize(doc);
   }
 
   void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {

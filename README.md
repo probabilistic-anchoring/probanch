@@ -6,6 +6,7 @@ This repository contains the source code of the anchoring system. The overall sy
 * **anchor_caffe**: an ROS wrapper for the Caffe framework (for object recognition/classification).
 * **anchor_msgs**: a separate package for all anchor specific ROS messages.
 * **anchor_utils**: a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
+* **display**: a package used for displaying of the results, both resulting anchors and intermediate results throughout the perceptual pipeline.
 * **perceptual_pipeline**: a package for all processing (object segmentation, feature extraction, etc.) of sensor data.
 
 ## Dependencies ##

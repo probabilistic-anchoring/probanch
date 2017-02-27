@@ -4,8 +4,8 @@
    ------------------------------------------ */
 #include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <anchoring/anchor.hpp>
-#include <anchoring/database.hpp>
 
 namespace anchoring {
 
@@ -20,7 +20,7 @@ namespace anchoring {
     }
     
     // Generate an id  
-    this->_id = MongoDatabase::generateId();
+    this->_id = mongo::Database::generate_id();
     
     // Set time
     this->_t = t;
@@ -41,21 +41,21 @@ namespace anchoring {
   /**
    * Public load (override of base class)
    */
-  void Anchor::load(const MongoDatabase &db) {
+  void Anchor::load(const mongo::Database::Document &doc) {
     
     // Load from MongoDB
     try {  
       
       // Read the time
-      this->_t = ros::Time( db.get<double>("t") );
+      this->_t = ros::Time( doc.get<double>("t") );
 
       // Read all attributes
-      MongoDatabase::Subdoc sub;
-      db.get( "attributes", sub);
-      while( !sub.empty() ) {
-      
+      //std::size_t size = db.get<std::size_t>("attributes");
+      //for( std::size_t i = 0; i < size; i++) {
+      for( mongo::document_iterator ite = doc.begin("attributes"); ite != doc.end("attributes"); ++ite) {
+
 	// Load the type...
-	AttributeType type = (AttributeType)sub.get<int>("type");
+	AttributeType type = (AttributeType)ite->get<int>("type");
 
 	// Load the attribute based on the type
 	switch(type) {
@@ -75,52 +75,50 @@ namespace anchoring {
 	  this->_attributes[CAFFE] = AttributePtr( new CaffeAttribute(type) );
 	  break;
 	};
-	this->_attributes[type]->deserialize(sub); // Deserialize the attribute data
-	sub.pop(); // Get next
-      } 
 
+	// Deserialize the attribute data
+	this->_attributes[type]->deserialize(*ite); 
+      } 
     }
-    catch( DBException &e ) {
-      std::cout << "[anchor::load] MondoDB: " << e.what() << std::endl;
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::load]" << e.what() << std::endl;
     }
   }
   
   /**
    * Private save function 
    */
-  void Anchor::save(MongoDatabase &db) {
+  void Anchor::save(mongo::Database &db) {
     
     // Insert the anchor into database
     try {
 
-      // Prepare to save (use this _id as identifier)
-      db.prepareInsert(this->_id);
-
+      // Save document (use this _id as identifier)
+      mongo::Database::Document doc(this->_id);     
+      
       // Add time
-      db.add<double>( "t", this->_t.toSec());
+      doc.add<double>( "t", this->_t.toSec());
 
       // Add all attributes
-      MongoDatabase::Subdoc sub;
       AttributeMap::iterator ite;
       for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
-        sub.add<int>( "type", (int)ite->first);
-        ite->second->serialize(sub);
-        sub.push();
+	mongo::Database::Document subdoc = ite->second->serialize();
+        subdoc.add<int>( "type", (int)ite->first);
+        doc.append( "attributes", subdoc);
       }
-      db.add( "attributes", sub);
       
       // Commit all changes to database
-      db.insert();
+      db.insert(doc);
     }
-    catch( DBException &e ) {
-      std::cout << "[anchor::save] MondoDB: " << e.what() << std::endl;
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::save]" << e.what() << std::endl;
     }
   }
   
   /**
    * Public update function 
    */
-  void Anchor::update(MongoDatabase &db, AttributeMap &attributes, const ros::Time &t, bool append ) {
+  void Anchor::update(mongo::Database &db, AttributeMap &attributes, const ros::Time &t, bool append ) {
 
     // Update the time and append data (if the anchor has moved)
     if( append ) {
@@ -158,17 +156,18 @@ namespace anchoring {
 	// Add time
 	db.update<double>( this->_id, "t", this->_t.toSec());
 
-	// Add alla attributes
-	MongoDatabase::Subdoc sub;
-	for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
-	  sub.add<int>( "type", (int)ite->first);
-	  ite->second->serialize(sub);
-	  sub.push();
+	// Add all attributes
+	mongo::Database::Document doc;
+	AttributeMap::iterator ite;
+	for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
+	  mongo::Database::Document subdoc = ite->second->serialize();
+	  subdoc.add<int>( "type", (int)ite->first);
+	  doc.append( "attributes", subdoc);
 	}
-	db.update( this->_id, "attributes", sub);
+	db.update( this->_id, "attributes", doc);
       }
-      catch( DBException &e ) {
-	cout << "[anchor::update] MondoDB: " << e.what() << endl;
+      catch( const std::exception &e ) {
+	std::cout << "[Anchor::update]" << e.what() << std::endl;
       }
     }
   }

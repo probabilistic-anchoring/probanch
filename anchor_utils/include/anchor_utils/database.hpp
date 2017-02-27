@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <map>
 #include <string>
 #include <sstream>
 #include <type_traits>
@@ -22,18 +23,6 @@ namespace mongo {
   using namespace std;
   using namespace mongocxx;
   using namespace bsoncxx;
-
-  // ---[ Type defines ]--- 
-  typedef std::vector<bsoncxx::document::value>::const_iterator mongo_iterator;
-
-  // ---[ Datatype used for background queries ]---
-  enum PrepareType {
-    P_QUERY = 0,
-    P_INSERT,
-    P_SUB_DOC,
-    P_SUB_ARRAY,
-    P_NONE
-  };
   
 
   // ---[ Class definition...
@@ -46,35 +35,63 @@ namespace mongo {
     std::string _db;
     std::string _collection;
 
-    // ---[ Private collections ]--- 
-    std::vector<document::value> _insert_doc;
-    std::vector<document::value> _sub_doc;
-    std::vector<document::value> _sub_array;
-    mongocxx::stdx::optional<document::value> _query_doc;
-    PrepareType _active_doc;
-
     // ---[ Private functions ]---
-    std::string get_id(document::view &view);
-    document::value get_query(const std::string &id);
-    document::element get_element(document::view view, const std::string &key);
-    mongocxx::stdx::optional<document::value> get_document(const std::string &id);
+    static std::string get_id(document::view &view);
+    document::value get_query(const std::string &id) const;
+    static document::element get_element(document::view view, const std::string &key);
+    mongocxx::stdx::optional<document::value> get_document(const std::string &id) const;
 
     // ---[ Fn. for accessing specific datatypes ]--- 
     template<typename T> 
-    T get_value(const bsoncxx::types::value &val, const std::string &key) { 
+    static T get_value(const bsoncxx::types::value &val, const std::string &key) { 
       cout << "[mongocxx::warning]: given datatype is not supported, default value will be returned." << endl;
       return T();
     }
-
+ 
   public: 
 
     // Concstructor and destructor
     Database( const std::string &db, const std::string &collection );
     ~Database() {}
-    
-    // Preparing (and releasing) methods
-    void prepare( PrepareType type, const std::string &id = "");
-    void release();
+
+    // ---[ Struct for handle a database document...
+    // ------------------------------------------------
+    struct Document {
+      
+      // Constructor
+      Document(const std::string &id = "");
+      Document(const bsoncxx::document::value &doc) : _doc(std::move(doc)) {
+	deserialize();
+      }
+
+      // Copy and move assignment operators
+      Document& operator=(const Document &other);
+      //Document& operator=(Document &&other);
+
+      template<typename T> void add(const std::string &key, T val, std::size_t length = 0);
+      template<typename T> void add(const std::string &key, vector<T> &array);
+      void add(const std::string &key, Document &doc) { _sub_doc[key] = doc; }
+      void append(const std::string &key, Document &doc) { _sub_array[key].push_back(doc); }
+
+      template<typename T> T get(const std::string &key) const;
+      template<typename T> void get(const std::string &key, vector<T> &array) const;
+      Document get(const std::string &key); 
+
+      vector<Document>::const_iterator begin(const std::string &key) const;
+      vector<Document>::const_iterator end(const std::string &key) const;
+      const vector<Document> &access(const std::string &key);
+
+      document::value serialize();
+      
+    private:
+
+      mongocxx::stdx::optional<document::value> _doc;
+      map<std::string, Document> _sub_doc;
+      map<std::string, vector<Document> > _sub_array;
+
+      void deserialize();
+    }; // ...end of struct. ]---
+
 
     // Static id methods
     static void id_array( const std::string &db, 
@@ -96,28 +113,19 @@ namespace mongo {
 			  int limit = -1 );
     static std::string generate_id();
     
-
-    // Insert methods
-    template<typename T> void add(const std::string &key, T val, std::size_t length = 0);
-    template<typename T> void add(const std::string &key, vector<T> &array);
-    void append();
-    std::string insert();
-
-    // Bg. collection access methods
-    const mongo_iterator begin(const std::string &key);
-    const mongo_iterator end(); 
-    const document::value operator() (const std::string &key);
-    const document::value operator() (const std::string &key, std::size_t idx);
-    void extract(const std::string &key);
+    // Insert method
+    std::string insert(Document &doc);
     
     // Query methods
-    template<typename T> T get(const std::string &id, const std::string &key);
-    template<typename T> void get(const std::string &id, const std::string &key, vector<T> &array);
-    template<typename T> T get(const document::value &doc, const std::string &key);
-    template<typename T> void get(const document::value &doc, const std::string &key, vector<T> &array);
-    template<typename T> T get(const std::string &key);
-    template<typename T> void get(const std::string &key, vector<T> &array);
+    Document get(const std::string &id) const;
+    template<typename T> T get(const std::string &id, const std::string &key) const;
+    template<typename T> void get(const std::string &id, const std::string &key, vector<T> &array) const;
 
+    // Update methods
+    template<typename T> void update(const std::string &id, const std::string &key, T val, std::size_t length = 0);
+    template<typename T> void update(const std::string &id, const std::string &key, vector<T> &array);
+    void update(const std::string &id, const std::string &key, Document &doc);
+    
     // Remove methods
     void remove(const std::string &id);
     void remove(const std::string &id, const std::string &key); 
@@ -127,14 +135,19 @@ namespace mongo {
   
   // ---[ Template specializations headers ]---
   template<> unsigned char* Database::get_value<unsigned char*>( const types::value &val, const std::string &key );
+  template<> bool Database::get_value<bool>( const types::value &val, const std::string &key );
   template<> std::size_t Database::get_value<std::size_t>( const types::value &val, const std::string &key );
   template<> int Database::get_value<int>( const types::value &val, const std::string &key );
   template<> double Database::get_value<double>( const types::value &val, const std::string &key );
   template<> std::string Database::get_value<std::string>( const types::value &val, const std::string &key );
 
-  template<> void Database::add<PrepareType>(const std::string &key, PrepareType val, std::size_t length);
-  template<> void Database::add<unsigned char*>(const std::string &key, unsigned char* val, std::size_t length);
+  template<> void Database::Document::add<unsigned char*>(const std::string &key, unsigned char* val, std::size_t length);
 
+  template<> void Database::update<unsigned char*>( const std::string &id, 
+						    const std::string &key, 
+						    unsigned char* val, 
+						    std::size_t length );
+  
 
   // ---[ Template methods ]---
 
@@ -178,32 +191,28 @@ namespace mongo {
 
   // Add a value to an insert document
   template<typename T> 
-  void Database::add(const std::string &key, T val, std::size_t length) {
+  void Database::Document::add(const std::string &key, T val, std::size_t) {
     using builder::stream::document;
     using builder::stream::finalize;
-    if( _active_doc == P_INSERT ) {
-      _insert_doc.push_back(document{} << key << val << finalize);
-    }
-    else {
-      _sub_doc.push_back(document{} << key << val << finalize);
-    }
+    using builder::concatenate;
+    _doc = document{} << concatenate(_doc->view()) << key << val << finalize;
   }
 
   // Add an array to an insert document  
   template<typename T> 
-  void Database::add(const std::string &key, vector<T> &array) {
-    auto doc = builder::stream::document{};
-    auto insert_array = doc << key << builder::stream::open_array;
+  void Database::Document::add(const std::string &key, vector<T> &array) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::concatenate;
+
+    auto  builder = document{};
+    auto arr = builder << key << builder::stream::open_array;
     for( auto &el : array) {
-      insert_array << el;
+      arr << el;
     }
-    insert_array << builder::stream::close_array;
-    if( _active_doc == P_INSERT ) {
-      _insert_doc.push_back(doc.extract());
-    }
-    else {
-      _sub_doc.push_back(doc.extract());
-    }
+    arr << builder::stream::close_array;
+    auto doc = builder << finalize;
+    _doc = builder << concatenate(_doc->view()) << concatenate(doc.view()) << finalize;
   }
   
 
@@ -213,19 +222,19 @@ namespace mongo {
 
   // Get a single value from a document given by id.
   template<typename T> 
-  T Database::get(const std::string &id, const std::string &key) {
+  T Database::get(const std::string &id, const std::string &key) const {
     mongocxx::stdx::optional<bsoncxx::document::value> doc = 
       this->get_document(id);
-    bsoncxx::document::element el = this->get_element( doc->view(), key );
+    bsoncxx::document::element el = get_element( doc->view(), key );
     return this->get_value<T>(el.get_value(), key);
   }
   
   // Get an array from a document given by id.
   template<typename T> 
-  void Database::get(const std::string &id, const std::string &key, vector<T> &array) { 
+  void Database::get(const std::string &id, const std::string &key, vector<T> &array) const { 
     mongocxx::stdx::optional<bsoncxx::document::value> doc = 
       this->get_document(id);
-    bsoncxx::document::element el = this->get_element( doc->view(), key);
+    bsoncxx::document::element el = get_element( doc->view(), key);
     if( el.type() == type::k_array ) {
       bsoncxx::array::view subarr{el.get_array().value};
       for( bsoncxx::array::element el : subarr ) {
@@ -237,21 +246,26 @@ namespace mongo {
     }
   }
 
-  // Get a single value from an argument given sub-document.
-  template<typename T> 
-  T Database::get(const document::value &doc, const std::string &key) {
-    bsoncxx::document::element el = this->get_element( doc.view(), key );
-    return this->get_value<T>(el.get_value(), key);
-  }  
 
-  // Get an array from an argument given sub-document.
+  // ----------------------------------
+  // Sub- document query methods
+  // ---------------------------------------
+
+  // Get a single value from a document.
   template<typename T> 
-  void Database::get(const document::value &doc, const std::string &key, vector<T> &array) {
-    bsoncxx::document::element el = this->get_element( doc.view(), key );
+  T Database::Document::get(const std::string &key) const {
+    document::element el = get_element( _doc->view(), key );
+    return get_value<T>(el.get_value(), key);
+  }
+
+  // Get an array from a document.
+  template<typename T> 
+  void Database::Document::get(const std::string &key, vector<T> &array) const {
+    bsoncxx::document::element el = get_element( _doc->view(), key);
     if( el.type() == type::k_array ) {
       bsoncxx::array::view subarr{el.get_array().value};
       for( bsoncxx::array::element el : subarr ) {
-	array.push_back( this->get_value<T>( el.get_value(), key) );
+	array.push_back( get_value<T>( el.get_value(), key) );
       }      
     }
     else {
@@ -259,32 +273,48 @@ namespace mongo {
     }
   }
 
-  // Get a single value from prepared query document.
+
+  // ---------------------------
+  // Update methods
+  // --------------------------------
+
+  // Update a single value
   template<typename T> 
-  T Database::get(const std::string &key) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
-    }
-    bsoncxx::document::element el = get_element( _query_doc->view(), key );
-    return this->get_value<T>(el.get_value(), key);
+  void Database::update(const std::string &id, const std::string &key, T val, std::size_t length) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    _coll_ptr->update_one( this->get_query(id),
+			   document{} << "$set" << open_document << 
+			   key << val << close_document << finalize );    
   }
 
-  // Get an array from prepared query document.
+  // Update an array
   template<typename T> 
-  void Database::get(const std::string &key, vector<T> &array) {
-    if( !_query_doc ) {
-      throw std::logic_error("[mongocxx::error]: query document must be prepared before used.");
-    } 
-    bsoncxx::document::element el = this->get_element( _query_doc->view(), key);
-    if( el.type() == type::k_array ) {
-      bsoncxx::array::view subarr{el.get_array().value};
-      for( bsoncxx::array::element el : subarr ) {
-	array.push_back( this->get_value<T>( el.get_value(), key) );
-      }      
+  void Database::update(const std::string &id, const std::string &key, vector<T> &array) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    using builder::concatenate;
+
+    auto builder = document{};
+    auto arr = builder << key << builder::stream::open_array;
+    for( auto &el : array) {
+      arr << el;
     }
-    else {
-      cout << "[mongocxx::warning]: element with key: '" + key + "', is not an array." << endl;
-    }
+    arr << builder::stream::close_array;
+    auto doc = builder << finalize;
+
+    _coll_ptr->update_one( this->get_query(id),
+			   document{} << "$set" << open_document << 
+			   concatenate(doc.view()) << close_document << finalize ); 
   }
+
+
+  // ---[ Type defines ]--- 
+  typedef std::vector<Database::Document>::const_iterator document_iterator;
+
 
 } // namespace 'mongo'

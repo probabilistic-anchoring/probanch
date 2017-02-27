@@ -19,6 +19,7 @@ endif()
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
+  anchor_utils
   cv_bridge
   image_geometry
   image_transport
@@ -33,7 +34,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS date_time system thread)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
-#find_package(MongoClient REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -99,7 +99,6 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-#  ${MongoClient_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -108,7 +107,7 @@ include_directories(
 # )
 
 ## Declare a C++ executable
-add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp src/database.cpp)
+add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp )
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -117,13 +116,9 @@ add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/
 ## Specify libraries to link a library or executable target against
 target_link_libraries( anchoring
    ${catkin_LIBRARIES}
-   mongoclient
-   ssl
-   crypto
    ${Boost_LIBRARIES}
    ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
-#   ${MongoClient_LIBRARIES}
 )
 
 #############

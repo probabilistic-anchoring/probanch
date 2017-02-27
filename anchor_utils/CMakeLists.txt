@@ -16,6 +16,7 @@ endif()
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  roslib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -39,7 +40,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include ${LIBMONGOCXX_INCLUDE_DIRS} ${LIBBSONCXX_INCLUDE_DIRS}
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp roslib
   DEPENDS libbsoncxx libmongocxx
 )
 
@@ -68,17 +69,17 @@ add_library( ${PROJECT_NAME} src/database.cpp )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
   ${LIBMONGOCXX_LIBRARIES} 
   ${LIBBSONCXX_LIBRARIES}
 )
 
 # For testing
-#add_executable(db_test src/db_test.cpp)
-#target_link_libraries( db_test
-#  ${PROJECT_NAME}
-#  ${OpenCV_LIBRARIES}
-#)
+add_executable(db_test src/db_test.cpp)
+target_link_libraries( db_test
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
 #############
 ## Install ##
