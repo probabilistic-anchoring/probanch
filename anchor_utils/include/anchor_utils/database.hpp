@@ -75,7 +75,7 @@ namespace mongo {
 
       template<typename T> T get(const std::string &key) const;
       template<typename T> void get(const std::string &key, vector<T> &array) const;
-      Document get(const std::string &key); 
+      Document get(const std::string &key) const; 
 
       vector<Document>::const_iterator begin(const std::string &key) const;
       vector<Document>::const_iterator end(const std::string &key) const;
@@ -124,7 +124,6 @@ namespace mongo {
     // Update methods
     template<typename T> void update(const std::string &id, const std::string &key, T val, std::size_t length = 0);
     template<typename T> void update(const std::string &id, const std::string &key, vector<T> &array);
-    void update(const std::string &id, const std::string &key, Document &doc);
     
     // Remove methods
     void remove(const std::string &id);
@@ -147,6 +146,13 @@ namespace mongo {
 						    const std::string &key, 
 						    unsigned char* val, 
 						    std::size_t length );
+  template<> void Database::update<Database::Document>( const std::string &id, 
+							const std::string &key, 
+							Database::Document val, 
+							std::size_t length );
+  template<> void Database::update<Database::Document>( const std::string &id, 
+						        const std::string &key, 
+							vector<Database::Document> &array );
   
 
   // ---[ Template methods ]---

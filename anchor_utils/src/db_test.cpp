@@ -98,9 +98,8 @@ int main(int, char**) {
     // Update a document
     Database::Document subdoc;
     subdoc.add<std::string>( "description", "An image of an apple.");
-    db.update( id, "info", subdoc);
     subdoc.add<std::string>( "type", "RGB");
-    db.update( id, "info", subdoc);
+    db.update<Database::Document>( id, "info", subdoc);
   }
   catch( const std::exception &e) {
     cout << e.what() << endl;

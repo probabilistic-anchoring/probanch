@@ -198,19 +198,19 @@ namespace anchoring {
 	subdoc.add<double>( "t", ite_d->header.stamp.toSec());
 
 	// Add position
-	std::vector<double> position; 
-	position.push_back(ite_d->pose.position.x);
-	position.push_back(ite_d->pose.position.y);
-	position.push_back(ite_d->pose.position.z);
-	subdoc.add<double>( "data.position", position);
+	mongo::Database::Document position;
+	position.add<double>( "x", ite_d->pose.position.x);
+	position.add<double>( "y", ite_d->pose.position.y);
+	position.add<double>( "z", ite_d->pose.position.z);
+	subdoc.add( "position", position);
 
 	// Add orientation
-	std::vector<double> orientation;
-	orientation.push_back(ite_d->pose.orientation.x);
-	orientation.push_back(ite_d->pose.orientation.y);
-	orientation.push_back(ite_d->pose.orientation.z);
-	orientation.push_back(ite_d->pose.orientation.w);
-	subdoc.add<double>( "data.orientation", orientation);
+	mongo::Database::Document orientation;
+	orientation.add<double>( "x", ite_d->pose.orientation.x);
+	orientation.add<double>( "y", ite_d->pose.orientation.y);
+	orientation.add<double>( "z", ite_d->pose.orientation.z);
+	orientation.add<double>( "w", ite_d->pose.orientation.w);
+	subdoc.add( "orientation", orientation);
 
 	doc.append( "array", subdoc);
       }
@@ -236,20 +236,20 @@ namespace anchoring {
 	// Read the symbol
 	//string symbol = sub.get<string>("symbol");
 	//this->_symbols.push_back(symbol);
-
-	// Read the data
-	std::vector<double> position;
-	ite->get<double>( "data.position", position);
-	data.pose.position.x = position[0];
-	data.pose.position.y = position[1];
-	data.pose.position.z = position[2];
 	
-	std::vector<double> orientation;
-	ite->get<double>( "data.orientation", orientation);
-	data.pose.orientation.x = orientation[0];
-	data.pose.orientation.y = orientation[1];
-	data.pose.orientation.z = orientation[2];
-	data.pose.orientation.w = orientation[3];
+	// Read position
+	mongo::Database::Document position = ite->get("position");
+	data.pose.position.x = position.get<double>("x");
+	data.pose.position.y = position.get<double>("y");
+	data.pose.position.z = position.get<double>("z");
+
+	// Read orientation
+	mongo::Database::Document orientation = ite->get("orientation");
+	data.pose.orientation.x = orientation.get<double>("x");
+	data.pose.orientation.y = orientation.get<double>("y");
+	data.pose.orientation.z = orientation.get<double>("z");
+	data.pose.orientation.w = orientation.get<double>("w");
+	
 	this->_array.push_back(data);
       }
     }

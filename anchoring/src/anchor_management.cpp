@@ -31,7 +31,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   // Create the anchor map
   //_anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "testspace") );
+  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
   _time_zero = -1.0;
 }
 

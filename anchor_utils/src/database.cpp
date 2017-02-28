@@ -124,40 +124,17 @@ namespace mongo {
   }
 
 
-  // ----------------------
-  // Insert method
-  // --------------------------------
-  // Return: '_id' of inserted document
-  // --------------------------------------
-  std::string Database::insert(Database::Document &doc) {
-    std::string result = "";
-    try {
-      auto response = this->_coll_ptr->insert_one( doc.serialize().view() );
-      if( !response ) {
-	throw std::logic_error("[mongocxx::error]: could not insert document.");
-      }
-      if( response->inserted_id().type() == bsoncxx::type::k_oid ) {
-	bsoncxx::oid oid = response->inserted_id().get_oid().value;
-	result = oid.to_string();
-      }    
-    }
-    catch(const mongocxx::bulk_write_exception& e) {
-      throw std::logic_error("[mongocxx::error]: a document with given _id already exists (try to update instead)."); 
-    }
-    return result;
-  }  
-
   // ----------------------------------
   // Sub- document methods
   // ---------------------------------------
 
   // Return an nested sub-document
-  Database::Document Database::Document::get(const std::string &key) {
+  Database::Document Database::Document::get(const std::string &key) const {
     if( _sub_doc.find(key) == _sub_doc.end() ) {
       cout << "[mongocxx::warning]: there exist no sub-document with key '" + key +"', result document will be empty." << endl;
       return Database::Document();
     }
-    return _sub_doc[key];
+    return _sub_doc.at(key);
   }
 
   
@@ -251,21 +228,28 @@ namespace mongo {
   }  
 
 
-  // --------------------
-  // Update methods
   // ----------------------
-
-  // Update a document (recursivly)
-  void Database::update(const std::string &id, const std::string &key, Database::Document &doc) {
-    using builder::stream::document;
-    using builder::stream::finalize;
-    using builder::stream::open_document;
-    using builder::stream::close_document;
-    using builder::concatenate;
-    _coll_ptr->update_one( this->get_query(id),
-			   document{} << "$set" << open_document << 
-			   key << concatenate(doc.serialize().view()) << close_document << finalize );    
-  }
+  // Insert method
+  // --------------------------------
+  // Return: '_id' of inserted document
+  // --------------------------------------
+  std::string Database::insert(Database::Document &doc) {
+    std::string result = "";
+    try {
+      auto response = this->_coll_ptr->insert_one( doc.serialize().view() );
+      if( !response ) {
+	throw std::logic_error("[mongocxx::error]: could not insert document.");
+      }
+      if( response->inserted_id().type() == bsoncxx::type::k_oid ) {
+	bsoncxx::oid oid = response->inserted_id().get_oid().value;
+	result = oid.to_string();
+      }    
+    }
+    catch(const mongocxx::bulk_write_exception& e) {
+      throw std::logic_error("[mongocxx::error]: a document with given _id already exists (try to update instead)."); 
+    }
+    return result;
+  }  
 
   
   // --------------------
@@ -463,4 +447,58 @@ namespace mongo {
 			   document{} << "$set" << open_document << 
 			   key << array << close_document << finalize );    
   }
+
+  // Update a document (recursivly)
+  template<> 
+  void Database::update<Database::Document>( const std::string &id, 
+					     const std::string &key, 
+					     Database::Document val, std::size_t length ) {
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    using builder::concatenate;
+    
+    auto el = val.serialize();
+    if( !el.view().empty() ) {
+      _coll_ptr->update_one( this->get_query(id),
+			     document{} << "$set" << open_document << 
+			     key << concatenate(el.view()) << close_document << finalize );    
+    }
+    else {
+      cout << "[mongocxx::warning]: sub- document is empty, nothing will be updated." << endl;
+    }
+  }
+
+  // Update an array of documents (recursivly)
+  template<> 
+  void Database::update<Database::Document>( const std::string &id, 
+					     const std::string &key, 
+					     vector<Database::Document> &array ) {
+
+    using builder::stream::document;
+    using builder::stream::finalize;
+    using builder::stream::open_document;
+    using builder::stream::close_document;
+    using builder::concatenate;
+    
+    if( !array.empty() ) {
+      auto builder = document{};
+      auto arr = builder << key << builder::stream::open_array;
+      for( auto &el : array) {
+	arr << el.serialize().view();
+      }
+      arr << builder::stream::close_array;
+      auto doc = builder << finalize;
+
+      _coll_ptr->update_one( this->get_query(id),
+			     document{} << "$set" << open_document << 
+			     concatenate(doc.view()) << close_document << finalize ); 
+    }
+    else {
+      cout << "[mongocxx::warning]: sub- array is empty, nothing will be updated." << endl;
+    }
+  }
+
+
 } // namespace 'mongo'

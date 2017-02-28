@@ -98,7 +98,7 @@ namespace anchoring {
       
       // Add time
       doc.add<double>( "t", this->_t.toSec());
-
+      
       // Add all attributes
       AttributeMap::iterator ite;
       for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
@@ -157,14 +157,14 @@ namespace anchoring {
 	db.update<double>( this->_id, "t", this->_t.toSec());
 
 	// Add all attributes
-	mongo::Database::Document doc;
+	std::vector<mongo::Database::Document> docs;
 	AttributeMap::iterator ite;
 	for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
 	  mongo::Database::Document subdoc = ite->second->serialize();
 	  subdoc.add<int>( "type", (int)ite->first);
-	  doc.append( "attributes", subdoc);
+	  docs.push_back(subdoc);
 	}
-	db.update( this->_id, "attributes", doc);
+	db.update<mongo::Database::Document>( this->_id, "attributes", docs);
       }
       catch( const std::exception &e ) {
 	std::cout << "[Anchor::update]" << e.what() << std::endl;
