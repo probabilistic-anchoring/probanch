@@ -29,6 +29,11 @@ namespace mongo {
     }
   }
 
+  // Copy constructor
+  Database::Document::Document(const Database::Document &other) {
+    *this = other;
+  }
+  
   // Copy assignment operator 
   Database::Document& Database::Document::operator=(const Database::Document &other) {
     using builder::stream::document;
@@ -59,6 +64,13 @@ namespace mongo {
     return *this;
   }
   */
+
+  // Change the collection
+  void Database::set_collection(const std::string &collection) {
+    _collection = collection;
+    auto database = _client_ptr->database(_db);
+    _coll_ptr = mongocxx::stdx::make_unique<mongocxx::collection>(database[collection]);
+  }
 
   // ----------------------------
   // Static methods

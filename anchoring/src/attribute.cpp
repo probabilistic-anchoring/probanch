@@ -552,7 +552,8 @@ namespace anchoring {
       }
     }
     if( index >= 0 ) {
-      ss << this->_symbols[index] << "  (" << this->_predictions[index] << ")";
+      ss << this->_symbols[index];
+      //ss << this->_symbols[index] << "  (" << this->_predictions[index] << ")";
     }
     return ss.str();
   }

@@ -54,6 +54,9 @@ namespace mongo {
     Database( const std::string &db, const std::string &collection );
     ~Database() {}
 
+    void set_collection(const std::string &collection);
+    template<typename T> std::string get_id( const std::string &key, T val);
+
     // ---[ Struct for handle a database document...
     // ------------------------------------------------
     struct Document {
@@ -63,6 +66,7 @@ namespace mongo {
       Document(const bsoncxx::document::value &doc) : _doc(std::move(doc)) {
 	deserialize();
       }
+      Document(const Document &other);
 
       // Copy and move assignment operators
       Document& operator=(const Document &other);
@@ -156,6 +160,19 @@ namespace mongo {
   
 
   // ---[ Template methods ]---
+
+  // Template method for query a single id
+  template<typename T> std::string Database::get_id( const std::string &key, T val) {
+    using builder::stream::document;
+    auto filter = document{};
+    filter << key << val;
+    auto result = _coll_ptr->find_one( filter.view() );
+    if( result ) {
+      bsoncxx::oid oid = result->view()["_id"].get_oid().value;
+      return oid.to_string();
+    }
+    return "";
+  }
 
   // Static template method for query an array of ids
   template<typename T>

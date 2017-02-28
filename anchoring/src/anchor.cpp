@@ -49,9 +49,11 @@ namespace anchoring {
       // Read the time
       this->_t = ros::Time( doc.get<double>("t") );
 
+      // Read the unique symbol
+      this->_x = doc.get<std::string>("x");
+      
+
       // Read all attributes
-      //std::size_t size = db.get<std::size_t>("attributes");
-      //for( std::size_t i = 0; i < size; i++) {
       for( mongo::document_iterator ite = doc.begin("attributes"); ite != doc.end("attributes"); ++ite) {
 
 	// Load the type...
@@ -93,14 +95,26 @@ namespace anchoring {
     // Insert the anchor into database
     try {
 
+      // Generate a unique symbol
+      AttributeMap::iterator ite = this->_attributes.find(CAFFE);
+      if( ite != this->_attributes.end() ) {
+	this->_x = this->generate_symbol( ite->second->toString(), db);
+      }
+      else {
+	this->_x = this->generate_symbol( "unknown", db );
+      }
+
       // Save document (use this _id as identifier)
-      mongo::Database::Document doc(this->_id);     
+      mongo::Database::Document doc(this->_id);    
+
+      // Add symbol
+      doc.add<std::string>( "x", this->_x);
+      
       
       // Add time
       doc.add<double>( "t", this->_t.toSec());
       
       // Add all attributes
-      AttributeMap::iterator ite;
       for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
 	mongo::Database::Document subdoc = ite->second->serialize();
         subdoc.add<int>( "type", (int)ite->first);
@@ -264,12 +278,15 @@ namespace anchoring {
     }
   }
 
-  std::string Anchor::toString() { 
+  std::string Anchor::toString() {
+    return this->_x;
+    /*
     std::ostringstream oss;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {   
       oss << ite->second->toString() << " . ";
     }
     return oss.str();
+    */
   }
     
   /*
@@ -282,5 +299,34 @@ namespace anchoring {
     return msg;
   }
   */
+
+  // ---[ Generate a unique symbol ]---
+  std::string Anchor::generate_symbol(const std::string &key, mongo::Database &db) {
+    std::stringstream ss;
+    try {
+      db.set_collection("predicates");
+      
+      // Get the id (if document exists)
+      std::stringstream ss;
+      std::string id = db.get_id( "symbol", key);
+      if( !id.empty() ) {
+	int counter = db.get<int>( id, "count") + 1;
+	db.update<int>( id, "count", counter);
+	ss << key << "-" << counter;
+      }
+      else {
+	mongo::Database::Document doc;
+	doc.add<std::string>( "symbol", key);
+	doc.add<int>( "count", 1);
+	db.insert(doc);
+	ss << key << "-1";
+      }
+      db.set_collection("anchors");
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::generate_symbol]" << e.what() << std::endl;
+    }
+    return ss.str();
+  }
   
 } // namespace anchoring

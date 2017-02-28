@@ -50,6 +50,9 @@ namespace anchoring {
 
     // Unique id for each anchor
     string _id;
+
+    // Unique symbol for each anchor
+    string _x;
     
     // Features 
     AttributeMap _attributes;
@@ -62,6 +65,8 @@ namespace anchoring {
     std::mutex _mtx;
     bool _aging;
     void decreaseAnchor(int life);
+
+    string generate_symbol(const string &key, mongo::Database &db);
   };
 
   // Typedefine a smart object pointer
