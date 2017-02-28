@@ -307,7 +307,6 @@ namespace anchoring {
       db.set_collection("predicates");
       
       // Get the id (if document exists)
-      std::stringstream ss;
       std::string id = db.get_id( "symbol", key);
       if( !id.empty() ) {
 	int counter = db.get<int>( id, "count") + 1;

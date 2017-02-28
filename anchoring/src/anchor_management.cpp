@@ -19,7 +19,7 @@ using namespace anchoring;
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
-  _track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
+  //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
 
   _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
 

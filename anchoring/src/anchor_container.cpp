@@ -163,12 +163,7 @@ namespace anchoring {
   // Track (by position) an exisitng anchor 
   void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
     this->_map[id]->append(attributes, t);
-    if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [tracked]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
-    }
-    else {
-      ROS_WARN("Anchor [tracked]: %s - ", id.c_str());
-    }
+    ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
   }
 
   // Acquire a new anchor
@@ -177,24 +172,14 @@ namespace anchoring {
     string id = anchor->getId();
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
-    if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [acquired]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
-    }
-    else {
-      ROS_WARN("Anchor [acquired]: %s - ", id.c_str());
-    }
+    ROS_WARN("[Anchor (acquired): %s", this->_map[id]->toString().c_str());
   }
   
   // Re-acquire an exisitng anchor
   void AnchorContainer::re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track ) {
     mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->update( db, attributes, t, track);
-    if( !this->_map[id]->getSymbols(CAFFE).empty() ) {
-      ROS_WARN("Anchor [re-acquired]: %s - %s", id.c_str(), this->_map[id]->toString().c_str());
-    }
-    else {
-      ROS_WARN("Anchor [re-acquired]: %s - ", id.c_str());
-    }
+    ROS_WARN("[Anchor (re-acquired): %s", this->_map[id]->toString().c_str());
   }
   
   // Maintain the anchor space
