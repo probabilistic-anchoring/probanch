@@ -23,9 +23,9 @@ namespace anchoring {
     ~Anchor();
 
     // Anchoring helper functions
-    void load(const mongo::Database::Document &doc); 
-    void update(mongo::Database &db, AttributeMap &attributes, const ros::Time &t, bool append = false);
-    void append(AttributeMap &attributes, const ros::Time &t);
+    void load(const mongo::Database &db); 
+    void create(mongo::Database &db); 
+    void maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t);
     bool invalid() { return this->_attributes.empty(); }
     
     // Matching function
@@ -33,7 +33,6 @@ namespace anchoring {
 		MatchMap &result ); 
 
     // Get/set functions 
-    //cv::Mat get(AttributeType type);
     void setSymbols( AttributeType type, const vector<string> &symbols); 
     vector<string> getSymbols(AttributeType type);
     string getId() { return this->_id; }
@@ -44,9 +43,11 @@ namespace anchoring {
     template <typename T> T getAnchor();
     
   private:
-    
-    // Private functions
-    void save(mongo::Database &db); 
+
+    // ---[ Private update functions ]---
+    template <typename Map> bool compare(Map const &lhs, Map const &rhs);
+    void append(mongo::Database &db, AttributeMap &attributes);
+    void update(mongo::Database &db, AttributeMap &attributes);
 
     // Unique id for each anchor
     string _id;
@@ -67,6 +68,7 @@ namespace anchoring {
     void decreaseAnchor(int life);
 
     string generate_symbol(const string &key, mongo::Database &db);
+
   };
 
   // Typedefine a smart object pointer
@@ -77,12 +79,22 @@ namespace anchoring {
   // ----------------------------------------
   template <typename T>  T Anchor::getAnchor() {
     T msg;
-    msg.id = this->_id;
+    msg.id = this->_x;
     msg.t = this->_t;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
       ite->second->populate(msg);
     }
     return msg;
+  }
+
+  // Compare and check if all keys of two maps are the same
+  template <typename Map>  bool Anchor::compare(Map const &lhs, Map const &rhs) {
+
+    auto pred = [] (decltype(*lhs.begin()) a, decltype(a) b)
+      { return a.first == b.first; };
+    
+    return lhs.size() == rhs.size()
+      && std::equal(lhs.begin(), lhs.end(), rhs.begin(), pred);
   }
 }
 

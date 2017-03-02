@@ -81,8 +81,8 @@ namespace anchoring {
     try { 
       for( auto ite = ids.begin(); ite != ids.end(); ++ite ) {
 	AnchorPtr anchor( new Anchor(*ite) );
-	mongo::Database::Document doc = db.get(*ite); // Load a sub document
-	anchor->load(doc);  
+	//mongo::Database::Document doc = db.get(*ite); // Load a sub document
+	anchor->load(db);  
 	this->_mtx.lock();
 	this->_map[*ite] = anchor;
 	this->_mtx.unlock();
@@ -162,13 +162,18 @@ namespace anchoring {
   
   // Track (by position) an exisitng anchor 
   void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
-    this->_map[id]->append(attributes, t);
+    mongo::Database db(this->_db_name, this->_collection);
+    this->_map[id]->maintain( db, attributes, t);
     ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
   }
 
   // Acquire a new anchor
-  void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t) {
+  void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t, bool save) {
     AnchorPtr anchor( new Anchor(attributes, t) ); // Generates an unique id for the anchor as well...
+    if( save ) {
+      mongo::Database db(this->_db_name, this->_collection);
+      anchor->create(db);
+    }
     string id = anchor->getId();
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
@@ -178,7 +183,7 @@ namespace anchoring {
   // Re-acquire an exisitng anchor
   void AnchorContainer::re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track ) {
     mongo::Database db(this->_db_name, this->_collection);
-    this->_map[id]->update( db, attributes, t, track);
+    this->_map[id]->maintain( db, attributes, t);
     ROS_WARN("[Anchor (re-acquired): %s", this->_map[id]->toString().c_str());
   }
   

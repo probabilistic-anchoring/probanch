@@ -1,7 +1,7 @@
 string id
 time t
 anchor_msgs/Contour border 
-string object
+string category
 float32 prediction
 string[] colors
 string size

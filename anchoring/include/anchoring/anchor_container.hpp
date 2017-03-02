@@ -61,7 +61,7 @@ namespace anchoring {
 
     // Public anchoring functions
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
-    void acquire(AttributeMap &attributes, const ros::Time &t);
+    void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
     template <typename T> void getArray(vector<T> &array, const ros::Time &t);

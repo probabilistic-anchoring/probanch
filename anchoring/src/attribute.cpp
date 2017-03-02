@@ -294,7 +294,8 @@ namespace anchoring {
 
     return 1.0 / exp(dist);
   }
-
+  
+  /*
   void PositionAttribute::append(const unique_ptr<AttributeCommon> &query_ptr) {
     
     // Typecast the query pointer
@@ -309,8 +310,9 @@ namespace anchoring {
       this->_symbols.push_back(raw_ptr->_symbols.front());
     }  
   }
+  */
 
-  void PositionAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  bool PositionAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
     
     // Typecast the query pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
@@ -324,6 +326,7 @@ namespace anchoring {
       this->_symbols.back() = raw_ptr->_symbols.front();
     }
     */
+    return true;
   }
 
   string PositionAttribute::toString() {
@@ -484,7 +487,7 @@ namespace anchoring {
       }
     }
     if( index >= 0 ) {
-      msg.object = this->_symbols[index];
+      msg.category = this->_symbols[index];
       msg.prediction = this->_predictions[index];
     }
     
@@ -512,7 +515,7 @@ namespace anchoring {
     return result;
   }
 
-  void CaffeAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
     
     // Typecast the query pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
@@ -538,7 +541,9 @@ namespace anchoring {
 	  }
 	} 
       }
-    }   
+    }
+
+    return true;
   }
 
   string CaffeAttribute::toString() {

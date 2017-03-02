@@ -41,11 +41,14 @@ namespace anchoring {
   /**
    * Public load (override of base class)
    */
-  void Anchor::load(const mongo::Database::Document &doc) {
+  void Anchor::load(const mongo::Database &db) {
     
     // Load from MongoDB
     try {  
       
+      // Load all data as a sub document
+      mongo::Database::Document doc = db.get(this->_id); 
+
       // Read the time
       this->_t = ros::Time( doc.get<double>("t") );
 
@@ -88,9 +91,15 @@ namespace anchoring {
   }
   
   /**
-   * Private save function 
+   * Public create function (save the anchor)
    */
-  void Anchor::save(mongo::Database &db) {
+  void Anchor::create(mongo::Database &db) {
+    if( this->_aging ) { 
+      this->_mtx.lock();
+      this->_aging = false; // Lives forever (in the database) from now on...
+      this->_mtx.unlock();
+      this->_thread.detach();
+    }
     
     // Insert the anchor into database
     try {
@@ -109,8 +118,7 @@ namespace anchoring {
 
       // Add symbol
       doc.add<std::string>( "x", this->_x);
-      
-      
+            
       // Add time
       doc.add<double>( "t", this->_t.toSec());
       
@@ -130,85 +138,84 @@ namespace anchoring {
   }
   
   /**
-   * Public update function 
+   * Public maintain function (update the anchor)
    */
-  void Anchor::update(mongo::Database &db, AttributeMap &attributes, const ros::Time &t, bool append ) {
-
-    // Update the time and append data (if the anchor has moved)
-    if( append ) {
-      this->append(attributes, t);
-    }
-    else {
-      this->_t = t;
-    }    
-
-    // The anchor need to be re-acquired within it's life time...
-    if( this->_thread.joinable() ) { 
-      this->_mtx.lock();
-      this->_aging = false; // Forever young from now on....
-      this->_mtx.unlock();
-      this->_thread.detach();
-
-      // ...in order to be saved to the database
-      this->save(db);
-    }
-    else {
-
-      // Add (or move) un-exisiting attributes to this anchor
-      for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
-	if( this->_attributes.find(ite->first) == this->_attributes.end() ) {
-	  this->_attributes[ite->first] = std::move(ite->second);
-	}
-	else if( !append ) {
-	  this->_attributes[ite->first]->update(ite->second);
-	}
-      }
-
-      // Update the database
-      try {
-
-	// Add time
-	db.update<double>( this->_id, "t", this->_t.toSec());
-
-	// Add all attributes
-	std::vector<mongo::Database::Document> docs;
-	AttributeMap::iterator ite;
-	for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
-	  mongo::Database::Document subdoc = ite->second->serialize();
-	  subdoc.add<int>( "type", (int)ite->first);
-	  docs.push_back(subdoc);
-	}
-	db.update<mongo::Database::Document>( this->_id, "attributes", docs);
-      }
-      catch( const std::exception &e ) {
-	std::cout << "[Anchor::update]" << e.what() << std::endl;
-      }
-    }
-  }
-
-  /**
-   * Public append function
-   */                                                                                        
-  void Anchor::append(AttributeMap &attributes, const ros::Time &t) {
+  void Anchor::maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t ) {
 
     // Update time
     this->_t = t;
 
-    // Append new data to existing attributes (but no database update) 
-    for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
-      if( this->_attributes.find(ite->first) != this->_attributes.end() ) {
-	this->_attributes[ite->first]->append(ite->second);
-      }
+    // The anchor need to be re-acquired within it's life time...
+    if( this->_aging ) { 
+      this->create(db);    // ...in order to be saved to the database
+    }
+    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Map keys are different
+      this->append(db, attributes);
+    }
+    else { // Update existing attributes
+      this->update(db, attributes);
     }
   }
 
+  /**
+   * Private update functions
+   */                                                                                        
+  void Anchor::append(mongo::Database &db, AttributeMap &attributes) {
+
+    // Append non-existing attributes and update the database
+    try {
+      
+      // Add time
+      db.update<double>( this->_id, "t", this->_t.toSec());
+      
+      // Add (or move) un-exisiting attributes to this anchor
+      std::vector<mongo::Database::Document> docs;
+      for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
+	if( this->_attributes.find(ite->first) == this->_attributes.end() ) {
+	  this->_attributes[ite->first] = std::move(ite->second);
+	}
+	else {
+	  this->_attributes[ite->first]->update(ite->second);
+	}
+	mongo::Database::Document subdoc = this->_attributes[ite->first]->serialize();
+	subdoc.add<int>( "type", (int)ite->first);
+	docs.push_back(subdoc);	
+      }
+      db.update<mongo::Database::Document>( this->_id, "attributes", docs);
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::append]" << e.what() << std::endl;
+    }
+  }
+
+  void Anchor::update(mongo::Database &db, AttributeMap &attributes) {
+
+    // Update changed attributes
+    try {
+
+      // Update each attribute
+      int idx = 0;
+      AttributeMap::iterator ite = this->_attributes.begin();
+      for( ; ite != this->_attributes.end(); ++ite, idx++) {
+	if( ite->second->update(attributes[ite->first]) ) {
+	  std::stringstream ss;
+	  mongo::Database::Document doc = ite->second->serialize();
+	  doc.add<int>( "type", (int)ite->first);
+	  ss << "attributes." << idx;
+	  db.update<mongo::Database::Document>( this->_id, ss.str(), doc);	  
+	}
+      }
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::append]" << e.what() << std::endl;
+    }
+  }
 
   /**
    * Matching function
    */
   void Anchor::match( const AttributeMap &attributes,
 		      MatchMap &result ) {
-    //AttributeMap::const_iterator ite;
     for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
       if( this->_attributes.find(ite->first) != this->_attributes.end() ) {
 	std::pair<AttributeType, float> rate;
@@ -222,25 +229,6 @@ namespace anchoring {
   /**
    * Get/set functions + private life-span function
    */
-
-  /*
-  // Get anc OpenCV "image"
-  cv::Mat Anchor::get(AttributeType type) {
-    AttributeMap::iterator ite = this->_attributes.find(type);
-    if( ite != this->_attributes.end() ) {
-      if( type == DESCRIPTOR ) {
-	return dynamic_cast<DescriptorAttribute*>(ite->second.get())->_data;
-      }
-      else if( type == COLOR ) {
-	return dynamic_cast<ColorAttribute*>(ite->second.get())->_data;
-      }
-      else if( type == CAFFE ) {
-	return dynamic_cast<ImageAttribute*>(ite->second.get())->_data;
-      }
-    }
-    return cv::Mat();
-  }
-  */
 
   // Set the symbol(s) of an attribute of an anchor
   void Anchor::setSymbols( AttributeType type, const vector<string> &symbols) {

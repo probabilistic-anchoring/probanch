@@ -54,8 +54,8 @@ namespace anchoring {
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
 
     // Virtual append and update methods (with default dummy)
-    virtual void append(const unique_ptr<AttributeCommon> &query_ptr) { }
-    virtual void update(const unique_ptr<AttributeCommon> &query_ptr) { }  
+    //virtual void append(const unique_ptr<AttributeCommon> &query_ptr) { }
+    virtual bool update(const unique_ptr<AttributeCommon> &query_ptr) { return false; }  
     virtual string toString() { return ""; }
 
     string getTypeStr();
@@ -137,8 +137,8 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
-    void append(const unique_ptr<AttributeCommon> &query_ptr);
-    void update(const unique_ptr<AttributeCommon> &query_ptr);
+    //void append(const unique_ptr<AttributeCommon> &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &query_ptr);
     string toString();
   }; 
   
@@ -191,7 +191,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
-    void update(const unique_ptr<AttributeCommon> &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &query_ptr);
     string toString();
   }; 
 

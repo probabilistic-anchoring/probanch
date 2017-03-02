@@ -102,7 +102,10 @@ class AnchorViewer {
 
       // Print infromation
       std::stringstream ss;
-      ss << "Object: " << ite->object << " (" << ite->prediction * 100.0 << "%)";
+      ss << "Symbol: " << ite->id;
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      ss << "Category: " << ite->category << " (" << ite->prediction * 100.0 << "%)";
       cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
       cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
       ss.str("");
