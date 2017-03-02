@@ -78,13 +78,8 @@ namespace anchoring {
 
     // Constructors
     ColorAttribute(AttributeType type = COLOR) : AttributeCommon(type) {}
-    ColorAttribute( const cv::Mat &data, 
-		    const vector<float> &predictions, 
-		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = COLOR ) : AttributeCommon( symbols, type) {
-      data.copyTo(this->_data);
-      this->_predictions = vector<double>( predictions.begin(), predictions.end() );
-    }    
+    ColorAttribute( const anchor_msgs::ColorAttribute &msg, 
+		    AttributeType type = COLOR );
 
     // Override methods
     mongo::Database::Document serialize(); 
@@ -103,12 +98,8 @@ namespace anchoring {
 
     // Constructors
     DescriptorAttribute(AttributeType type = DESCRIPTOR) : AttributeCommon(type) {}
-    DescriptorAttribute( const cv::Mat &data, 
-			 const vector<string> &symbols = vector<string>(),
-			 AttributeType type = DESCRIPTOR ) : AttributeCommon( symbols, type) {
-      // (Deep) copy of the data
-      data.copyTo(this->_data);
-    }
+    DescriptorAttribute( const anchor_msgs::DescriptorAttribute &msg, 
+			 AttributeType type = DESCRIPTOR );
 
     // Override methods
     mongo::Database::Document serialize(); 
@@ -124,6 +115,8 @@ namespace anchoring {
 
     // Constructors
     PositionAttribute(AttributeType type = POSITION) : AttributeCommon(type) {}
+    PositionAttribute( const anchor_msgs::PositionAttribute &msg,
+		       AttributeType type = POSITION );
     PositionAttribute( const geometry_msgs::PoseStamped &data, 
 		       const vector<string> &symbols = vector<string>(),
 		       AttributeType type = POSITION ) : AttributeCommon( symbols, type) {
@@ -150,11 +143,8 @@ namespace anchoring {
 
     // Constructors
     ShapeAttribute(AttributeType type = SHAPE) : AttributeCommon(type) {}
-    ShapeAttribute( const geometry_msgs::Point &data, 
-		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = SHAPE ) : AttributeCommon( symbols, type) {
-      this->_data = data;
-    }
+    ShapeAttribute( const anchor_msgs::ShapeAttribute &msg,
+		    AttributeType type = SHAPE);
 
     // Override methods
     mongo::Database::Document serialize(); 
@@ -175,15 +165,8 @@ namespace anchoring {
  
     // Constructors
     CaffeAttribute(AttributeType type = CAFFE) : AttributeCommon(type) {}
-    CaffeAttribute( const cv::Mat &data,
-		    const anchor_msgs::Contour &border,
-		    const vector<float> &predictions, 
-		    const vector<string> &symbols = vector<string>(),
-		    AttributeType type = CAFFE ) : AttributeCommon( symbols, type) {
-      data.copyTo(this->_data);
-      this->_border = border;
-      this->_predictions = vector<double>( predictions.begin(), predictions.end() );
-    }  
+    CaffeAttribute( const anchor_msgs::CaffeAttribute &msg,
+		    AttributeType type = CAFFE );
 
     // Override methods
     mongo::Database::Document serialize(); 

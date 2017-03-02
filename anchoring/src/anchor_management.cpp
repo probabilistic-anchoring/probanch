@@ -59,45 +59,19 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   // Maintain all incoming objectss
   for( uint i = 0; i < object_ptr->objects.size(); i++) {
 
-    // Read percept from ROS message
-    cv_bridge::CvImagePtr cv_ptr;
-    Mat img, descriptor, histogram;
-    try {
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].descriptor.data, 
-				    sensor_msgs::image_encodings::MONO8 );
-      cv_ptr->image.copyTo(descriptor);
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].caffe.data,
-				    sensor_msgs::image_encodings::BGR8 );
-      cv_ptr->image.copyTo(img);
-
-      /*
-      // Get the multi-channel color histogram
-      Mat ch;
-      vector<Mat> channels;
-      for( uint j = 0; j < object_ptr->objects[i].color.data.size(); j++) { 
-	cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data[j],
-				      sensor_msgs::image_encodings::TYPE_32FC1 );
-	cv_ptr->image.copyTo(ch);
-	channels.push_back(ch);
-      }
-      merge(channels, histogram);
-      */ 
-      cv_ptr = cv_bridge::toCvCopy( object_ptr->objects[i].color.data,
-				    sensor_msgs::image_encodings::TYPE_32FC1 );
-      cv_ptr->image.copyTo(histogram);
-    } catch (cv_bridge::Exception& e) {
-      ROS_ERROR("[AnchorManagement::match] receiving descriptor or image: %s", e.what());
-      return;
-    }
-
     // Create a map of all object attributes
     AttributeMap attributes;
-    attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(descriptor) );
-    attributes[COLOR] = AttributePtr( new ColorAttribute( histogram, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].color.symbols) );
-    attributes[SHAPE] = AttributePtr( new ShapeAttribute( object_ptr->objects[i].shape.data, object_ptr->objects[i].shape.symbols) );
-    attributes[POSITION] = AttributePtr( new PositionAttribute( object_ptr->objects[i].position.data, object_ptr->objects[i].position.symbols) );    
-    attributes[CAFFE] = AttributePtr( new CaffeAttribute(img, object_ptr->objects[i].caffe.border, object_ptr->objects[i].caffe.predictions, object_ptr->objects[i].caffe.symbols) ); 
-    
+    try {
+      attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
+      attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
+      attributes[SHAPE] = AttributePtr( new ShapeAttribute(object_ptr->objects[i].shape) );
+      attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );    
+      attributes[CAFFE] = AttributePtr( new CaffeAttribute(object_ptr->objects[i].caffe) ); 
+    } catch( const std::exception &e ) {
+      ROS_ERROR("[AnchorManagement::match]%s", e.what() );
+      continue;
+    }
+
     // Match all attributes
     map< string, map<anchoring::AttributeType, float> > matches;
     this->_anchors->match( attributes, matches);

@@ -1,5 +1,8 @@
 
 #include <ros/package.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -60,6 +63,20 @@ namespace anchoring {
   // --------------------------------
   // Color attribute methods
   // ------------------------------------  
+  ColorAttribute::ColorAttribute( const anchor_msgs::ColorAttribute &msg, 
+				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    // Read the data from ROS msg
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+      cv_ptr = cv_bridge::toCvCopy( msg.data,
+				    sensor_msgs::image_encodings::TYPE_32FC1 );
+      cv_ptr->image.copyTo(this->_data);
+    } catch (cv_bridge::Exception& e) {
+      throw std::logic_error("[ColorAttribute::ColorAttribute]:" + std::string(e.what()) );
+    }
+    this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
+  }
+
   mongo::Database::Document ColorAttribute::serialize() {
   
     // Save the symbol(s)
@@ -141,6 +158,20 @@ namespace anchoring {
   // ------------------------------------
   // Descriptor attribute methods
   // --------------------------------------------
+  DescriptorAttribute::DescriptorAttribute( const anchor_msgs::DescriptorAttribute &msg, 
+					    AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    // Read the data from ROS msg
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+      cv_ptr = cv_bridge::toCvCopy( msg.data, 
+				    sensor_msgs::image_encodings::MONO8 );
+      // (Deep) copy of the data
+      cv_ptr->image.copyTo(this->_data);
+    } catch (cv_bridge::Exception& e) {
+      throw std::logic_error("[DescriptorAttribute::DescriptorAttribute]:" + std::string(e.what()) );
+    }
+  }
+
   mongo::Database::Document DescriptorAttribute::serialize() {
 
     // Save the symbol(s)
@@ -181,6 +212,12 @@ namespace anchoring {
   // ----------------------------------
   // Position attribute methods
   // ---------------------------------------
+  PositionAttribute::PositionAttribute( const anchor_msgs::PositionAttribute &msg,
+					AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    // Add the data (including a timestamp)
+    this->_array.push_back(msg.data);
+  }
+
   mongo::Database::Document PositionAttribute::serialize() {
 
     // Save the symbol(s)
@@ -343,6 +380,11 @@ namespace anchoring {
   // --------------------------------
   // Shape attribute class methods
   // -------------------------------------
+  ShapeAttribute::ShapeAttribute( const anchor_msgs::ShapeAttribute &msg,
+				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    this->_data = msg.data;
+  }
+
   mongo::Database::Document ShapeAttribute::serialize() {
   
     // Save the symbol(s)
@@ -419,6 +461,21 @@ namespace anchoring {
   // -------------------------------
   // Caffe attribute class methods
   // ----------------------------------
+  CaffeAttribute::CaffeAttribute( const anchor_msgs::CaffeAttribute &msg,
+				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    // Read the data from ROS msg
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+      cv_ptr = cv_bridge::toCvCopy( msg.data,
+				    sensor_msgs::image_encodings::BGR8 );
+      cv_ptr->image.copyTo(this->_data);
+    } catch (cv_bridge::Exception& e) {
+      throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
+    }    
+    this->_border = msg.border;
+    this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
+  }
+
   mongo::Database::Document CaffeAttribute::serialize() {
 
     // Save the symbol(s)
@@ -438,6 +495,14 @@ namespace anchoring {
 
       // Save (caffe) predictions
       doc.add<double>( "predictions", this->_predictions);
+
+      // Save the contour
+      for( auto &point : _border.contour ) {
+	mongo::Database::Document p_doc;
+	p_doc.add<int>( "x", point.x);
+	p_doc.add<int>( "y", point.y);
+	doc.append( "border", p_doc);
+      }
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::serialize]" << e.what() << endl;
@@ -458,6 +523,15 @@ namespace anchoring {
 
       // Load (caffe) predictions
       doc.get<double>( "predictions", this->_predictions);
+
+      // Load the contour
+      for( mongo::document_iterator ite = doc.begin("border"); ite != doc.end("border"); ++ite) {
+	anchor_msgs::Point2d point;
+	point.x = ite->get<int>("x");
+	point.y = ite->get<int>("y");
+	this->_border.contour.push_back(point);	
+      }
+
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::deserialize]" << e.what() << endl;
