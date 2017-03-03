@@ -24,7 +24,7 @@ AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"),
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorAnnotation::queue, this);
 
   // Create the anchor map
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "testspace") );
+  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
 
   //  *AnchorAnnotation::window = ;
   cv::namedWindow( "Anchor annotation", 1);
@@ -237,8 +237,9 @@ void AnchorAnnotation::spin() {
     if( key == 27 || key == 'Q' || key == 'q' ) {
       break;
     }
-    else if( key == 32 || 'N' || key == 'n' ) {
+    else if( key == 32 || key ==  'N' || key == 'n' ) {
       _lock_screen = !_lock_screen;
+      std::cout << "Screen lock changed." << endl;
     }
     else if( key == 'H' || key == 'h' ) {
       this->help();
