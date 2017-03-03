@@ -53,8 +53,7 @@ namespace anchoring {
     // Virtual match method
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
 
-    // Virtual append and update methods (with default dummy)
-    //virtual void append(const unique_ptr<AttributeCommon> &query_ptr) { }
+    // Virtual update methods (with default dummy)
     virtual bool update(const unique_ptr<AttributeCommon> &query_ptr) { return false; }  
     virtual string toString() { return ""; }
 
@@ -162,7 +161,8 @@ namespace anchoring {
     cv::Mat _data;
     vector<double> _predictions;
     anchor_msgs::Contour _border;
- 
+    anchor_msgs::Point2d _point;
+
     // Constructors
     CaffeAttribute(AttributeType type = CAFFE) : AttributeCommon(type) {}
     CaffeAttribute( const anchor_msgs::CaffeAttribute &msg,

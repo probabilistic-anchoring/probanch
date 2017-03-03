@@ -318,10 +318,12 @@ namespace anchoring {
     geometry_msgs::PoseStamped train = this->_array.back();
     geometry_msgs::PoseStamped query = raw_ptr->_array.back();
 
+    /*
     // 1. Check the time
     if( query.header.stamp.toSec() - train.header.stamp.toSec() > 1.0 ) {
       return 0.0;
     }
+    */
 
     // 2. Check the distance
     double diff_x = query.pose.position.x - train.pose.position.x;
@@ -473,6 +475,7 @@ namespace anchoring {
       throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
     }    
     this->_border = msg.border;
+    this->_point = msg.point;
     this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
   }
 
@@ -503,6 +506,12 @@ namespace anchoring {
 	p_doc.add<int>( "y", point.y);
 	doc.append( "border", p_doc);
       }
+
+      // Save the upper corner point of the image
+      mongo::Database::Document p_doc;
+      p_doc.add<int>( "x", this->_point.x);
+      p_doc.add<int>( "y", this->_point.y);
+      doc.append( "corner", p_doc);
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::serialize]" << e.what() << endl;
@@ -532,6 +541,9 @@ namespace anchoring {
 	this->_border.contour.push_back(point);	
       }
 
+      // Load the upper corner point of the image
+      this->_point.x = doc.get("corner").get<int>("x");
+      this->_point.y = doc.get("corner").get<int>("y");
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::deserialize]" << e.what() << endl;

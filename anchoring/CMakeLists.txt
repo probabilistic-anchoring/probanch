@@ -108,6 +108,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp )
+add_executable(annotation src/anchor_annotation.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp )
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -115,6 +116,12 @@ add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( anchoring
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${PCL_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+target_link_libraries( annotation
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
    ${PCL_LIBRARIES}
