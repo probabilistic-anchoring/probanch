@@ -97,6 +97,7 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 	// Match all attributes
 	map< string, map<anchoring::AttributeType, float> > matches;
 	this->_anchors->match( _objects.back(), matches);
+	this->sort(matches);
 	_matches.push_back(matches);
       }
 
@@ -133,15 +134,24 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 }
 
 void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> > &matches, int num) {
-  //map< string, double> result;
-  std::vector<std::pair<string, double> > pairs;
+  std::map< double, string, std::greater<double> > result;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    double dist = max( ite->second[CAFFE], max( ite->second[COLOR], ite->second[SHAPE]));
-    pairs.push_back(std::pair<string, double>( ite->first, dist));
+    double dist = min( ite->second[CAFFE], min( ite->second[COLOR], ite->second[SHAPE]));
+    result[dist] = ite->first;
+    std::cout << ite->first << " - " << dist << endl;
   }
-  
-  //temp( pairs.begin(), pairs.end(), [=](std::pair<string, double>& a, std::pair<string, double>& b) { return a.second > b.second; });
-  //map< double, string> sorted = result
+  {
+    auto ite = result.begin();
+    std::next( ite, num);
+    for( ; ite != result.end(); ++ite) {
+      matches.erase(ite->second);
+    }
+  }
+  std::cout << "Best matches: " << std::endl;
+  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
+    std::cout << ite->first << std::endl;
+  }
+  std::cout << "---" << std::endl;
 }
 
 
