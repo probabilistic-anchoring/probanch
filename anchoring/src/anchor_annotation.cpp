@@ -18,6 +18,8 @@ using namespace cv;
 using namespace std;
 using namespace anchoring;
 
+#define DEBUG 1
+
 // Window name
 const char* AnchorAnnotation::window = "Anchor Annotation";
   
@@ -136,22 +138,26 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> > &matches, int num) {
   std::map< double, string, std::greater<double> > result;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    double dist = min( ite->second[CAFFE], min( ite->second[COLOR], ite->second[SHAPE]));
+    double dist = std::min( ite->second[CAFFE], std::min( ite->second[COLOR], ite->second[SHAPE]));
     result[dist] = ite->first;
-    std::cout << ite->first << " - " << dist << endl;
+    #if DEBUG == 1
+    std::cout << ite->first << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << "]" << std::endl;
+    #endif
   }
   {
     auto ite = result.begin();
-    std::next( ite, num);
+    ite = std::next( ite, num);
     for( ; ite != result.end(); ++ite) {
       matches.erase(ite->second);
     }
   }
+  #if DEBUG == 1
   std::cout << "Best matches: " << std::endl;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
     std::cout << ite->first << std::endl;
   }
   std::cout << "---" << std::endl;
+  #endif
 }
 
 
