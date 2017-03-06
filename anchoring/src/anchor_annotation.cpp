@@ -17,6 +17,9 @@
 using namespace cv;
 using namespace std;
 using namespace anchoring;
+
+// Window name
+const char* AnchorAnnotation::window = "Anchor Annotation";
   
 // Constructor
 AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _lock_screen(false), _processing(false) {
@@ -26,18 +29,14 @@ AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"),
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
 
-  //  *AnchorAnnotation::window = ;
-  cv::namedWindow( "Anchor annotation", 1);
-  cv::setMouseCallback( "Anchor annotation", &click_cb, this);
+  //const char *window = "Anchor annotation";
+
+  cv::namedWindow( window, 1);
+  cv::setMouseCallback( window, &click_cb, this);
 }
 
 AnchorAnnotation::~AnchorAnnotation() {
-  /*
-  for( auto &&ite : _objects) {
-    ite.clear();
-  }
   _objects.clear();
-  */
 }
 
 
@@ -93,7 +92,12 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 	  ROS_ERROR("[AnchorAnnotation::queue]%s", e.what() );
 	  continue;
 	}
-	//_objects.push_back(attributes);
+	_objects.push_back(std::move(attributes));
+
+	// Match all attributes
+	map< string, map<anchoring::AttributeType, float> > matches;
+	this->_anchors->match( _objects.back(), matches);
+	_matches.push_back(matches);
       }
 
       _processing = true;
@@ -103,12 +107,11 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     cv_ptr->image.copyTo(this->_img);
   }
   
-
   /*
-  // Match all attributes
-  map< string, map<anchoring::AttributeType, float> > matches;
-  this->_anchors->match( attributes, matches);
+  for( auto ite = _objects.begin(); ite != _objects.end(); ++ite) {
 
+  }
+  
   // Process matches
   string id;
   int result = this->process( matches, id, 0.95, 0.65);
@@ -128,6 +131,19 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   //this->_anchor_pub.publish(msg);
   */
 }
+
+void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> > &matches, int num) {
+  //map< string, double> result;
+  std::vector<std::pair<string, double> > pairs;
+  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
+    double dist = max( ite->second[CAFFE], max( ite->second[COLOR], ite->second[SHAPE]));
+    pairs.push_back(std::pair<string, double>( ite->first, dist));
+  }
+  
+  //temp( pairs.begin(), pairs.end(), [=](std::pair<string, double>& a, std::pair<string, double>& b) { return a.second > b.second; });
+  //map< double, string> sorted = result
+}
+
 
 /* -----------------------------------------
    Process function  
@@ -227,7 +243,7 @@ void AnchorAnnotation::spin() {
 
     // OpenCV window for display
     if( !this->_img.empty() ) {
-      cv::imshow( "Anchor annotation", this->_img );
+      cv::imshow( AnchorAnnotation::window, this->_img );
       
       //cv::imshow( window, this->anchor_img() );
     }

@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2 REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
