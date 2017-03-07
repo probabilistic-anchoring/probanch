@@ -548,8 +548,10 @@ namespace anchoring {
       }
 
       // Load the upper corner point of the image
-      this->_point.x = doc.get("corner").get<int>("x");
-      this->_point.y = doc.get("corner").get<int>("y");
+      anchor_msgs::Point2d point;
+      point.x = doc.get("corner").get<int>("x");
+      point.y = doc.get("corner").get<int>("y");
+      this->_point = point; 
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::deserialize]" << e.what() << endl;

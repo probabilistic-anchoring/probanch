@@ -191,8 +191,7 @@ void AnchorAnnotation::clickCb(int event, int x, int y, int flags, void *obj) {
 }
 
 void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
-  
-  //for( auto ite = _objects.begin(); ite != _objects.end(); ++ite) {
+  std::cout << "Clicked: " << x << " - " << y << std::endl;
   if( this->_idx < 0 ) {
     int idx = 0;
     for( auto &object : _objects) {
@@ -203,6 +202,11 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
       if( cv::pointPolygonTest( contour.back(), cv::Point( x, y ), false) > 0 ) {
 	cv::drawContours( this->_img, contour, -1, cv::Scalar( 0, 255, 0), 1);
 	this->_idx = idx;
+
+	// Saftey check
+	if( this->_anchors->empty() ) {
+	  break;
+	}
 
 	// Match attributes of selected object
 	this->_matches.clear();
@@ -216,7 +220,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
 	    this->_time_history = history;
 	  }
 	}
-	this->_time_pos = 0;
+	this->_time_pos = this->_time_history;
 	cv::createTrackbar( "Negative time warp", window, &this->_time_pos, this->_time_history); //, &AnchorAnnotation::onTrack, this);
 
 	break;
@@ -226,7 +230,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
   }
   else {
     std::string id = "";
-    double dist = 2.0;;
+    double dist = 2.0;
     int pose = cv::getTrackbarPos( "Negative time warp", window);  
     for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
       cv::Rect roi = this->getRect( this->_anchors->get( ite->first, CAFFE) );
@@ -240,10 +244,10 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
       }
     }
     if( !id.empty() ) {
-      std::cout << "O'yeah, we have an re-aquire." << std::endl;
+      this->_anchors->re_acquire( id, this->_objects[this->_idx], this->_lock_time ); // RE_ACQUIRE
     }
     else {
-      std::cout << "Thats an aquire." << std::endl;
+      this->_anchors->acquire( this->_objects[this->_idx], this->_lock_time, true); // ACQUIRE
     }
     this->reset();
   }
@@ -264,9 +268,7 @@ cv::Mat AnchorAnnotation::subImages(int idx) {
     cv::Mat img = this->getImage( this->_anchors->get( ite->first, CAFFE) ); 
     double diff = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
     double alpha = std::abs(diff - (double)pose) / (double)_time_history;
-    std::cout << "Alpha: " << alpha << std::endl;
     cv::addWeighted( img, alpha, roi, 1.0 - alpha , 0.0, roi);
-    //img.copyTo( result(roi) );
   }
 
   return result;
