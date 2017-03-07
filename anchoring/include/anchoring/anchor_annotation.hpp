@@ -17,7 +17,8 @@ class AnchorAnnotation {
 
   // List of attributes of unknown objects
   std::vector<anchoring::AttributeMap> _objects;
-  std::vector< map< string, map<anchoring::AttributeType, float> > > _matches;
+  //std::vector< map< string, map<anchoring::AttributeType, float> > > _matches;
+  map< string, map<anchoring::AttributeType, float> > _matches;
 
  
   /* --------------
@@ -27,15 +28,22 @@ class AnchorAnnotation {
   ros::NodeHandle _priv_nh;
   ros::Subscriber _object_sub;
   
-  double _t;
-  double _leap_time;
+  ros::Time _time;
+  ros::Time _lock_time;
+  ros::Duration _leap_time;
+
+  int _time_pos; 
+  int _time_history;
+
   cv::Mat _img;
+  int _idx;
+
   bool _lock_screen;
   bool _processing;
 
   void queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void sort( map< string, map<anchoring::AttributeType, float> > &matches, int num = 5 );
-
+  void reset(bool complete = false);
   
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 
 	       string &id, 
@@ -45,24 +53,15 @@ class AnchorAnnotation {
   // Display functions
   static const char* window;
   void help();
-  static void click_cb(int event, int x, int y, int flags, void *obj);
-  void click_wrapper(int event, int x, int y, int flags);
+  static void clickCb(int event, int x, int y, int flags, void *obj);
+  void clickWrapper(int event, int x, int y, int flags);
+  //void onTrack(int pos, void *obj);
+  cv::Mat subImages(int idx);
 
-  // ---------------------------------------
-  // Template functions
-  // --------------------------------------------
-  template<typename A, typename B>
-  std::pair<B,A> flip_pair(const std::pair<A,B> &p) {
-    return std::pair<B,A>(p.second, p.first);
-  }
-
-  template<typename A, typename B>
-  std::multimap<B,A> flip_map(const std::map<A,B> &src){
-    std::multimap<B,A> dst;
-    std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()), 
-                   flip_pair<A,B>);
-    return dst;
-  }
+  // Access functions
+  void getContour( const anchoring::AttributePtr &ptr, std::vector<std::vector<cv::Point> > &contours);
+  cv::Mat getImage(const anchoring::AttributePtr &ptr);
+  cv::Rect getRect(const anchoring::AttributePtr &ptr);
 
 public: 
   AnchorAnnotation(ros::NodeHandle nh);

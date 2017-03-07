@@ -42,6 +42,10 @@ namespace anchoring {
     string toString();
     template <typename T> T getAnchor();
     
+    const AttributePtr& get(AttributeType type) const {
+      return this->_attributes.at(type);
+    }
+    
   private:
 
     // ---[ Private update functions ]---
@@ -77,7 +81,7 @@ namespace anchoring {
   // ----------------------------------------
   // Template functions.
   // ----------------------------------------
-  template <typename T>  T Anchor::getAnchor() {
+  template <typename T> T Anchor::getAnchor() {
     T msg;
     msg.id = this->_x;
     msg.t = this->_t;
@@ -88,7 +92,7 @@ namespace anchoring {
   }
 
   // Compare and check if all keys of two maps are the same
-  template <typename Map>  bool Anchor::compare(Map const &lhs, Map const &rhs) {
+  template <typename Map> bool Anchor::compare(Map const &lhs, Map const &rhs) {
 
     auto pred = [] (decltype(*lhs.begin()) a, decltype(a) b)
       { return a.first == b.first; };

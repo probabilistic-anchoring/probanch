@@ -106,7 +106,11 @@ namespace anchoring {
       
       vector<double> array;
       doc.get<double>( "data", array);
-      this->_data = cv::Mat( 1, array.size(), CV_32F, &array.front());
+      this->_data = cv::Mat( 1, array.size(), CV_32FC1);
+      for( int i = 0; i < array.size(); i++) {
+	this->_data.at<float>( 0, i) = (float)array[i];
+      } 
+      
 
       // Load (color) predictions
       doc.get<double>( "predictions", this->_predictions);
@@ -138,7 +142,9 @@ namespace anchoring {
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
-    return cv::compareHist( raw_ptr->_data, this->_data, CV_COMP_INTERSECT); // CV_COMP_CORREL
+    float dist = (1.0 + cv::compareHist( raw_ptr->_data, this->_data, CV_COMP_CORREL)) / 2.0; // CV_COMP_CORREL | CV_COMP_INTERSECT | CV_COMP_BHATTACHARYYA
+    std::cout << "Color dist: " << dist << std::endl;
+    return dist;
   }
 
   string ColorAttribute::toString() {

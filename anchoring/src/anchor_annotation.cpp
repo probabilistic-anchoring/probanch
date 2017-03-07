@@ -24,17 +24,16 @@ using namespace anchoring;
 const char* AnchorAnnotation::window = "Anchor Annotation";
   
 // Constructor
-AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _lock_screen(false), _processing(false) {
+AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _lock_screen(false), _processing(false), _idx(-1) {
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorAnnotation::queue, this);
+  _leap_time = ros::Duration(0.0);
 
   // Create the anchor map
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
 
-  //const char *window = "Anchor annotation";
-
   cv::namedWindow( window, 1);
-  cv::setMouseCallback( window, &click_cb, this);
+  cv::setMouseCallback( window, &clickCb, this);
 }
 
 AnchorAnnotation::~AnchorAnnotation() {
@@ -64,20 +63,19 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     ROS_ERROR("[AnchorAnnotation::queue] %s", e.what() );
     return;
   }
+
+  // Get the time
+  ros::Time t = object_ptr->header.stamp;
+  //this->_t = t.toSec();
     
   // If a requested queue, save a screen-shot of current scene 
   if( _lock_screen ) {
 
-    // Get the time
-    ros::Time t = object_ptr->header.stamp;
-    this->_t = t.toSec();
-
     if( !_processing ) {
 
-      cv::cvtColor( cv_ptr->image, this->_img, CV_BGR2GRAY); 
-      cv::cvtColor( this->_img, this->_img, CV_GRAY2BGR);
-      this->_img.convertTo( this->_img, -1, 1.0, 50); 
+      this->_lock_time = t;
 
+      cv_ptr->image.copyTo(this->_img);      
 
       // Queue the attributes of incoming objects
       for( uint i = 0; i < object_ptr->objects.size(); i++) {
@@ -95,20 +93,22 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 	  continue;
 	}
 	_objects.push_back(std::move(attributes));
-
-	// Match all attributes
-	map< string, map<anchoring::AttributeType, float> > matches;
-	this->_anchors->match( _objects.back(), matches);
-	this->sort(matches);
-	_matches.push_back(matches);
+	std::vector<std::vector<cv::Point> > contour;
+	this->getContour( _objects.back()[CAFFE], contour);
+	cv::drawContours( this->_img, contour, -1, cv::Scalar( 0, 0, 255), 1);
+	
       }
-
       _processing = true;
+    }
+    else {
+      this->_leap_time = this->_leap_time + ros::Duration(t.toSec() - this->_time.toSec());
     }
   }
   else {
     cv_ptr->image.copyTo(this->_img);
   }
+  this->_time = t;
+
   
   /*
   for( auto ite = _objects.begin(); ite != _objects.end(); ++ite) {
@@ -138,7 +138,7 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> > &matches, int num) {
   std::map< double, string, std::greater<double> > result;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    double dist = std::min( ite->second[CAFFE], std::min( ite->second[COLOR], ite->second[SHAPE]));
+    double dist = (ite->second[CAFFE] + ite->second[COLOR] + ite->second[SHAPE]) / 3.0;
     result[dist] = ite->first;
     #if DEBUG == 1
     std::cout << ite->first << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << "]" << std::endl;
@@ -151,6 +151,7 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
       matches.erase(ite->second);
     }
   }
+  
   #if DEBUG == 1
   std::cout << "Best matches: " << std::endl;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
@@ -160,58 +161,15 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
   #endif
 }
 
-
-/* -----------------------------------------
-   Process function  
-   -----------------
-   Process all matches and return true in 
-   case an object is re-observed.
-   ---
-   All matching values are in range 
-   [0.0 1.0] (where 1.0 is a perfect match).
-   ---
-
-   Return:
-     -1 - tracked by distance
-      0 - no match
-     +1 - re-acquried by match
-   -------------------------------------- */
-int AnchorAnnotation::process( map< string, map<AttributeType, float> > &matches, 
-			       string &id, 
-			       float dist_th,
-			       float rate_th ) {
- 
-  // Check the location (main feature for track)
-  float best = 0.0;
-  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    //std::cout << "Prob. dist: " << ite->second[POSITION] << ", prob. rate: " << ite->second[IMAGE] << std::endl;
-    if( ite->second[POSITION] > best ) {
-      best = ite->second[POSITION];
-      id = ite->first;
-    }
+void AnchorAnnotation::reset(bool complete) {
+  if( !complete ) {
+    this->_objects.erase( this->_objects.begin() + this->_idx );
   }
-  if( best > dist_th ) {
-    return -1;
+  else {
+    this->_objects.clear();
   }
-
-  // Check keypoints, caffe-result, color and shape (main feature for acquire/re_acquire)
-  best = 0.0;
-  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-
-    // ( DESCRIPTOR OR CAFFE ) AND ( COLOR AND SHAPE )
-    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CAFFE] ); 
-    float rate_2 = min( ite->second[COLOR], ite->second[SHAPE] );      
-    float rate = min( rate_1, rate_2 ); 
-    if( rate > best ) {
-      best = rate;      
-      id = ite->first;
-    }
-  }
-  if( best > rate_th ) {
-    return 1;
-  }
-
-  return 0;
+  this->_matches.clear();
+  this->_idx = -1;
 }
 
 // Print instructions
@@ -225,31 +183,130 @@ void AnchorAnnotation::help() {
 }
   
 // Mouse click callback function(s)
-void AnchorAnnotation::click_cb(int event, int x, int y, int flags, void *obj) {
+void AnchorAnnotation::clickCb(int event, int x, int y, int flags, void *obj) {
   AnchorAnnotation *self = static_cast<AnchorAnnotation*>(obj);
   if( event == cv::EVENT_LBUTTONDOWN ) {
-    self->click_wrapper( event, x, y, flags);
+    self->clickWrapper( event, x, y, flags);
   }
 }
 
-void AnchorAnnotation::click_wrapper(int event, int x, int y, int flags) {
-  cout << "CLicked - x: " << x << ", y: " << y << endl; 
-  /*
-  for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
-    
-    // Get the contour
-    std::vector<cv::Point> contour;
-    for( uint i = 0; i < ite->border.contour.size(); i++) {
-      cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
-      contour.push_back(p);
-    }	  
-    if( cv::pointPolygonTest( contour, cv::Point( x, y ), false) > 0 ) {
-      this->_highlight = ite->id;
-      ROS_WARN("Anchored selected at: x = %.2f, y = %.2f, z = %.2f", (float)ite->pos.pose.position.x, (float)ite->pos.pose.position.y, (float)ite->pos.pose.position.z);
-      break;
+void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
+  
+  //for( auto ite = _objects.begin(); ite != _objects.end(); ++ite) {
+  if( this->_idx < 0 ) {
+    int idx = 0;
+    for( auto &object : _objects) {
+
+      // Get and check the contour
+      std::vector<std::vector<cv::Point> > contour;
+      this->getContour( object[CAFFE], contour);
+      if( cv::pointPolygonTest( contour.back(), cv::Point( x, y ), false) > 0 ) {
+	cv::drawContours( this->_img, contour, -1, cv::Scalar( 0, 255, 0), 1);
+	this->_idx = idx;
+
+	// Match attributes of selected object
+	this->_matches.clear();
+	this->_anchors->match( object, this->_matches);
+	this->sort( this->_matches );
+
+	this->_time_history = 0;
+	for( auto ite = this->_matches.begin(); ite != this->_matches.end(); ++ite) {
+	  int history = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
+	  if( history > this->_time_history ) {
+	    this->_time_history = history;
+	  }
+	}
+	this->_time_pos = 0;
+	cv::createTrackbar( "Negative time warp", window, &this->_time_pos, this->_time_history); //, &AnchorAnnotation::onTrack, this);
+
+	break;
       }
+      idx++;
+    }
   }
-  */
+  else {
+    std::string id = "";
+    double dist = 2.0;;
+    int pose = cv::getTrackbarPos( "Negative time warp", window);  
+    for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
+      cv::Rect roi = this->getRect( this->_anchors->get( ite->first, CAFFE) );
+      if( roi.contains( cv::Point( x, y ) ) ) {
+	double diff = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
+	diff = std::abs(diff - (double)pose) / (double)_time_history;
+	if( diff < dist ) {
+	  dist = diff;
+	  id = ite->first;
+	}
+      }
+    }
+    if( !id.empty() ) {
+      std::cout << "O'yeah, we have an re-aquire." << std::endl;
+    }
+    else {
+      std::cout << "Thats an aquire." << std::endl;
+    }
+    this->reset();
+  }
+}
+
+cv::Mat AnchorAnnotation::subImages(int idx) {
+  
+  // Convert to gray image
+  cv::Mat result;
+  cv::cvtColor( this->_img, result, CV_BGR2GRAY); 
+  cv::cvtColor( result, result, CV_GRAY2BGR);
+  result.convertTo( result, -1, 1.0, 50); 
+
+  // Iterate and draw sub images
+  int pose = cv::getTrackbarPos( "Negative time warp", window);
+  for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
+    cv::Mat roi = result( this->getRect( this->_anchors->get( ite->first, CAFFE) ) );
+    cv::Mat img = this->getImage( this->_anchors->get( ite->first, CAFFE) ); 
+    double diff = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
+    double alpha = std::abs(diff - (double)pose) / (double)_time_history;
+    std::cout << "Alpha: " << alpha << std::endl;
+    cv::addWeighted( img, alpha, roi, 1.0 - alpha , 0.0, roi);
+    //img.copyTo( result(roi) );
+  }
+
+  return result;
+}
+
+
+// ------------------------
+// Access functions
+// ---------------------------
+void AnchorAnnotation::getContour( const anchoring::AttributePtr &ptr, std::vector<std::vector<cv::Point> > &contours) {
+
+  // Typecast the query pointer
+  CaffeAttribute *caffe_ptr = dynamic_cast<CaffeAttribute*>(ptr.get());
+  assert( caffe_ptr != nullptr );
+  
+  // Draw the contour
+  std::vector<cv::Point> contour;
+  for( uint i = 0; i < caffe_ptr->_border.contour.size(); i++) {
+    cv::Point p( caffe_ptr->_border.contour[i].x, caffe_ptr->_border.contour[i].y );
+    contour.push_back(p);
+  }	  
+  contours.push_back(contour);
+}
+
+cv::Mat AnchorAnnotation::getImage(const anchoring::AttributePtr &ptr) {
+
+  // Typecast the query pointer
+  CaffeAttribute *caffe_ptr = dynamic_cast<CaffeAttribute*>(ptr.get());
+  assert( caffe_ptr != nullptr );
+
+  return caffe_ptr->_data;
+}
+cv::Rect AnchorAnnotation::getRect(const anchoring::AttributePtr &ptr) {
+
+  // Typecast the query pointer
+  CaffeAttribute *caffe_ptr = dynamic_cast<CaffeAttribute*>(ptr.get());
+  assert( caffe_ptr != nullptr );
+
+  return cv::Rect( cv::Point( caffe_ptr->_point.x, caffe_ptr->_point.y),
+		   caffe_ptr->_data.size() );		   
 }
 
 // For 'ROS loop' access
@@ -259,8 +316,12 @@ void AnchorAnnotation::spin() {
 
     // OpenCV window for display
     if( !this->_img.empty() ) {
-      cv::imshow( AnchorAnnotation::window, this->_img );
-      
+      if( this->_idx < 0 ) {
+	cv::imshow( AnchorAnnotation::window, this->_img );
+      }
+      else {
+	cv::imshow( AnchorAnnotation::window, this->subImages(this->_idx) );
+      }
       //cv::imshow( window, this->anchor_img() );
     }
 
@@ -271,6 +332,8 @@ void AnchorAnnotation::spin() {
     }
     else if( key == 32 || key ==  'N' || key == 'n' ) {
       _lock_screen = !_lock_screen;
+      this->reset(true);
+      _processing = false;
       std::cout << "Screen lock changed." << endl;
     }
     else if( key == 'H' || key == 'h' ) {

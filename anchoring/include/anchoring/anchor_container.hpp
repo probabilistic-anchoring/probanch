@@ -66,6 +66,21 @@ namespace anchoring {
     void maintain();
     template <typename T> void getArray(vector<T> &array, const ros::Time &t);
 
+    const AttributePtr& get(const string &id, AttributeType type) const {
+      auto ite = this->_map.find(id);
+      if( ite == this->_map.end() ) {
+	throw std::logic_error("[Anchor::getSingle]: there exists no anchor with id '" + id +"'.");
+      }
+      return ite->second->get(type);
+    }
+    double diff(const string &id, const ros::Time &t) {
+      auto ite = this->_map.find(id);
+      if( ite == this->_map.end() ) {
+	throw std::logic_error("[Anchor::diff]: there exists no anchor with id '" + id +"'.");
+      }
+      return t.toSec() - ite->second->getTime();
+    }
+
     // Map access functions
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
@@ -75,6 +90,7 @@ namespace anchoring {
   // ----------------------------------------
   // Template functions.
   // ----------------------------------------
+
   template<typename T> void AnchorContainer::getArray(vector<T> &array, const ros::Time &t) {
     
     // Iterate and get a snapshot of all anchors in current scene
