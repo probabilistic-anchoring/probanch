@@ -33,7 +33,7 @@ class AnchorAnnotation {
   ros::Duration _leap_time;
 
   int _time_pos; 
-  int _time_history;
+  double _time_history;
 
   cv::Mat _img;
   int _idx;

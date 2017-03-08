@@ -94,13 +94,14 @@ namespace anchoring {
    * Public create function (save the anchor)
    */
   void Anchor::create(mongo::Database &db) {
+
+    // Safely changed the aging variable
+    std::lock_guard<std::mutex> lock(this->_mtx);
     if( this->_aging ) { 
-      this->_mtx.lock();
       this->_aging = false; // Lives forever (in the database) from now on...
-      this->_mtx.unlock();
-      this->_thread.detach();
+      this->_thread.join();
     }
-    
+
     // Insert the anchor into database
     try {
 

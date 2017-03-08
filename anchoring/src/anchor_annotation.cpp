@@ -34,6 +34,7 @@ AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"),
 
   cv::namedWindow( window, 1);
   cv::setMouseCallback( window, &clickCb, this);
+  cv::createTrackbar( "Negative time warp", window, &this->_time_pos, 100);
 }
 
 AnchorAnnotation::~AnchorAnnotation() {
@@ -66,14 +67,13 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 
   // Get the time
   ros::Time t = object_ptr->header.stamp;
-  //this->_t = t.toSec();
     
   // If a requested queue, save a screen-shot of current scene 
   if( _lock_screen ) {
 
     if( !_processing ) {
 
-      this->_lock_time = t;
+      this->_lock_time = t - this->_leap_time;
 
       cv_ptr->image.copyTo(this->_img);      
 
@@ -108,31 +108,6 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     cv_ptr->image.copyTo(this->_img);
   }
   this->_time = t;
-
-  
-  /*
-  for( auto ite = _objects.begin(); ite != _objects.end(); ++ite) {
-
-  }
-  
-  // Process matches
-  string id;
-  int result = this->process( matches, id, 0.95, 0.65);
-  if( result != 0 ) {
-  this->_anchors->re_acquire(id, attributes, t, (result > 0 ? true : false) ); // RE_ACQUIRE
-  }
-  else {
-  this->_anchors->acquire(attributes, t); // ACQUIRE
-  } 
-  */
-  
-
-  /*
-  // Get a snapshot of all anchors seen scene at time t
-  anchor_msgs::AnchorArray msg;
-  this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
-  //this->_anchor_pub.publish(msg);
-  */
 }
 
 void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> > &matches, int num) {
@@ -191,7 +166,6 @@ void AnchorAnnotation::clickCb(int event, int x, int y, int flags, void *obj) {
 }
 
 void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
-  std::cout << "Clicked: " << x << " - " << y << std::endl;
   if( this->_idx < 0 ) {
     int idx = 0;
     for( auto &object : _objects) {
@@ -213,16 +187,18 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
 	this->_anchors->match( object, this->_matches);
 	this->sort( this->_matches );
 
-	this->_time_history = 0;
+	this->_time_history = 0.0;
 	for( auto ite = this->_matches.begin(); ite != this->_matches.end(); ++ite) {
-	  int history = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
+	  double history = this->_anchors->diff( ite->first, this->_lock_time);
 	  if( history > this->_time_history ) {
 	    this->_time_history = history;
 	  }
 	}
-	this->_time_pos = this->_time_history;
-	cv::createTrackbar( "Negative time warp", window, &this->_time_pos, this->_time_history); //, &AnchorAnnotation::onTrack, this);
-
+        #if DEBUG == 1
+        std::cout << "Time history: " << this->_time_history << std::endl;
+	#endif
+	
+	cv::setTrackbarPos( "Negative time warp", window, 100);
 	break;
       }
       idx++;
@@ -230,25 +206,43 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
   }
   else {
     std::string id = "";
-    double dist = 2.0;
+    double dist = 1.0;
     int pose = cv::getTrackbarPos( "Negative time warp", window);  
     for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
       cv::Rect roi = this->getRect( this->_anchors->get( ite->first, CAFFE) );
       if( roi.contains( cv::Point( x, y ) ) ) {
-	double diff = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
-	diff = std::abs(diff - (double)pose) / (double)_time_history;
-	if( diff < dist ) {
-	  dist = diff;
-	  id = ite->first;
+	if( this->_time_history > 1.0 ) {
+	  double time_diff = this->_anchors->diff( ite->first, this->_lock_time) / this->_time_history;
+	  time_diff = std::abs( time_diff - (100 - pose) / 100.0 );
+	  if( time_diff < dist ) {
+	    dist = time_diff;
+	    id = ite->first;
+	  }
+	}
+	else {
+	  id = ite->first;	  
 	}
       }
     }
     if( !id.empty() ) {
-      this->_anchors->re_acquire( id, this->_objects[this->_idx], this->_lock_time ); // RE_ACQUIRE
+      try {
+        #if DEBUG == 1
+        std::cout << "Re-aquire: " << id << std::endl;
+	#endif
+	this->_anchors->re_acquire( id, this->_objects[this->_idx], this->_lock_time ); // RE_ACQUIRE
+      }
+      catch( const std::exception &e ) {
+	ROS_ERROR("[AnchorAnnotation::click]%s", e.what() );
+      }
     }
     else {
-      this->_anchors->acquire( this->_objects[this->_idx], this->_lock_time, true); // ACQUIRE
-    }
+      try {
+	this->_anchors->acquire( this->_objects[this->_idx], this->_lock_time, true); // ACQUIRE
+      }
+      catch( const std::system_error &e ) {
+	ROS_ERROR("[AnchorAnnotation::click]%s", e.what() );
+      }	
+    }	
     this->reset();
   }
 }
@@ -266,9 +260,14 @@ cv::Mat AnchorAnnotation::subImages(int idx) {
   for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
     cv::Mat roi = result( this->getRect( this->_anchors->get( ite->first, CAFFE) ) );
     cv::Mat img = this->getImage( this->_anchors->get( ite->first, CAFFE) ); 
-    double diff = std::abs( this->_anchors->diff( ite->first, this->_lock_time) );
-    double alpha = std::abs(diff - (double)pose) / (double)_time_history;
-    cv::addWeighted( img, alpha, roi, 1.0 - alpha , 0.0, roi);
+    if( this->_time_history > 1.0 ) {
+      double time_diff = this->_anchors->diff( ite->first, this->_lock_time) / this->_time_history;
+      double alpha = std::abs(time_diff - pose / 100.0);
+      cv::addWeighted( img, alpha, roi, 1.0 - alpha , 0.0, roi);
+    }
+    else {
+      img.copyTo(roi);
+    }
   }
 
   return result;
@@ -324,7 +323,6 @@ void AnchorAnnotation::spin() {
       else {
 	cv::imshow( AnchorAnnotation::window, this->subImages(this->_idx) );
       }
-      //cv::imshow( window, this->anchor_img() );
     }
 
     // Wait for a keystroke in the window

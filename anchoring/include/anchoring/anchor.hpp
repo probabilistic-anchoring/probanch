@@ -18,7 +18,7 @@ namespace anchoring {
   public:
     
     // Public functions
-    Anchor(const string &id) : _id(id) {} 
+    Anchor(const string &id) : _id(id), _aging(false) {} 
     Anchor(AttributeMap &attributes, const ros::Time &t);
     ~Anchor();
 

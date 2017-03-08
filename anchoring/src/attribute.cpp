@@ -517,7 +517,7 @@ namespace anchoring {
       mongo::Database::Document p_doc;
       p_doc.add<int>( "x", this->_point.x);
       p_doc.add<int>( "y", this->_point.y);
-      doc.append( "corner", p_doc);
+      doc.add( "point", p_doc);
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::serialize]" << e.what() << endl;
@@ -549,9 +549,9 @@ namespace anchoring {
 
       // Load the upper corner point of the image
       anchor_msgs::Point2d point;
-      point.x = doc.get("corner").get<int>("x");
-      point.y = doc.get("corner").get<int>("y");
-      this->_point = point; 
+      this->_point.x = doc.get("point").get<int>("x");
+      this->_point.y = doc.get("point").get<int>("y");
+      std::cout << "Point: " << doc.get("point").get<int>("x") << ", " << doc.get("point").get<int>("y") << std::endl;
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::deserialize]" << e.what() << endl;
