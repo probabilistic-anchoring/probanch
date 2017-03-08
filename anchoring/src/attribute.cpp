@@ -615,8 +615,10 @@ namespace anchoring {
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
-    // Updte the contour
+    // Update the visual data 
+    this->_data = raw_ptr->_data;
     this->_border = raw_ptr->_border;
+    this->_point = raw_ptr->_point;
 
     // Add non-exisitng symbols
     for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {

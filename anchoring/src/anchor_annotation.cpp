@@ -18,7 +18,7 @@ using namespace cv;
 using namespace std;
 using namespace anchoring;
 
-#define DEBUG 1
+#define DEBUG 0
 
 // Window name
 const char* AnchorAnnotation::window = "Anchor Annotation";
