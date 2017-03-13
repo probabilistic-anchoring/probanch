@@ -18,7 +18,7 @@ using namespace cv;
 using namespace std;
 using namespace anchoring;
 
-#define DEBUG 0
+#define DEBUG 1
 
 // Window name
 const char* AnchorAnnotation::window = "Anchor Annotation";
@@ -116,7 +116,8 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
     double dist = (ite->second[CAFFE] + ite->second[COLOR] + ite->second[SHAPE]) / 3.0;
     result[dist] = ite->first;
     #if DEBUG == 1
-    std::cout << ite->first << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << "]" << std::endl;
+    std::cout << ite->first << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << ", " << ite->second[POSITION] << "] ";
+    std::cout << "t: " << 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) )) << std::endl;
     #endif
   }
   {
