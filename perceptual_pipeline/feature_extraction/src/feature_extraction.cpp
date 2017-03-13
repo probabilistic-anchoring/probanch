@@ -149,7 +149,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     // Draw masked image on resulting display image
     if( !display_image_.empty() ) {
       img.copyTo( result, mask);
-      cv::drawContours( result, contours, -1, cv::Scalar::all(64), 1);
+      cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      //cv::drawContours( result, contours, -1, cv::Scalar::all(64), 1);
     }
     
     // Calculate the HSV color histogram over the image mask
@@ -169,6 +170,10 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     */
 
     if( display_image_ == "grounding" ) {
+
+      // Draw the contour (for display)
+      cv::drawContours( result, contours, -1, cv::Scalar( 0, 0, 255), 1);
+
       cv::Point2f p1(rect.x, rect.y + 10);
       cv::Point2f p2(rect.x + 105, rect.y + 10);
       cv::line( result, p1, p2, cv::Scalar::all(64), 1, 8);
@@ -228,7 +233,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	for (uint j = i + 1; j < total_keypoints.size(); j++) {
 	  if( total_keypoints[j].empty() ) 
 	    continue;
-
+	  /*
 	  std::vector<cv::DMatch> matches;
 	  kf.match( total_descriptor[i], total_descriptor[j], matches);
 	  for( uint k = 0; k < matches.size(); k++ ) {
@@ -236,12 +241,14 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	    cv::Point2f p2 = total_keypoints[j][matches[k].trainIdx].pt;
 	    cv::line( result, p1, p2, cv::Scalar( 51, 92, 255), 1, 8);
 	  }
+	  */
 	}
       }
     
       for (uint i = 0; i < total_keypoints.size(); i++) {
 	if( !total_keypoints[i].empty() )
-	  cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
+	  cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+	  //cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
       }
     }
     cv_ptr->image = result;

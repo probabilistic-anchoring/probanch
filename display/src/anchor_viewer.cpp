@@ -97,18 +97,22 @@ class AnchorViewer {
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
       }
-      cv::drawContours( result_img, contours, -1, cv::Scalar::all(64), 1);
-      cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(64), 1);
+      //cv::drawContours( result_img, contours, -1, cv::Scalar::all(64), 1);
+      //cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(64), 1);
+      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
 
+      
       // Print infromation
+      cv::Scalar color = cv::Scalar( 0, 0, 255 ); // cv::Scalar::all(64)
       std::stringstream ss;
       ss << "Symbol: " << ite->id;
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       ss.str("");
       ss << "Category: " << ite->category << " (" << ite->prediction * 100.0 << "%)";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       ss.str("");
       ss << "Color(s): [";
       for( uint i = 0; i < ite->colors.size(); i++) {
@@ -117,12 +121,12 @@ class AnchorViewer {
 	  ss <<",";
       }
       ss << "]";
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       ss.str("");
       ss << "Size: " << ite->size;
-      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
-      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+      cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+      cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       ss.str("");
       
     } 

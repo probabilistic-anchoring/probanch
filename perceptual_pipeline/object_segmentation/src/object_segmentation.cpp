@@ -212,10 +212,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	    obj.caffe.border.contour.push_back(p);
 	  }
 	  
-	  /*
+	  
 	  // Draw the contour (for display)
-	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 2);
-      	  */
+	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      	  
 	  
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cluster;
