@@ -167,6 +167,17 @@ namespace anchoring {
     ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
   }
 
+  // Track (or correct) an existing anchor based on data association 
+  void AnchorContainer::track(const string &id, const string &corr) {
+    mongo::Database db(this->_db_name, this->_collection);
+    this->_map[id]->merge( db, this->_map[corr]);
+    ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+
+    // Delete the 'glitch' anchor
+    db.remove(corr);
+    this->_map.erase(corr);  
+  }
+
   // Acquire a new anchor
   void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t, bool save) {
     AnchorPtr anchor( new Anchor(attributes, t) ); // Generates an unique id for the anchor as well...

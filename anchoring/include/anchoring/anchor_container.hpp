@@ -61,6 +61,7 @@ namespace anchoring {
 
     // Public anchoring functions
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
+    void track(const string &id, const string &corr);
     void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();

@@ -4,6 +4,7 @@
 #include <anchor_msgs/ObjectArray.h> 
 #include <anchor_msgs/MovementArray.h>
 #include <anchor_msgs/AnchorRequest.h> 
+#include <anchor_msgs/Association.h> 
 
 #include <anchoring/anchor_container.hpp>
 
@@ -31,6 +32,7 @@ class AnchorManagement {
 
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void track( const anchor_msgs::MovementArrayConstPtr &movement_ptr );
+  void track( const anchor_msgs::AssociationConstPtr &association_ptr);
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 
 	       string &id, 
 	       float dist_th,

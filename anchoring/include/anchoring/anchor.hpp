@@ -26,6 +26,7 @@ namespace anchoring {
     void load(const mongo::Database &db); 
     void create(mongo::Database &db); 
     void maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t);
+    void merge(mongo::Database &db, std::shared_ptr<Anchor> &other);
     bool invalid() { return this->_attributes.empty(); }
     
     // Matching function

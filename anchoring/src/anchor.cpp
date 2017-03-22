@@ -159,6 +159,31 @@ namespace anchoring {
   }
 
   /**
+   * Public merge function (combines two anchors)
+   */
+  void Anchor::merge(mongo::Database &db, AnchorPtr &other) {
+
+    // Merge and update changed attributes
+    try {
+
+      // Update the time
+      this->_t = ros::Time(other->getTime());
+      db.update<double>( this->_id, "t", this->_t.toSec());      
+
+      // Update the attributes
+      if( !this->compare<AttributeMap>( this->_attributes, other->_attributes ) ) { // Map keys are different
+	this->append(db, other->_attributes);
+      }
+      else { // Update existing attributes
+	this->update(db, other->_attributes);
+      }
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[Anchor::merge]" << e.what() << std::endl;
+    }
+  }
+
+  /**
    * Private update functions
    */                                                                                        
   void Anchor::append(mongo::Database &db, AttributeMap &attributes) {

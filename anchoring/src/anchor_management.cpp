@@ -126,7 +126,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 }
 
 /* -----------------------------------------
-   Main track function
+   Main track function(s)
    --------------------------------------- */
 void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement_ptr ) {
   
@@ -149,6 +149,17 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
       this->_anchors->acquire(attributes, t); // ACQUIRE
     }
   } 
+}
+
+// ---[ Track method based on data association ]---
+void AnchorManagement::track( const anchor_msgs::AssociationConstPtr &association_ptr ) {
+  
+  // Update (merge) anchors based on probabilistic object tracking
+  for( uint i = 0; i < association_ptr->objects.size(); i++) {
+    if( association_ptr->predictions[i] > 0.9 ) {
+      this->_anchors->track( association_ptr->id, association_ptr->objects[i]); // TRACK
+    }
+  }
 }
 
 /* -----------------------------------------
