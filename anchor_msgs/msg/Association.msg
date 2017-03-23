@@ -1,3 +1,3 @@
 string id
-string[] objects
-float32[] predictions
+string[] associations
+float32[] probabilities

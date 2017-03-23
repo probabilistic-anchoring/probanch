@@ -20,6 +20,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
+  _track_sub = _nh.subscribe("/associations", 10, &AnchorManagement::track, this);
 
   _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
 
@@ -128,6 +129,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 /* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
+/*
 void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement_ptr ) {
   
   // Maintain all incoming object movmements
@@ -150,21 +152,24 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
     }
   } 
 }
+*/
 
 // ---[ Track method based on data association ]---
-void AnchorManagement::track( const anchor_msgs::AssociationConstPtr &association_ptr ) {
+void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
   // Update (merge) anchors based on probabilistic object tracking
-  int idx = -1;
-  float best = 0.0;
-  for( uint i = 0; i < association_ptr->objects.size(); i++) {
-    if( association_ptr->predictions[i] > best ) {
-      best = association_ptr->predictions[i];
-      idx = i;
+  for( auto &msg: associations_ptr->associations) {
+    int idx = -1;
+    float best = 0.0;
+    for( uint i = 0; i < msg.associations.size(); i++) {
+      if( msg.probabilities[i] > best ) {
+	best = msg.probabilities[i]; 
+	idx = i;
+      }
     }
-  }
-  if( association_ptr->objects[idx] != association_ptr->id ) {
-    this->_anchors->track( association_ptr->objects[idx], association_ptr->id); // TRACK
+    if( msg.associations[idx] != msg.id ) {
+      this->_anchors->track( msg.associations[idx], msg.id); // TRACK
+    }
   }
 }
 
