@@ -96,7 +96,7 @@ namespace anchoring {
     
     // Iterate and get a snapshot of all anchors in current scene
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( ( t.toSec() - ite->second->getTime() ) < 1.0 ) { // ...4.0 sec time diff
+      if( ( t.toSec() - ite->second->getTime() ) < 0.01 ) { // ...4.0 sec time diff
 	array.push_back(ite->second->getAnchor<T>());
       }
     }

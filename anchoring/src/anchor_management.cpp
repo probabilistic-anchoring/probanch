@@ -113,7 +113,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
   
-  // Get all infromation about anchors (for display purposes )
+  // Get all information about anchors (for display purposes )
   anchor_msgs::DisplayArray display_msg;
   display_msg.header = object_ptr->header;
   display_msg.image = object_ptr->image;
@@ -155,10 +155,16 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 void AnchorManagement::track( const anchor_msgs::AssociationConstPtr &association_ptr ) {
   
   // Update (merge) anchors based on probabilistic object tracking
+  int idx = -1;
+  float best = 0.0;
   for( uint i = 0; i < association_ptr->objects.size(); i++) {
-    if( association_ptr->predictions[i] > 0.9 ) {
-      this->_anchors->track( association_ptr->id, association_ptr->objects[i]); // TRACK
+    if( association_ptr->predictions[i] > best ) {
+      best = association_ptr->predictions[i];
+      idx = i;
     }
+  }
+  if( association_ptr->objects[idx] != association_ptr->id ) {
+    this->_anchors->track( association_ptr->objects[idx], association_ptr->id); // TRACK
   }
 }
 
