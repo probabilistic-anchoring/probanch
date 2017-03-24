@@ -157,11 +157,16 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 // ---[ Track method based on data association ]---
 void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
+  ROS_INFO("Got associations.");
+  
   // Update (merge) anchors based on probabilistic object tracking
   for( auto &msg: associations_ptr->associations) {
     int idx = -1;
     float best = 0.0;
+    std::cout << "Id: " << msg.id << std::endl; 
     for( uint i = 0; i < msg.associations.size(); i++) {
+      std::cout << "Assoc: " << msg.associations[i];
+      std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
       if( msg.probabilities[i] > best ) {
 	best = msg.probabilities[i]; 
 	idx = i;
