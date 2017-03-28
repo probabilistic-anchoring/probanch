@@ -106,7 +106,7 @@ class AnchorViewer {
       // Print infromation
       cv::Scalar color = cv::Scalar( 0, 0, 255 ); // cv::Scalar::all(64)
       std::stringstream ss;
-      ss << "Symbol: " << ite->id;
+      ss << "Symbol: " << ite->x;
       cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
       ss.str("");

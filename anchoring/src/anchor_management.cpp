@@ -104,7 +104,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       this->_anchors->re_acquire(id, attributes, t, (result > 0 ? true : false) ); // RE_ACQUIRE
     }
     else {
-      this->_anchors->acquire(attributes, t, true); // ACQUIRE
+      this->_anchors->acquire(attributes, t); // ACQUIRE
     } 
   }
 

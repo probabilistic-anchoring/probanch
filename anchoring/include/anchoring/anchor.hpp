@@ -84,7 +84,8 @@ namespace anchoring {
   // ----------------------------------------
   template <typename T> T Anchor::getAnchor() {
     T msg;
-    msg.id = this->_x;
+    msg.id = this->_id;
+    msg.x = this->_x;
     msg.t = this->_t;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
       ite->second->populate(msg);
