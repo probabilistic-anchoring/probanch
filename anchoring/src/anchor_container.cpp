@@ -214,16 +214,4 @@ namespace anchoring {
     }
   }
 
-  /*
-  void AnchorContainer::getArray(vector<anchor_msgs::Snapshot> &array, const ros::Time &t) {
-
-    // Iterate and get a snapshot of all anchors in current scene
-    for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( ( t.toSec() - ite->second->getTime() ) < 4.0 ) { // ...4.0 sec time diff
-	array.push_back(ite->second->getSnapshot());
-      }
-    }
-  }
-  */
-
 } // namespace anchoring

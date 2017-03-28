@@ -134,7 +134,7 @@ namespace anchoring {
       db.insert(doc);
     }
     catch( const std::exception &e ) {
-      std::cout << "[Anchor::save]" << e.what() << std::endl;
+      std::cout << "[Anchor::create]" << e.what() << std::endl;
     }
   }
   
@@ -233,7 +233,7 @@ namespace anchoring {
       }
     }
     catch( const std::exception &e ) {
-      std::cout << "[Anchor::append]" << e.what() << std::endl;
+      std::cout << "[Anchor::update]" << e.what() << std::endl;
     }
   }
 

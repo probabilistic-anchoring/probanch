@@ -104,12 +104,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       this->_anchors->re_acquire(id, attributes, t, (result > 0 ? true : false) ); // RE_ACQUIRE
     }
     else {
-      this->_anchors->acquire(attributes, t); // ACQUIRE
+      this->_anchors->acquire(attributes, t, true); // ACQUIRE
     } 
   }
 
   
-  // Get a snapshot of all anchors seen scene at time t
+  // Get a snapshot of all anchors seen in the scene at time t
   anchor_msgs::AnchorArray msg;
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
