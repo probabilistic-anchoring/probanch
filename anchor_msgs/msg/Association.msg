@@ -1,3 +1,3 @@
 string id
 string[] associations
-float32[] probabilities
+float64[] probabilities
