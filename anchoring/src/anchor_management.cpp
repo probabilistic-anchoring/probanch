@@ -172,9 +172,11 @@ void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &assoc
 	idx = i;
       }
     }
+    /*
     if( msg.associations[idx] != msg.id ) {
       this->_anchors->track( msg.associations[idx], msg.id); // TRACK
     }
+    */
   }
 }
 
