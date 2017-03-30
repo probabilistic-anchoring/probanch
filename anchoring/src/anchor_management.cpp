@@ -50,6 +50,7 @@ void AnchorManagement::init(int threads) {
    --------------------------------------- */
 void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr ) {
   
+  ROS_WARN("Got message!");
   // Get the time
   ros::Time t = object_ptr->header.stamp;
   if( _time_zero < 0.0 ) {

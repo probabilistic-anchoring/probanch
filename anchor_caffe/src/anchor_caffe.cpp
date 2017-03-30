@@ -118,13 +118,16 @@ class AnchorCaffe {
       // Draw the result
       if( this->display_image_ && img.data ) {
 
+	cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+	//cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
+	//cv::Scalar color = cv::Scalar::all(64); // Dark gray
+
 	int x = objects_msg->objects[i].caffe.point.x;
 	int y = objects_msg->objects[i].caffe.point.y;
 	cv::Rect rect( cv::Point(x,y), img.size());
 	img.copyTo(result(rect));
 	
-	cv::rectangle( result, rect, cv::Scalar( 0, 0, 255), 1);
-	//cv::rectangle( result, rect, cv::Scalar::all(64), 1);
+	cv::rectangle( result, rect, color, 1);
 
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;
@@ -132,8 +135,7 @@ class AnchorCaffe {
 	for( uint j = 0; j < 3; j++) {
 	  ss << "#" << (j+1) << ": " << output.objects[i].caffe.symbols[j];
 	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
-	  cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar( 0, 0, 255), 1, 8);
-	  //cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar::all(64), 1, 8);
+	  cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	  ss.str("");
 	  offset += 16;
 	}

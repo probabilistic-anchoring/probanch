@@ -97,14 +97,16 @@ class AnchorViewer {
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
       }
-      //cv::drawContours( result_img, contours, -1, cv::Scalar::all(64), 1);
-      //cv::drawContours( highlight_img, contours, -1, cv::Scalar::all(64), 1);
-      cv::drawContours( result_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
-      cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+
+      // Draw contour
+      cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+      //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
+      //cv::Scalar color = cv::Scalar::all(64); // Dark gray
+      cv::drawContours( result_img, contours, -1, color, 1);
+      cv::drawContours( highlight_img, contours, -1, color, 1);
 
       
       // Print infromation
-      cv::Scalar color = cv::Scalar( 0, 0, 255 ); // cv::Scalar::all(64)
       std::stringstream ss;
       ss << "Symbol: " << ite->id;
       cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);

@@ -34,15 +34,16 @@
   <!-- Anchor Caffe node -->
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   
-  <!-- Anchoring framework --> 
+  <!-- Anchoring framework -->  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen" />
+	
 
-  <!-- Display anchors -->
+  <!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" />
-
-  <!-- Include the display interface (including the websocket bridge) -->
+  
+  <!-- Include the display interface (including the websocket bridge) --> 
   <include file="$(find display)/launch/web_interface.launch" />
 
 </launch>

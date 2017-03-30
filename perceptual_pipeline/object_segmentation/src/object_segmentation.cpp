@@ -214,7 +214,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  
 	  
 	  // Draw the contour (for display)
-	  cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 1);
+	  cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+	  //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
+	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
+	  cv::drawContours( img, contours, -1, color, 1);
       	  
 	  
 	  // Transform the cloud to the world frame

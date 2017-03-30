@@ -172,7 +172,10 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     if( display_image_ == "grounding" ) {
 
       // Draw the contour (for display)
-      cv::drawContours( result, contours, -1, cv::Scalar( 0, 0, 255), 1);
+      cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+      //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
+      //cv::Scalar color = cv::Scalar::all(64); // Dark gray
+      cv::drawContours( result, contours, -1, color, 1);
 
       cv::Point2f p1(rect.x, rect.y + 10);
       cv::Point2f p2(rect.x + 105, rect.y + 10);
