@@ -61,6 +61,7 @@ namespace anchoring {
 
     // Public anchoring functions
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
+    void track(const string &id, const string &corr);
     void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
@@ -95,7 +96,7 @@ namespace anchoring {
     
     // Iterate and get a snapshot of all anchors in current scene
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( ( t.toSec() - ite->second->getTime() ) < 1.0 ) { // ...4.0 sec time diff
+      if( ( t.toSec() - ite->second->getTime() ) < 0.01 ) { // ...4.0 sec time diff
 	array.push_back(ite->second->getAnchor<T>());
       }
     }

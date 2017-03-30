@@ -26,6 +26,7 @@ namespace anchoring {
     void load(const mongo::Database &db); 
     void create(mongo::Database &db); 
     void maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t);
+    void merge(mongo::Database &db, std::shared_ptr<Anchor> &other);
     bool invalid() { return this->_attributes.empty(); }
     
     // Matching function
@@ -83,7 +84,8 @@ namespace anchoring {
   // ----------------------------------------
   template <typename T> T Anchor::getAnchor() {
     T msg;
-    msg.id = this->_x;
+    msg.id = this->_id;
+    msg.x = this->_x;
     msg.t = this->_t;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
       ite->second->populate(msg);

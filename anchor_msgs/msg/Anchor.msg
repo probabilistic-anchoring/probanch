@@ -1,4 +1,5 @@
 string id
+string x
 time t
 anchor_msgs/CaffeAttribute caffe
 anchor_msgs/ColorAttribute color

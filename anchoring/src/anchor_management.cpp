@@ -20,6 +20,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
+  _track_sub = _nh.subscribe("/associations", 10, &AnchorManagement::track, this);
 
   _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
 
@@ -109,12 +110,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   }
 
   
-  // Get a snapshot of all anchors seen scene at time t
+  // Get a snapshot of all anchors seen in the scene at time t
   anchor_msgs::AnchorArray msg;
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
   
-  // Get all infromation about anchors (for display purposes )
+  // Get all information about anchors (for display purposes )
   anchor_msgs::DisplayArray display_msg;
   display_msg.header = object_ptr->header;
   display_msg.image = object_ptr->image;
@@ -127,8 +128,9 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 }
 
 /* -----------------------------------------
-   Main track function
+   Main track function(s)
    --------------------------------------- */
+/*
 void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement_ptr ) {
   
   // Maintain all incoming object movmements
@@ -150,6 +152,33 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
       this->_anchors->acquire(attributes, t); // ACQUIRE
     }
   } 
+}
+*/
+
+// ---[ Track method based on data association ]---
+void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &associations_ptr ) {
+  
+  ROS_INFO("Got associations.");
+  
+  // Update (merge) anchors based on probabilistic object tracking
+  for( auto &msg: associations_ptr->associations) {
+    int idx = -1;
+    float best = 0.0;
+    std::cout << "Id: " << msg.id << std::endl; 
+    for( uint i = 0; i < msg.associations.size(); i++) {
+      std::cout << "Assoc: " << msg.associations[i];
+      std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
+      if( msg.probabilities[i] > best ) {
+	best = msg.probabilities[i]; 
+	idx = i;
+      }
+    }
+    /*
+    if( msg.associations[idx] != msg.id ) {
+      this->_anchors->track( msg.associations[idx], msg.id); // TRACK
+    }
+    */
+  }
 }
 
 /* -----------------------------------------
