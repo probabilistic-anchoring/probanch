@@ -164,20 +164,20 @@ void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &assoc
   for( auto &msg: associations_ptr->associations) {
     int idx = -1;
     float best = 0.0;
-    std::cout << "Id: " << msg.id << std::endl; 
+    std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl; 
     for( uint i = 0; i < msg.associations.size(); i++) {
-      std::cout << "Assoc: " << msg.associations[i];
+      std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
       std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
       if( msg.probabilities[i] > best ) {
 	best = msg.probabilities[i]; 
 	idx = i;
       }
     }
-    /*
-    if( msg.associations[idx] != msg.id ) {
+    
+    if( msg.associations[idx] != msg.id && best > 0.5 ) {
       this->_anchors->track( msg.associations[idx], msg.id); // TRACK
     }
-    */
+    
   }
 }
 

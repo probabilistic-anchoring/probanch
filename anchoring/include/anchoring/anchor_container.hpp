@@ -85,6 +85,7 @@ namespace anchoring {
     // Map access functions
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
+    std::string toString(const string &id) { return this->_map[id]->toString(); } 
   };
 
 

@@ -143,7 +143,7 @@ namespace anchoring {
     assert( raw_ptr != nullptr );
 
     float dist = (1.0 + cv::compareHist( raw_ptr->_data, this->_data, CV_COMP_CORREL)) / 2.0; // CV_COMP_CORREL | CV_COMP_INTERSECT | CV_COMP_BHATTACHARYYA
-    std::cout << "Color dist: " << dist << std::endl;
+    //std::cout << "Color dist: " << dist << std::endl;
     return dist;
   }
 
