@@ -156,7 +156,7 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 */
 
 // ---[ Track method based on data association ]---
-void AnchorManagement::track( const anchor_msgs::AssociationArrayConstPtr &associations_ptr ) {
+void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
   ROS_INFO("Got associations.");
   
