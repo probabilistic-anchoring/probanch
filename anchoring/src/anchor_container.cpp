@@ -174,8 +174,8 @@ namespace anchoring {
     ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
 
     // Delete the 'glitch' anchor
-    db.remove(corr);
-    this->_map.erase(corr);  
+    //db.remove(corr);
+    //this->_map.erase(corr);  
   }
 
   // Acquire a new anchor
