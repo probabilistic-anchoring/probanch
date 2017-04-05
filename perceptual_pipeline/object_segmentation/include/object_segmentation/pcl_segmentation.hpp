@@ -102,8 +102,8 @@ namespace segmentation {
 			   const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
 			  vector<pcl::PointIndices> &cluster_indices,
 			   int comparatorType = 3,
-			   int planeMinSize = 20000,
-			   int clusterMinSize = 500,
+			   int planeMinSize = 10000,
+			   int clusterMinSize = 200,
 			   double angularTh = 3.0f,     // degrees (3.0f)
 			   double distanceTh = 0.02f );  // (0.02f)
     

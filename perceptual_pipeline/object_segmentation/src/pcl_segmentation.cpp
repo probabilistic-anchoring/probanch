@@ -88,18 +88,26 @@ namespace segmentation {
   
   void Segmentation::cluster_organized(vector<pcl::PointIndices> &cluster_indices, int type) {
 
-    // Estimate the surface normals
-    this->integralEstimate( _cloud_ptr, _normals_ptr );
-    
-    // Cluster the point cloud
-    this->segmentOrganized( _cloud_ptr, _normals_ptr, cluster_indices, type);
+    // Saftey check 
+    if( _cloud_ptr->isOrganized ()) {
+
+      // Estimate the surface normals
+      this->integralEstimate( _cloud_ptr, _normals_ptr );
+      
+      // Cluster the point cloud
+      this->segmentOrganized( _cloud_ptr, _normals_ptr, cluster_indices, type);
+
+    }
+    else {
+      ROS_WARN("Trying to perform organized segmentation with un-oranized point cloud data!");  
+    }
   }
   
   void Segmentation::cluster_lccp(vector<pcl::PointIndices> &cluster_indices) {
     
     // Estimate the surface normals
     this->integralEstimate( _cloud_ptr, _normals_ptr );
-    
+
     // Cluster the point cloud
     this->segmentLCCP( _cloud_ptr, _normals_ptr, cluster_indices);
     //ROS_INFO("[Segmentation::cluster] clusters: %d", (int)clusters.size());
@@ -297,15 +305,17 @@ namespace segmentation {
       mps_.setComparator (edge_aware_comparator_);
       break;
     }
+    //mps_.setRefinementComparator (plane_comparator_);  // Need to be set
     mps_.setMinInliers (planeMinSize);
     mps_.setAngularThreshold (pcl::deg2rad (angularTh));
     mps_.setDistanceThreshold (distanceTh);
     mps_.setInputNormals (normals_ptr);
     mps_.setInputCloud (cloud_ptr);
     mps_.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
-
+    std::cout << "Regions: " << regions.size () << std::endl;
     //Segment Objects
     if (regions.size () > 0) {
+      
       std::vector<bool> plane_labels;
       plane_labels.resize (label_indices.size (), false);
       for (size_t i = 0; i < label_indices.size (); i++) {
@@ -313,7 +323,7 @@ namespace segmentation {
 	  plane_labels[i] = true;
 	}
       }
-
+      
       pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label>::Ptr cluster_comparator_(new pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label> ());
       cluster_comparator_->setInputCloud (cloud_ptr);
       cluster_comparator_->setLabels (labels);
@@ -437,7 +447,9 @@ void segmentation::passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_p
     pass_.setFilterFieldName (axis);
     pass_.setFilterLimits ( min, max);  
     pass_.setKeepOrganized (keep_organized);
+    //pass_.setFilterLimitsNegative (true);
     pass_.filter (*result_ptr);
+    //filtered_ptr = result_ptr;
     filtered_ptr.swap (result_ptr);
   }
 

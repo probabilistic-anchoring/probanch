@@ -1,4 +1,6 @@
 
+#include <opencv2/highgui/highgui.hpp>
+
 #include <algorithm>
 #include <ros/ros.h>
 
@@ -17,6 +19,8 @@
 #include <anchor_msgs/MovementArray.h>
 
 #include <object_segmentation/object_segmentation.hpp>
+
+#include <pcl_ros/point_cloud.h>
 
 // ------------------------
 // Public functions
@@ -95,6 +99,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 					 const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
 					 const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
   
+  static bool add_once = true;
+
   // Get the transformation
   tf::StampedTransform transform;
   try{
@@ -110,17 +116,92 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
 
-  /*
+  
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
- 
+
+
+  /*
+  int counter = 0;
+  for (size_t i = 0; i < raw_cloud_ptr->size (); ++i) {
+    // Check if the point is invalid
+    if (!pcl_isfinite (raw_cloud_ptr->points[i].x) || 
+	!pcl_isfinite (raw_cloud_ptr->points[i].y) || 
+	!pcl_isfinite (raw_cloud_ptr->points[i].z) )
+      counter++;
+  }
+  std::cout << "NaN before: " << counter << std::endl;
+  
   // Filter the cloud (to reduce the size)
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "x", 0.2, 1.2 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", -0.1, 0.6 ); 
+  //std::cout << "Size before: " << transformed_cloud_ptr->size() << std::endl;
+  
+  segmentation::passThroughFilter( transformed_cloud_ptr, raw_cloud_ptr, "x", 0.2, 1.2 );
+  segmentation::passThroughFilter( raw_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, raw_cloud_ptr, "z", -0.1, 0.6 );
+
+  counter = 0;
+  for (size_t i = 0; i < raw_cloud_ptr->size (); ++i) {
+    // Check if the point is invalid
+    if (!pcl_isfinite (raw_cloud_ptr->points[i].x) ||
+	!pcl_isfinite (raw_cloud_ptr->points[i].y) || 
+	!pcl_isfinite (raw_cloud_ptr->points[i].z) )
+      counter++;
+  }
+  std::cout << "NaN after: " << counter << std::endl;
   */
 
+  /*
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "x", 0.0, 1.2 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
+  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", -0.1, 0.6 );
+  //pcl_ros::transformPointCloud( *transformed_cloud_ptr, *raw_cloud_ptr, transform);       
+  */
+
+  
+  for( auto &p: transformed_cloud_ptr->points) {
+    
+    if( !( p.x > 0.0 && p.x < 1.2 ) ||
+	!( p.y > 0.0 && p.y < 0.62 ) ||
+	!( p.z > -0.1 && p.z < 0.6 ) ) {
+      
+      p.x = std::numeric_limits<double>::infinity();
+      p.y = std::numeric_limits<double>::infinity();
+      p.z = std::numeric_limits<double>::infinity();
+      p.b = 0;
+      p.g =  0;
+      p.r = 0;
+      
+    }
+    
+  }
+    
+  cv_bridge::CvImagePtr cvv_ptr;
+  sensor_msgs::Image image_;
+  try {
+    pcl::toROSMsg (*transformed_cloud_ptr, image_); //convert the cloud
+    cvv_ptr = cv_bridge::toCvCopy( image_, sensor_msgs::image_encodings::BGR8);
+    cv::imshow( "Display window", cvv_ptr->image );     
+    cv::waitKey(10); 
+  }
+  catch (std::runtime_error e) {
+    ROS_ERROR_STREAM("Error in converting cloud to image message: "
+		     << e.what());
+  }
+  
+  
+
+
+
+  //std::cout << "Size after: " << raw_cloud_ptr->size() << std::endl;
+  /*
+  if (transformed_cloud_ptr->isOrganized ()) {
+    std::cout << "Cloud still organized!" << std::endl;
+  }
+  else {
+    std::cout << "Everything is un-organized!" << std::endl;
+  }
+  */
   // Read the RGB image
   cv::Mat img, result;
   cv_bridge::CvImagePtr cv_ptr;
@@ -147,9 +228,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // Cluster cloud into objects 
   // ----------------------------------------
-  segmentation::Segmentation seg(raw_cloud_ptr);
+  //segmentation::Segmentation seg(raw_cloud_ptr);
+  segmentation::Segmentation seg(transformed_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
-  seg.cluster_organized(cluster_indices, this->type_);
+  //seg.cluster_organized(cluster_indices, this->type_);
+  seg.cluster_organized(cluster_indices, 1);
+  std::cout << "Clusters: " << cluster_indices.size() << std::endl;
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -166,7 +250,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
       
-      // Create the point cluster
+      // Create the point cluster from the orignal point cloud
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
   
@@ -219,11 +303,17 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
 	  cv::drawContours( img, contours, -1, color, 1);
       	  
-	  
+	  /*
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point> transformed_cluster;
 	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cluster, transform);
-	  
+	  */	  
+
+	  // Create a transformed point cluster 
+	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+	  pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
+	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
+
 
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
@@ -231,10 +321,16 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //obj.position.data.header.stamp = cloud_msg->header.stamp;
 	  //segmentation::getPosition( cluster_ptr, obj.position.data.pose );
 	  //segmentation::getPosition( transformed_cluster.makeShared(), obj.position.data.pose );
-	  segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
+	  
+	  segmentation::getPosition( transformed_cluster_ptr, pose.pose);
+	  //segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
 	  obj.position.data = pose;
+
+	  /*
+	  // --[ Intially filterinh of the whole point cloud instead ]--
 	  if( !( obj.position.data.pose.position.x > 0.2  && obj.position.data.pose.position.y > 0.0 && obj.position.data.pose.position.y < 0.62 && obj.position.data.pose.position.z < 0.5 ) )
 	    continue;
+	  */
 
 	  // Add the position to the movement array
 	  movements.movements.push_back(pose);
@@ -243,11 +339,11 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  img.copyTo( result, cluster_img);
 	  
 
-	  // std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
+	  std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
 
 	  // 2. Extract the shape
-	  //segmentation::getShape( cluster_ptr, obj.shape.data );
-	  segmentation::getShape( transformed_cluster.makeShared(), obj.shape.data );
+	  segmentation::getShape( transformed_cluster_ptr, obj.shape.data );
+	  //segmentation::getShape( transformed_cluster.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
