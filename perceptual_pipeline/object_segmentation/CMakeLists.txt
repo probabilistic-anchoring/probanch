@@ -73,9 +73,16 @@ include_directories( include
 
 ## Declare a C++ executable
 add_executable( object_segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
+add_executable( object_calibration src/object_calibration.cpp src/pcl_segmentation.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( object_segmentation 
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}  
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+target_link_libraries( object_calibration
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}  
   ${PCL_LIBRARIES}

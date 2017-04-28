@@ -63,8 +63,40 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   tf_listener_ = new tf::TransformListener();
   priv_nh_.param( "base_frame", base_frame_, std::string("base_link"));
 
-  // Read the compare type for to organized segmentation
-  this->priv_nh_.param( "compar_type", this->type_, 3);
+  // Read segmentation parameters
+  int type, size;
+  double th, factor;
+  if( priv_nh_.getParam("compar_type", type) ) {
+    if( type >= 0 && type <= 3 ) {
+      this->seg_.setComparatorType(type);
+    }
+    else {
+      ROS_WARN("[ObjectSegmentation::ObjectSegmentation] Not a valid comparator type, using default instead.");
+    }
+  }
+  if( priv_nh_.getParam("plane_min_size", size) ) {
+    this->seg_.setPlaneMinSize (size);
+  }
+  if( priv_nh_.getParam("cluster_min_size", size) ) {
+    this->seg_.setClusterMinSize (size);
+  }
+  if( priv_nh_.getParam("cluster_min_size", size) ) {
+    this->seg_.setClusterMinSize (size);
+  }
+  if( priv_nh_.getParam("angular_th", th) ) {
+    this->seg_.setAngularTh (th);
+  }
+  if( priv_nh_.getParam("refine_factor", factor) ) {
+    this->seg_.setRefineFactor (factor);
+  }
+
+  // Read spatial thresholds (default values = no filtering)
+  this->priv_nh_.param<double>( "min_x", this->min_x_, 0.0);
+  this->priv_nh_.param<double>( "max_x", this->max_x_, -1.0);
+  this->priv_nh_.param<double>( "min_y", this->min_y_, 0.0);
+  this->priv_nh_.param<double>( "max_y", this->max_y_, -1.0);
+  this->priv_nh_.param<double>( "min_z", this->min_z_, 0.0);
+  this->priv_nh_.param<double>( "max_z", this->max_z_, -1.0);
 }
   
 ObjectSegmentation::~ObjectSegmentation() {
@@ -115,93 +147,23 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
-
   
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
 
-
-  /*
-  int counter = 0;
-  for (size_t i = 0; i < raw_cloud_ptr->size (); ++i) {
-    // Check if the point is invalid
-    if (!pcl_isfinite (raw_cloud_ptr->points[i].x) || 
-	!pcl_isfinite (raw_cloud_ptr->points[i].y) || 
-	!pcl_isfinite (raw_cloud_ptr->points[i].z) )
-      counter++;
-  }
-  std::cout << "NaN before: " << counter << std::endl;
-  
-  // Filter the cloud (to reduce the size)
-  //std::cout << "Size before: " << transformed_cloud_ptr->size() << std::endl;
-  
-  segmentation::passThroughFilter( transformed_cloud_ptr, raw_cloud_ptr, "x", 0.2, 1.2 );
-  segmentation::passThroughFilter( raw_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, raw_cloud_ptr, "z", -0.1, 0.6 );
-
-  counter = 0;
-  for (size_t i = 0; i < raw_cloud_ptr->size (); ++i) {
-    // Check if the point is invalid
-    if (!pcl_isfinite (raw_cloud_ptr->points[i].x) ||
-	!pcl_isfinite (raw_cloud_ptr->points[i].y) || 
-	!pcl_isfinite (raw_cloud_ptr->points[i].z) )
-      counter++;
-  }
-  std::cout << "NaN after: " << counter << std::endl;
-  */
-
-  /*
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "x", 0.0, 1.2 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "y", 0.0, 0.62 );
-  segmentation::passThroughFilter( transformed_cloud_ptr, transformed_cloud_ptr, "z", -0.1, 0.6 );
-  //pcl_ros::transformPointCloud( *transformed_cloud_ptr, *raw_cloud_ptr, transform);       
-  */
-
-  
+  // Filter the transformed point cloud
   for( auto &p: transformed_cloud_ptr->points) {
-    
-    if( !( p.x > 0.0 && p.x < 1.2 ) ||
-	!( p.y > 0.0 && p.y < 0.62 ) ||
-	!( p.z > -0.1 && p.z < 0.6 ) ) {
-      
-      p.x = std::numeric_limits<double>::infinity();
-      p.y = std::numeric_limits<double>::infinity();
-      p.z = std::numeric_limits<double>::infinity();
-      p.b = 0;
-      p.g =  0;
-      p.r = 0;
-      
+    if( !( p.x > this->min_x_ && p.x < this->max_x_ ) ||
+	!( p.y > this->min_y_ && p.y < this->max_y_ ) ||
+	!( p.z > this->min_z_ && p.z < this->max_z_ ) ) {
+      p.x = std::numeric_limits<double>::quiet_NaN(); //infinity();
+      p.y = std::numeric_limits<double>::quiet_NaN();
+      p.z = std::numeric_limits<double>::quiet_NaN();
+      p.b = p.g = p.r = 0;
     }
-    
-  }
-    
-  cv_bridge::CvImagePtr cvv_ptr;
-  sensor_msgs::Image image_;
-  try {
-    pcl::toROSMsg (*transformed_cloud_ptr, image_); //convert the cloud
-    cvv_ptr = cv_bridge::toCvCopy( image_, sensor_msgs::image_encodings::BGR8);
-    cv::imshow( "Display window", cvv_ptr->image );     
-    cv::waitKey(10); 
-  }
-  catch (std::runtime_error e) {
-    ROS_ERROR_STREAM("Error in converting cloud to image message: "
-		     << e.what());
-  }
-  
-  
-
-
-
-  //std::cout << "Size after: " << raw_cloud_ptr->size() << std::endl;
-  /*
-  if (transformed_cloud_ptr->isOrganized ()) {
-    std::cout << "Cloud still organized!" << std::endl;
-  }
-  else {
-    std::cout << "Everything is un-organized!" << std::endl;
-  }
-  */
+  }    
+   
   // Read the RGB image
   cv::Mat img, result;
   cv_bridge::CvImagePtr cv_ptr;
@@ -228,12 +190,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // Cluster cloud into objects 
   // ----------------------------------------
-  segmentation::Segmentation seg(raw_cloud_ptr);
-  //segmentation::Segmentation seg(transformed_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
-  seg.cluster_organized(cluster_indices, this->type_);
-  //seg.cluster_organized(cluster_indices, 1);
-  //std::cout << "Clusters: " << cluster_indices.size() << std::endl;
+  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -256,8 +214,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
   
       // Pots-process the cluster
-      //std::vector<pcl::Vertices> indices;
-      //seg.post_process( cluster_ptr, indices);
       try {
 
 	// Create the cluster image 
@@ -267,18 +223,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  cv::Point2f p = cam_model.project3dToPixel(pt_cv);
 	  circle( cluster_img, p, 1, cv::Scalar(255), -1, 8, 0 );
 	}
-	/*
-	for (size_t j = 0; j < indices.size (); j++) {
-	  std::vector<cv::Point> poly;
-	  for (size_t k = 0; k < indices[j].vertices.size(); k++) {
-	    segmentation::Point p = cluster_ptr->at(indices[j].vertices[k]);
-	    cv::Point3d pt_cv( p.x, p.y, p.z);
-	    poly.push_back( cam_model.project3dToPixel(pt_cv) );
-	  }
-	  const cv::Point *poly_ptr = &poly[0];
-	  cv::fillConvexPoly( cluster_img, poly_ptr, (int)poly.size(), cv::Scalar(255));
-	}
-	*/
 
 	// Find the contours of the cluster
 	std::vector<std::vector<cv::Point> > contours;

@@ -8,15 +8,41 @@
 #include <pcl/octree/octree_pointcloud_changedetector.h> 
 #include <pcl/filters/extract_indices.h>
 
+// PCL normals
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/integral_image_normal.h>
+
+// PCL segmentation (Organized style)
+#include <pcl/segmentation/organized_multi_plane_segmentation.h>
+#include <pcl/segmentation/organized_connected_component_segmentation.h>
+
 // PCL comparators
 #include <pcl/segmentation/comparator.h>
 #include <pcl/segmentation/plane_coefficient_comparator.h>
 #include <pcl/segmentation/euclidean_plane_coefficient_comparator.h>
 #include <pcl/segmentation/rgb_plane_coefficient_comparator.h>
 #include <pcl/segmentation/edge_aware_plane_comparator.h>
+#include <pcl/segmentation/euclidean_cluster_comparator.h>
 
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
+
+// Useful macros
+#define FPS_CALC(_WHAT_) \
+do \
+{ \
+    static unsigned count = 0;\
+    static double last = pcl::getTime ();\
+    double now = pcl::getTime (); \
+    ++count; \
+    if (now - last >= 1.0) \
+    { \
+      std::cout << "Average framerate ("<< _WHAT_ << "): " << double(count)/double(now - last) << " Hz" <<  std::endl; \
+      count = 0; \
+      last = now; \
+    } \
+}while(false)
 
 namespace segmentation {
 
@@ -34,32 +60,53 @@ namespace segmentation {
   // -----------------------------
   class Segmentation {
   public:
-    ros::NodeHandle _nh;
 
     // Constructor and destructor
-    Segmentation(const pcl::PointCloud<Point>::Ptr &cloud_ptr);
+    Segmentation();
     ~Segmentation() {}
 
     // Public functions
-    void cluster_classic(vector<pcl::PointIndices> &cluster_indices);
-    void cluster_organized(vector<pcl::PointIndices> &cluster_indices, int type = 0);
-    void cluster_lccp(vector<pcl::PointIndices> &cluster_indices);  
-    void post_process(pcl::PointCloud<Point>::Ptr &cloud_ptr, vector<pcl::Vertices> &indices);
+    void clusterClassic( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+			 vector<pcl::PointIndices> &cluster_indices );
+    void clusterOrganized( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+			   vector<pcl::PointIndices> &cluster_indices );
+    void clusterLccp( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+		      vector<pcl::PointIndices> &cluster_indices );  // Not implemented at the moment!
+    void postProcess(pcl::PointCloud<Point>::Ptr &cloud_ptr, vector<pcl::Vertices> &indices);
+
+    // Setter functions for segmentation parameters
+    void setComparatorType (int type);
+    void setPlaneMinSize (int size) { this->plane_min_size_ = size; }
+    void setClusterMinSize (int size) { this->cluster_min_size_ = size; }
+    void setAngularTh (double th) { this->angular_th_ = th; }
+    void setDistanceTh (double th) { this->distance_th_ = th; }
+    void setRefineFactor (double factor) { if( factor >= 0.0 && factor <= 2.0 ) { this->refine_factor_ = factor; } }
 
   private:
 
-    // Comparrator objects
+    // Segmentation
+    pcl::IntegralImageNormalEstimation<Point, pcl::Normal> niie_;
+    pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps_;
+
+    // Comparator objects
     pcl::PlaneCoefficientComparator<Point, pcl::Normal>::Ptr plane_comparator_;
     pcl::EuclideanPlaneCoefficientComparator<Point, pcl::Normal>::Ptr euclidean_comparator_;
     pcl::RGBPlaneCoefficientComparator<Point, pcl::Normal>::Ptr rgb_comparator_;
     pcl::EdgeAwarePlaneComparator<Point, pcl::Normal>::Ptr edge_aware_comparator_;
+    pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label>::Ptr euclidean_cluster_comparator_;
+    std::vector<float> distance_map_;
   
     // Private variables and objects
-    pcl::PointCloud<Point>::Ptr _cloud_ptr;
-    pcl::PointCloud<pcl::Normal>::Ptr _normals_ptr;
-    KdTreePtr _tree;
-    pcl::ExtractIndices<Point> _extract_p;
-    pcl::ExtractIndices<pcl::Normal> _extract_n; 
+    KdTreePtr tree_;
+    pcl::ExtractIndices<Point> extract_p_;
+    pcl::ExtractIndices<pcl::Normal> extract_n_; 
+
+    // Private segmentation parameters 
+    int plane_min_size_;    // 10000
+    int cluster_min_size_;  // 500  
+    double angular_th_;     // 3.0f (degres)
+    double distance_th_;    // 0.02f (meters)
+    double refine_factor_;  // 1.0f (sample refinment factor)
 
     // Private filter and sampling functions
     void outlierFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
@@ -100,12 +147,12 @@ namespace segmentation {
 
     void segmentOrganized( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 			   const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
-			  vector<pcl::PointIndices> &cluster_indices,
-			   int comparatorType = 3,
-			   int planeMinSize = 10000,
-			   int clusterMinSize = 200,
-			   double angularTh = 3.0f,     // degrees (3.0f)
-			   double distanceTh = 0.02f );  // (0.02f)
+			   vector<pcl::PointIndices> &cluster_indices,
+			   int planeMinSize,
+			   int clusterMinSize,
+			   double angularTh,    // degrees (3.0f)
+			   double distanceTh,  // (0.02f)
+			   double factor );      // Simple refinment factor
     
     void segmentLCCP( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 		      const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,

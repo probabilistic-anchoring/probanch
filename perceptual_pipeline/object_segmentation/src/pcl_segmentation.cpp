@@ -9,21 +9,12 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 
-// PCL feature includes
-#include <pcl/features/normal_3d.h>
-#include <pcl/features/normal_3d_omp.h>
-#include <pcl/features/integral_image_normal.h>
-
-// PCL segmentation includes
+// PCL segmentation (Euclidean style) 
 #include <pcl/segmentation/sac_segmentation.h>
 //#include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/surface/convex_hull.h>
 #include <pcl/surface/mls.h>
-
-#include <pcl/segmentation/euclidean_cluster_comparator.h>
-#include <pcl/segmentation/organized_multi_plane_segmentation.h>
-#include <pcl/segmentation/organized_connected_component_segmentation.h>
 
 // PCL common
 #include <pcl/common/pca.h>
@@ -36,84 +27,107 @@
 
 #include <object_segmentation/pcl_segmentation.hpp>
 
-
 // -------------------
 // Segmentation class functions
 // ------------------------------
 namespace segmentation {
 
   // Constructor
-  Segmentation::Segmentation(const pcl::PointCloud<Point>::Ptr &cloud_ptr) : 
-    _cloud_ptr(cloud_ptr),
-    _normals_ptr(new pcl::PointCloud<pcl::Normal>)
+  Segmentation::Segmentation() :
+    plane_min_size_(10000), 
+    cluster_min_size_(500), 
+    angular_th_(3.0),
+    distance_th_(0.02),
+    refine_factor_(1.0)
   {
     // Create a KD-Tree
-    //this->_tree = boost::make_shared<pcl::search::KdTree<Point> >();
+    this->tree_ = boost::make_shared<pcl::search::KdTree<Point> >();
 
     // Create comparator objects
     plane_comparator_.reset (new pcl::PlaneCoefficientComparator<Point, pcl::Normal> ());
     euclidean_comparator_.reset (new pcl::EuclideanPlaneCoefficientComparator<Point, pcl::Normal> ());
     rgb_comparator_.reset (new pcl::RGBPlaneCoefficientComparator<Point, pcl::Normal> ());
     edge_aware_comparator_.reset (new pcl::EdgeAwarePlaneComparator<Point, pcl::Normal> ());
+    euclidean_cluster_comparator_ = 
+      pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label>::Ptr 
+      (new pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label> ());
+
+    // Set default compartor type (Euclidean comparator)
+    this->setComparatorType(1);
   }
 
   // Clustering functions
-  void Segmentation::cluster_classic(vector<pcl::PointIndices> &cluster_indices) {
+  void Segmentation::clusterClassic(const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+				    vector<pcl::PointIndices> &cluster_indices) {
 
-    // Filter and downsample the cloud (use the same cloud as input and output)
-    ROS_INFO("Original cloud: %d", (int)_cloud_ptr->points.size());
-    //segmentation::passThroughFilter( _cloud_ptr, _cloud_ptr);
-    ROS_INFO("Filtered cloud: %d", (int)_cloud_ptr->points.size());  
-    //this->outlierFilter( _cloud_ptr, _cloud_ptr);
-    this->downsample( _cloud_ptr, _cloud_ptr);
-    ROS_INFO("Downsampled cloud: %d", (int)_cloud_ptr->points.size());  
-    
     // Saftey check
-    if( _cloud_ptr->points.empty() ) {
+    if( cloud_ptr->points.empty() ) {
       ROS_INFO("[Segmentation::cluster] No valid points in scene -- cloud is empty");
       return;
     }
 
+    // Filter and downsample the cloud
+    pcl::PointCloud<Point>::Ptr filtered_ptr (new pcl::PointCloud<Point>);
+    this->outlierFilter( cloud_ptr, filtered_ptr);
+    pcl::PointCloud<Point>::Ptr downsampled_ptr (new pcl::PointCloud<Point>);
+    this->downsample( filtered_ptr, downsampled_ptr);
+    ROS_INFO("Downsampled cloud: %d", (int)downsampled_ptr->points.size());  
+
     // Estimate the surface normals
-    this->treeEstimate( _cloud_ptr, _normals_ptr );
+    pcl::PointCloud<pcl::Normal>::Ptr normals_ptr (new pcl::PointCloud<pcl::Normal>);
+    this->treeEstimate( downsampled_ptr, normals_ptr );
     //this->reconstruct( _cloud_ptr, _cloud_ptr, _normals_ptr ); // Smooth the surface and estimate normals
     
     // Detect and remove the "table" plane
-    this->segmentPlane( _cloud_ptr, _normals_ptr, _cloud_ptr, _normals_ptr);
-    ROS_INFO("Cloud without plane: %d", (int)_cloud_ptr->points.size());  
+    this->segmentPlane( downsampled_ptr, normals_ptr, downsampled_ptr, normals_ptr);
+    ROS_INFO("[Segmentation::clusterClassic] Cloud without plane: %d", (int)downsampled_ptr->points.size());  
+
     // Cluster remaining points
-    //ROS_INFO("[Segmentation::cluster] clusters: %d", (int)clusters.size());
-    this->segmentClusters( _cloud_ptr, cluster_indices);
+    this->segmentClusters( downsampled_ptr, cluster_indices);
+    //ROS_INFO("[Segmentation::clusterClassic] Clusters: %d", (int)cluster_indices.size());
   }
   
-  void Segmentation::cluster_organized(vector<pcl::PointIndices> &cluster_indices, int type) {
+  void Segmentation::clusterOrganized(const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+				      vector<pcl::PointIndices> &cluster_indices) {
 
     // Saftey check 
-    if( _cloud_ptr->isOrganized ()) {
+    if( cloud_ptr->isOrganized ()) {
+
+      //FPS_CALC ("organized clustering");
 
       // Estimate the surface normals
-      this->integralEstimate( _cloud_ptr, _normals_ptr );
+      pcl::PointCloud<pcl::Normal>::Ptr normals_ptr (new pcl::PointCloud<pcl::Normal>);
+      this->integralEstimate( cloud_ptr, normals_ptr );
       
       // Cluster the point cloud
-      this->segmentOrganized( _cloud_ptr, _normals_ptr, cluster_indices, type);
-
+      this->segmentOrganized( cloud_ptr, 
+			      normals_ptr, 
+			      cluster_indices, 
+			      this->plane_min_size_, 
+			      this->cluster_min_size_, 
+			      this->angular_th_,
+			      this->distance_th_,
+			      this->refine_factor_ );
+      //ROS_INFO("[Segmentation::clusterOrganized] Clusters: %d", (int)cluster_indices.size());
     }
     else {
-      ROS_WARN("Trying to perform organized segmentation with un-oranized point cloud data!");  
+      ROS_WARN("[Segmentation::clusterOrganized] Trying to perform organized segmentation with un-oranized point cloud data!");  
     }
   }
-  
-  void Segmentation::cluster_lccp(vector<pcl::PointIndices> &cluster_indices) {
+
+  void Segmentation::clusterLccp(const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+				  vector<pcl::PointIndices> &cluster_indices) {
     
     // Estimate the surface normals
-    this->integralEstimate( _cloud_ptr, _normals_ptr );
+    pcl::PointCloud<pcl::Normal>::Ptr normals_ptr (new pcl::PointCloud<pcl::Normal>);
+    this->integralEstimate( cloud_ptr, normals_ptr );
 
     // Cluster the point cloud
-    this->segmentLCCP( _cloud_ptr, _normals_ptr, cluster_indices);
-    //ROS_INFO("[Segmentation::cluster] clusters: %d", (int)clusters.size());
+    this->segmentLCCP( cloud_ptr, normals_ptr, cluster_indices);
+    //ROS_INFO("[Segmentation::clusterLccp] Clusters: %d", (int)cluster_indices.size());
   }
 
-  void Segmentation::post_process(pcl::PointCloud<Point>::Ptr &cloud_ptr, vector<pcl::Vertices> &indices) {
+  void Segmentation::postProcess(pcl::PointCloud<Point>::Ptr &cloud_ptr, vector<pcl::Vertices> &indices) {
      
     // Calculating the convex hull of the cluster 
     // (and indcies of uttermoset points of the hull)
@@ -122,6 +136,29 @@ namespace segmentation {
     std::vector<pcl::Vertices> result;
     hull_.reconstruct (*cloud_ptr, indices);
   }
+
+  // Set comparator used for refinement
+  void Segmentation::setComparatorType (int type) {
+    switch(type) {
+    case 0:
+      mps_.setComparator (plane_comparator_);
+      ROS_INFO("[Segmentation::setComparatorType] Using 'plane comparator' for organized segmentation.");
+      break;
+    case 1:
+      mps_.setComparator (euclidean_comparator_);
+      ROS_INFO("[Segmentation::setComparatorType] Using 'Euclidean comparator' for organized segmentation.");
+      break;
+    case 2:
+      mps_.setComparator (rgb_comparator_); 
+      ROS_INFO("[Segmentation::setComparatorType] Using 'RGB comparator' for organized segmentation.");
+      break;
+    default:
+      mps_.setComparator (edge_aware_comparator_);
+      ROS_INFO("[Segmentation::setComparatorType] Using 'edge aware comparator' for organized segmentation.");
+      break;
+    }
+  }
+
   
   /* _____________ Filter ans sampling functions ___________________ */
 
@@ -165,7 +202,7 @@ namespace segmentation {
     mls_.setComputeNormals (true);
     mls_.setInputCloud (cloud_ptr);
     mls_.setPolynomialFit (polynomialFit);
-    mls_.setSearchMethod (this->_tree);
+    mls_.setSearchMethod (this->tree_);
     mls_.setSearchRadius (radius);
     mls_.process (*result_ptr);   // Reconstruct
     
@@ -184,7 +221,7 @@ namespace segmentation {
 				   double radius ) {
     //pcl::NormalEstimation<Point, pcl::Normal> n3d_;
     pcl::NormalEstimationOMP<Point, pcl::Normal> n3d_(8); // Multi-threaded with 8 threads (set 0 for automatic)
-    n3d_.setSearchMethod(this->_tree);
+    n3d_.setSearchMethod(this->tree_);
     //n3d_.setKSearch(kNN);  
     n3d_.setRadiusSearch(radius); 
     n3d_.setInputCloud(cloud_ptr);
@@ -196,20 +233,21 @@ namespace segmentation {
 				       pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
 				       double factor,
 				       double size ) {
-    pcl::IntegralImageNormalEstimation<Point, pcl::Normal> nii_;
-    nii_.setNormalEstimationMethod (nii_.COVARIANCE_MATRIX); // nii_.AVERAGE_3D_GRADIENT || nii_.COVARIANCE_MATRIX
-    nii_.setMaxDepthChangeFactor (factor);
-    //nii_.setDepthDependentSmoothing (true);
-    nii_.setNormalSmoothingSize (size);
-    nii_.setInputCloud (cloud_ptr);
-    nii_.compute (*normals_ptr);
+
+    // Set the parameters for normal estimation
+    niie_.setNormalEstimationMethod (niie_.COVARIANCE_MATRIX); // nii_.AVERAGE_3D_GRADIENT || nii_.COVARIANCE_MATRIX
+    niie_.setMaxDepthChangeFactor (factor);
+    niie_.setNormalSmoothingSize (size);
+
+    // Estimate normals in the cloud
+    niie_.setInputCloud (cloud_ptr);
+    niie_.compute (*normals_ptr);
     
     // Assign a distance map to the edge aware comparator (later used to refine the segmentation)
-    float* distance_map = nii_.getDistanceMap ();
-    boost::shared_ptr<pcl::EdgeAwarePlaneComparator<Point, pcl::Normal> > eapc = 
-      boost::dynamic_pointer_cast<pcl::EdgeAwarePlaneComparator<Point, pcl::Normal> >(this->edge_aware_comparator_);
-    eapc->setDistanceMap (distance_map);
-    eapc->setDistanceThreshold ( (factor * 0.5), false);  
+    float* map = niie_.getDistanceMap ();
+    //distance_map_.assign(map, map + cloud_ptr->size() ); // ...must copy the data out
+    edge_aware_comparator_->setDistanceMap(map);
+    edge_aware_comparator_->setDistanceThreshold (0.01f, true);    
   }
 
 
@@ -243,14 +281,14 @@ namespace segmentation {
     // Extract the planar inliers from the input cloud
     pcl::PointCloud<Point>::Ptr result_p_ptr (new pcl::PointCloud<Point>);
     pcl::PointCloud<pcl::Normal>::Ptr result_n_ptr (new pcl::PointCloud<pcl::Normal>);
-    this->_extract_p.setInputCloud (cloud_ptr);
-    this->_extract_n.setInputCloud (normals_ptr);
-    this->_extract_p.setIndices (inliers_ptr);
-    this->_extract_n.setIndices (inliers_ptr);
-    this->_extract_p.setNegative (true);
-    this->_extract_n.setNegative (true);
-    this->_extract_p.filter (*result_p_ptr);
-    this->_extract_n.filter (*result_n_ptr);  
+    this->extract_p_.setInputCloud (cloud_ptr);
+    this->extract_n_.setInputCloud (normals_ptr);
+    this->extract_p_.setIndices (inliers_ptr);
+    this->extract_n_.setIndices (inliers_ptr);
+    this->extract_p_.setNegative (true);
+    this->extract_n_.setNegative (true);
+    this->extract_p_.filter (*result_p_ptr);
+    this->extract_n_.filter (*result_n_ptr);  
     segmented_cloud_ptr.swap (result_p_ptr);
     segmented_normals_ptr.swap (result_n_ptr);
   }
@@ -261,25 +299,23 @@ namespace segmentation {
 				      double tolerance,
 				      int clusterSize ) {
     // Extract cluster indices
-    //std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<Point> euclidean_;
     euclidean_.setClusterTolerance (tolerance);
     euclidean_.setMinClusterSize (clusterSize);
-    euclidean_.setSearchMethod (this->_tree);
+    euclidean_.setSearchMethod (this->tree_);
     euclidean_.setInputCloud (objects_ptr);
-    euclidean_.extract (cluster_indices);
-    
+    euclidean_.extract (cluster_indices);    
   }
   
   // Create object clusters based on organized multi-plane segmentation 
   void Segmentation::segmentOrganized( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 				       const pcl::PointCloud<pcl::Normal>::Ptr &normals_ptr,
 				       vector<pcl::PointIndices> &cluster_indices,
-				       int comparatorType,
 				       int planeMinSize,
 				       int clusterMinSize,
 				       double angularTh,    
-				       double distanceTh ) {
+				       double distanceTh,
+				       double factor ) {
 
     // Output data structures (use in subsequent processing)
     std::vector<pcl::PlanarRegion<Point>, Eigen::aligned_allocator<pcl::PlanarRegion<Point> > > regions;
@@ -287,32 +323,25 @@ namespace segmentation {
     std::vector<pcl::PointIndices> inlier_indices;  
     pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
     std::vector<pcl::PointIndices> label_indices;
-    std::vector<pcl::PointIndices> boundary_indices;
+    std::vector<pcl::PointIndices> boundary_indices;    
     
-    // // Segment planes (with cmparator used for refinement)
-    pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps_;    
-    switch(comparatorType) {
-    case 0:
-      mps_.setComparator (plane_comparator_);
-      break;
-    case 1:
-      mps_.setComparator (euclidean_comparator_);
-      break;
-    case 2:
-      mps_.setComparator (rgb_comparator_); 
-      break;
-    default:
-      mps_.setComparator (edge_aware_comparator_);
-      break;
-    }
-    //mps_.setRefinementComparator (plane_comparator_);  // Need to be set
+    // Refinemanet comperator
+    pcl::PlaneRefinementComparator<Point, pcl::Normal, pcl::Label>::Ptr refinement_compare_ (new pcl::PlaneRefinementComparator<Point, pcl::Normal, pcl::Label>());
+    refinement_compare_->setDistanceThreshold (distanceTh * factor, false);
+
+    // Plane segmentation
+    mps_.setRefinementComparator (refinement_compare_);  // Need to be set
     mps_.setMinInliers (planeMinSize);
     mps_.setAngularThreshold (pcl::deg2rad (angularTh));
     mps_.setDistanceThreshold (distanceTh);
+    mps_.setMaximumCurvature (0.001); // a small curvature
+    mps_.setProjectPoints (true);
+
+    // Segment plane(s)
     mps_.setInputNormals (normals_ptr);
     mps_.setInputCloud (cloud_ptr);
     mps_.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
-    //std::cout << "Regions: " << regions.size () << std::endl;
+
     //Segment Objects
     if (regions.size () > 0) {
       
@@ -324,15 +353,15 @@ namespace segmentation {
 	}
       }
       
-      pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label>::Ptr cluster_comparator_(new pcl::EuclideanClusterComparator<Point, pcl::Normal, pcl::Label> ());
-      cluster_comparator_->setInputCloud (cloud_ptr);
-      cluster_comparator_->setLabels (labels);
-      cluster_comparator_->setExcludeLabels (plane_labels);
-      cluster_comparator_->setDistanceThreshold ( distanceTh * 0.5, false); // 0.01f
+      // Euclidean clustering 
+      euclidean_cluster_comparator_->setInputCloud (cloud_ptr);
+      euclidean_cluster_comparator_->setLabels (labels);
+      euclidean_cluster_comparator_->setExcludeLabels (plane_labels);
+      euclidean_cluster_comparator_->setDistanceThreshold ( distanceTh * factor, false); // 0.01f
 
       pcl::PointCloud<pcl::Label> euclidean_labels;
       std::vector<pcl::PointIndices> euclidean_indices;
-      pcl::OrganizedConnectedComponentSegmentation<Point, pcl::Label> seg_ (cluster_comparator_);
+      pcl::OrganizedConnectedComponentSegmentation<Point, pcl::Label> seg_ (euclidean_cluster_comparator_);
       seg_.setInputCloud (cloud_ptr);
       seg_.segment (euclidean_labels, euclidean_indices);
       for (size_t i = 0; i < euclidean_indices.size (); i++) {

@@ -308,12 +308,12 @@ namespace anchoring {
     AttributeCommon::deserialize(doc);
   }
 
+  // Overleaded functions for populating ROS messages
   void PositionAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::PositionAttribute pose_msg;
     pose_msg.data = this->_array.back();
     msg.position = pose_msg;
   }
-
   void PositionAttribute::populate(anchor_msgs::Display &msg) {
     msg.pos = this->_array.back();
   }
@@ -443,7 +443,6 @@ namespace anchoring {
   void ShapeAttribute::populate(anchor_msgs::Display &msg) {
     msg.size = _symbols[0];
   }
-
 
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 

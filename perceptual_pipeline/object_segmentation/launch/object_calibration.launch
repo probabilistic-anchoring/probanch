@@ -1,0 +1,24 @@
+<launch>
+
+  <!-- Laucnh Kinect2 bridge (with default parameters) 
+  <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">	
+    <arg name="calib_path" value="$(find anchoring)/data/" />
+  </include>	
+  -->
+
+  <!-- Run object recognition node -->
+  <node name="object_calibration_node" pkg="object_segmentation" type="object_calibration" output="screen">
+    <remap to="/kinect2/qhd/image_color_rect" from="/image"/>	
+    <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
+    <remap to="/kinect2/qhd/points" from="/cloud"/>
+
+    <!-- Spatial thresholds (used for filter the point cloud) -->
+    <param name="min_x" type="double" value="0.0" />
+    <param name="max_x" type="double" value="1.2" />
+    <param name="min_y" type="double" value="0.0" />
+    <param name="max_y" type="double" value="0.62" />
+    <param name="min_z" type="double" value="-0.1" />
+    <param name="max_z" type="double" value="0.6" />
+  </node>
+
+</launch>
