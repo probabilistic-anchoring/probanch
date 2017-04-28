@@ -16,7 +16,6 @@
 #include <anchor_msgs/Contour.h>
 #include <anchor_msgs/Display.h>
 #include <anchor_msgs/Anchor.h>
-#include <anchor_msgs/AnchorSpatial.h>
 
 #include <anchor_utils/database.hpp>
 
@@ -50,7 +49,6 @@ namespace anchoring {
     virtual void deserialize(const mongo::Database::Document &doc);
     virtual void populate(anchor_msgs::Display &msg) { }
     virtual void populate(anchor_msgs::Anchor &msg) { }
-    virtual void populate(anchor_msgs::AnchorSpatial &msg) { }
     
     // Virtual match method
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
@@ -130,7 +128,6 @@ namespace anchoring {
     void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
-    void populate(anchor_msgs::AnchorSpatial &msg);
     float match(const AttributePtr &query_ptr);
     //void append(const unique_ptr<AttributeCommon> &query_ptr);
     bool update(const unique_ptr<AttributeCommon> &query_ptr);
@@ -153,7 +150,6 @@ namespace anchoring {
     void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
-    void populate(anchor_msgs::AnchorSpatial &msg);
     float match(const AttributePtr &query_ptr);
     string toString();
   }; 

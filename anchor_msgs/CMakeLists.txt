@@ -18,7 +18,6 @@ add_message_files(
    FILES
    Anchor.msg
    AnchorArray.msg
-   AnchorSpatial.msg
    CaffeAttribute.msg
    ClusterArray.msg
    ColorAttribute.msg  

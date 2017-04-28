@@ -266,7 +266,7 @@ bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req
 
     // Iterate given ids and collect spatial positions and volumes
     for( auto &id : req.ids) {
-      res.anchors.push_back(this->_anchors->get<anchor_msgs::AnchorSpatial>(id));
+      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
     }
   }
   catch( const std::exception &e ) {
