@@ -228,12 +228,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // Cluster cloud into objects 
   // ----------------------------------------
-  //segmentation::Segmentation seg(raw_cloud_ptr);
-  segmentation::Segmentation seg(transformed_cloud_ptr);
+  segmentation::Segmentation seg(raw_cloud_ptr);
+  //segmentation::Segmentation seg(transformed_cloud_ptr);
   std::vector<pcl::PointIndices> cluster_indices;
-  //seg.cluster_organized(cluster_indices, this->type_);
-  seg.cluster_organized(cluster_indices, 1);
-  std::cout << "Clusters: " << cluster_indices.size() << std::endl;
+  seg.cluster_organized(cluster_indices, this->type_);
+  //seg.cluster_organized(cluster_indices, 1);
+  //std::cout << "Clusters: " << cluster_indices.size() << std::endl;
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -246,6 +246,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     anchor_msgs::MovementArray movements;
     objects.header = cloud_msg->header;
     objects.image = *image_msg;
+    objects.info = *camera_info_msg;
 
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
@@ -326,11 +327,11 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
 	  obj.position.data = pose;
 
-	  /*
+	  
 	  // --[ Intially filterinh of the whole point cloud instead ]--
 	  if( !( obj.position.data.pose.position.x > 0.2  && obj.position.data.pose.position.y > 0.0 && obj.position.data.pose.position.y < 0.62 && obj.position.data.pose.position.z < 0.5 ) )
 	    continue;
-	  */
+	  
 
 	  // Add the position to the movement array
 	  movements.movements.push_back(pose);

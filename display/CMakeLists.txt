@@ -19,6 +19,8 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
   cv_bridge
+  dc_msgs
+  image_geometry
   image_transport
   roscpp
   sensor_msgs

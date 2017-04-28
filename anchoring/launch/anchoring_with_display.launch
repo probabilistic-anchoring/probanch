@@ -20,14 +20,14 @@
     <param name="compar_type" type="int" value="3" />	
   </node>
 
-  <!-- Run object tracking node 
+  <!-- Run object tracking node -->
   <node name="object_tracking_node" pkg="object_tracking" type="object_tracking" output="screen">
     <remap to="/kinect2/qhd/image_color_rect" from="/rgb_image"/>	
     <remap to="/kinect2/qhd/image_depth_rect" from="/depth_image"/>	
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
   </node>
-  -->
+  
 
   <!-- Feature extraction node -->
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />

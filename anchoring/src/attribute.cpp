@@ -189,7 +189,9 @@ namespace anchoring {
       doc.add<int>( "cols", (int)this->_data.cols);
 
       std::size_t length = this->_data.rows * this->_data.cols;
-      doc.add<unsigned char*>( "data", this->_data.data, length);
+      if( length > 0 ) {
+	doc.add<unsigned char*>( "data", this->_data.data, length);
+      }
     }
     catch( const std::exception &e) {
       cout << "[DescriptorAttribute::serialize]" << e.what() << endl;
@@ -203,8 +205,10 @@ namespace anchoring {
     try {
       int rows = doc.get<int>( "rows");
       int cols = doc.get<int>( "cols");
-      unsigned char* array = doc.get<unsigned char*>( "data");
-      this->_data = cv::Mat( rows, cols, CV_8U, array);
+      if( rows > 0 ) {
+	unsigned char* array = doc.get<unsigned char*>( "data");
+	this->_data = cv::Mat( rows, cols, CV_8U, array);
+      }
     }
     catch( const std::exception &e) {
       cout << "[DescriptorAttribute::deserialize]" << e.what() << endl;

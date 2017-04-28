@@ -312,7 +312,7 @@ namespace segmentation {
     mps_.setInputNormals (normals_ptr);
     mps_.setInputCloud (cloud_ptr);
     mps_.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
-    std::cout << "Regions: " << regions.size () << std::endl;
+    //std::cout << "Regions: " << regions.size () << std::endl;
     //Segment Objects
     if (regions.size () > 0) {
       
