@@ -28,6 +28,7 @@ class AnchorViewer {
   ros::Subscriber _anchor_sub;
   ros::Subscriber _particle_sub;
   ros::Subscriber _highlight_sub;
+  ros::Publisher _selected_pub;
 
   string _display_trigger;
   //bool _display_web_image;
@@ -251,6 +252,12 @@ class AnchorViewer {
       if( cv::pointPolygonTest( contour, cv::Point( x, y ), false) > 0 ) {
 	this->_highlight = ite->id;
 	ROS_WARN("Anchored selected at: x = %.2f, y = %.2f, z = %.2f", (float)ite->pos.pose.position.x, (float)ite->pos.pose.position.y, (float)ite->pos.pose.position.z);
+
+	// Publish the id of the selected anchor
+	std_msgs::String msg;
+	msg.data = ite->id;
+	_selected_pub.publish(msg);
+
 	break;
       }
     }
@@ -259,10 +266,11 @@ class AnchorViewer {
 public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh),  _display_trigger("anchoring") { //_display_web_image(false) {
     
-    // ROS subscriber
+    // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
-    _highlight_sub = _nh.subscribe("/display/hightlight", 10, &AnchorViewer::highlight_cb, this);
+    _highlight_sub = _nh.subscribe("/display/highlight", 10, &AnchorViewer::highlight_cb, this);
+    _selected_pub = _nh.advertise<std_msgs::String>("/display/anchors", 1);
 
     // Used for the web interface
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);

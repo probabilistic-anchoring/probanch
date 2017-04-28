@@ -22,7 +22,8 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
   _track_sub = _nh.subscribe("/associations", 10, &AnchorManagement::track, this);
 
-  _anchor_srv = _nh.advertiseService("anchor_request", &AnchorManagement::request, this);
+  _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
+  _spatial_srv = _nh.advertiseService("/anchoring/spatial_request", &AnchorManagement::spatialRequest, this);
 
   // Publisher used for collecting bag files
   _anchor_pub = _nh.advertise<anchor_msgs::AnchorArray>("/anchors", 1);
@@ -251,11 +252,28 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
 }
 
 // Handle a request for a snapshot the the anchorspace
-bool AnchorManagement::request( anchor_msgs::AnchorRequest::Request &req,
-				anchor_msgs::AnchorRequest::Response &res ) {
+bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
+				     anchor_msgs::TimedRequest::Response &res ) {
 
   // Get a snapshot of all anchors seen scene at time t
   this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
+  return true;
+}
+
+// Handle a request for spatial information about one (or more) anchor(s)
+bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req,
+				       anchor_msgs::SpatialRequest::Response &res ) {
+  try {
+
+    // Iterate given ids and collect spatial positions and volumes
+    for( auto &id : req.ids) {
+      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
+    }
+  }
+  catch( const std::exception &e ) {
+    ROS_ERROR("[AnchorManagement::spatialRequest]%s", e.what() );
+    return false;
+  }
   return true;
 }
 

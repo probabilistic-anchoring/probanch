@@ -65,6 +65,7 @@ namespace anchoring {
     void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
+    template <typename T> T get(const string &id);
     template <typename T> void getArray(vector<T> &array, const ros::Time &t);
 
     const AttributePtr& get(const string &id, AttributeType type) const {
@@ -92,6 +93,13 @@ namespace anchoring {
   // ----------------------------------------
   // Template functions.
   // ----------------------------------------
+  template <typename T> T AnchorContainer::get(const string &id) {
+    auto ite = this->_map.find(id);
+    if( ite == this->_map.end() ) {
+      throw std::logic_error("[Anchor::get]: there exists no anchor with id '" + id +"'.");
+    }
+    return ite->second->getAnchor<T>();
+  }
 
   template<typename T> void AnchorContainer::getArray(vector<T> &array, const ros::Time &t) {
     

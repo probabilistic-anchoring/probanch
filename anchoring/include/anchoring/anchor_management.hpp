@@ -3,7 +3,8 @@
 
 #include <anchor_msgs/ObjectArray.h> 
 #include <anchor_msgs/MovementArray.h>
-#include <anchor_msgs/AnchorRequest.h> 
+#include <anchor_msgs/TimedRequest.h> 
+#include <anchor_msgs/SpatialRequest.h> 
 
 #include <dc_msgs/AssociationArray.h> 
 
@@ -25,7 +26,8 @@ class AnchorManagement {
   ros::NodeHandle _nh; 
   ros::NodeHandle _priv_nh;
   ros::Subscriber _object_sub, _track_sub;
-  ros::ServiceServer _anchor_srv;
+  ros::ServiceServer _timed_srv;
+  ros::ServiceServer _spatial_srv;
   ros::Publisher _anchor_pub;
   ros::Publisher _display_pub;
 
@@ -38,8 +40,10 @@ class AnchorManagement {
 	       string &id, 
 	       float dist_th,
 	       float rate_th = 0.75 );
-  bool request( anchor_msgs::AnchorRequest::Request &req,
-		anchor_msgs::AnchorRequest::Response &res );
+  bool spatialRequest( anchor_msgs::SpatialRequest::Request &req,
+		       anchor_msgs::SpatialRequest::Response &res );
+  bool timedRequest( anchor_msgs::TimedRequest::Request &req,
+		     anchor_msgs::TimedRequest::Response &res );
 
 
 public: 
