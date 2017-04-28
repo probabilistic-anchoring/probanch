@@ -1,5 +1,5 @@
-#ifndef __OBJECT_SEGMENTATION_HPP__ 
-#define __OBJECT_SEGMENTATION_HPP__ 
+#ifndef __OBJECT_CALIBRATION_HPP__ 
+#define __OBJECT_CALIBRATION_HPP__ 
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,11 +31,9 @@
 
 #include <object_segmentation/pcl_segmentation.hpp>
 
-class ObjectSegmentation {
+class ObjectCalibration {
 
   // Defined sync policies
-  bool useApprox_;
-  typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> ExactSyncPolicy;
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> ApproximateSyncPolicy;
 
   // Node handler(s) 
@@ -56,29 +54,23 @@ class ObjectSegmentation {
   image_transport::SubscriberFilter *image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> *camera_info_sub_;
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
-  ros::Publisher obj_pub_;
-  ros::Publisher cluster_pub_;
-  ros::Publisher move_pub_;
-
-  message_filters::Synchronizer<ExactSyncPolicy> *syncExact_;
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;
 
-  // Display 
-  bool display_image_;
-  ros::Subscriber display_trigger_sub_;
-  image_transport::Publisher display_image_pub_;
+  // Display functions
+  static const char* window_;
+  cv::Mat display_img_;
+  int plane_size_, cluster_size_, angle_th_, distance_th_, factor_;
 
   // Private functions
   void segmentationCb( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);
-  void triggerCb( const std_msgs::String::ConstPtr &msg);
 
   // Segmentation 
   segmentation::Segmentation seg_;
 
 public: 
-  ObjectSegmentation(ros::NodeHandle nh, bool useApprox = true);
-  ~ObjectSegmentation();
+  ObjectCalibration(ros::NodeHandle nh);
+  ~ObjectCalibration();
   void spin();
 };
 
-#endif // __OBJECT_SEGMENTATION_HPP__
+#endif // __OBJECT_CALIBRATION_HPP__

@@ -18,6 +18,7 @@ add_message_files(
    FILES
    Anchor.msg
    AnchorArray.msg
+   AnchorSpatial.msg
    CaffeAttribute.msg
    ClusterArray.msg
    ColorAttribute.msg  
@@ -30,25 +31,20 @@ add_message_files(
    ObjectArray.msg 
    Point2d.msg
    PositionAttribute.msg  
-   ShapeAttribute.msg
+   ShapeAttribute.msg   
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
-   AnchorRequest.srv
+   SpatialRequest.srv
+   TimedRequest.srv
 )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
+   anchor_msgs
    geometry_msgs
    sensor_msgs
    std_msgs

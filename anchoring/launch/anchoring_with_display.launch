@@ -6,19 +6,8 @@
     <arg name="publish_tf" value="true" />
   </include>	
 
-  <!--  Static transform publisher --> 	  
-  <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect_tilt_tf" args="0 0 0.08 0 0 0 kinect_tilt_link kinect_rotate_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect_base_tf" args="0 0 0.5 0 0.4363 0 kinect_base_link kinect_tilt_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="table_tf" args="1.2 0.36 0 3.1415 0 0 base_link kinect_base_link 10" />
-  
   <!-- Object segmentation node -->
-  <node name="segmentation_node" pkg="object_segmentation" type="object_segmentation" output="screen">
-    <remap to="/kinect2/qhd/image_color_rect" from="/image"/>	
-    <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
-    <remap to="/kinect2/qhd/points" from="/cloud"/>
-    <param name="compar_type" type="int" value="3" />	
-  </node>
+  <include file="$(find object_segmentation)/launch/object_segmentation.launch" />	
 
   <!-- Run object tracking node 
   <node name="object_tracking_node" pkg="object_tracking" type="object_tracking" output="screen">
@@ -37,8 +26,7 @@
   
   <!-- Anchoring framework -->  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
-        output="screen" />
-	
+        output="screen" />	
 
   <!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
