@@ -131,8 +131,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 					 const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
 					 const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
   
-  static bool add_once = true;
-
   // Get the transformation
   tf::StampedTransform transform;
   try{
@@ -206,6 +204,18 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     objects.image = *image_msg;
     objects.info = *camera_info_msg;
 
+    // Store the inverse transformation
+    tf::Quaternion tf_quat = transform.inverse().getRotation();
+    objects.transform.rotation.x = tf_quat.x();
+    objects.transform.rotation.y = tf_quat.y();
+    objects.transform.rotation.z = tf_quat.z();
+    objects.transform.rotation.w = tf_quat.w();
+
+    tf::Vector3 tf_vec = transform.inverse().getOrigin();
+    objects.transform.translation.x = tf_vec.getX();
+    objects.transform.translation.y = tf_vec.getY();
+    objects.transform.translation.z = tf_vec.getZ();
+ 
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
       

@@ -121,6 +121,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   display_msg.header = object_ptr->header;
   display_msg.image = object_ptr->image;
   display_msg.info = object_ptr->info;
+  display_msg.transform = object_ptr->transform;
   this->_anchors->getArray<anchor_msgs::Display>( display_msg.anchors, t );
   this->_display_pub.publish(display_msg);
 

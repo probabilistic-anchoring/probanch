@@ -28,6 +28,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 
 
@@ -92,6 +93,7 @@ catkin_package(
 include_directories(
   /usr/include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -115,6 +117,7 @@ add_executable(anchor_recorder src/anchor_recorder.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(anchor_viewer 
    ${catkin_LIBRARIES}
+   ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
 target_link_libraries(img2str

@@ -7,6 +7,9 @@
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
 #include <image_geometry/pinhole_camera_model.h>
+#include <pcl_ros/transforms.h>
+//#include <pcl/common/transforms.h>
+
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -42,6 +45,9 @@ class AnchorViewer {
   // Camera information
   image_geometry::PinholeCameraModel _cam_model;
 
+  // Tranformation
+  tf::Transform _tf;
+
   // Struct for storing a single particle
   struct Particle {
     double _x;
@@ -52,8 +58,12 @@ class AnchorViewer {
     Particle( double x, double y, double z, string color) :
       _x(x), _y(y), _z(z), _color(color) {}
     
-    Point2f getPixel(image_geometry::PinholeCameraModel &cam_model) {
-      cv::Point3d pt_cv( _x, _y, _z);
+    Point2f getPixel( image_geometry::PinholeCameraModel &cam_model,
+		      tf::Transform &tf ) {
+      tf::Vector3 vec( _x, _y, _z);
+      vec = tf * vec;
+      cv::Point3d pt_cv( vec.getX(), vec.getY(), vec.getZ());
+      //cv::Point3d pt_cv( _x, _y, _z);
       cv::Point2f p = cam_model.project3dToPixel(pt_cv);
       cout << "Point: " << p.x << " - " << p.y << endl;
       return p;
@@ -110,6 +120,16 @@ class AnchorViewer {
 
     // Store the camera infromation
     this->_cam_model.fromCameraInfo(msg_ptr->info);
+
+    // Stor the transformation
+    tf::Quaternion tf_quat( msg_ptr->transform.rotation.x,
+			    msg_ptr->transform.rotation.y,
+			    msg_ptr->transform.rotation.z,
+			    msg_ptr->transform.rotation.w );
+    tf::Vector3 tf_vec( msg_ptr->transform.translation.x,
+			msg_ptr->transform.translation.y,
+			msg_ptr->transform.translation.z );
+    this->_tf = tf::Transform( tf_quat, tf_vec);
 
     // Publish the resulting anchor image
     if( !this->_display_trigger.empty() ) {
@@ -208,8 +228,8 @@ class AnchorViewer {
 	}
 	*/
 	for( uint i = 0; i < this->_particles.size(); i++) {
-	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model), 2, this->_particles[i].getColor(), -1);
-	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model), 2, this->_particles[i].getColor(), -1);
+	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
+	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
 	}
 
       }
