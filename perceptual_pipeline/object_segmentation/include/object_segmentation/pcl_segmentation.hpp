@@ -201,6 +201,8 @@ namespace segmentation {
 			  bool keep_organized = true );
   void getPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 		    geometry_msgs::Pose &pos );
+  void getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+			    geometry_msgs::Pose &pos );
   void getShape( const pcl::PointCloud<Point>::Ptr &projected_cloud_ptr,
 		 geometry_msgs::Point &dim );
 }

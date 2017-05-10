@@ -161,42 +161,42 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 // ---[ Track method based on data association ]---
 void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
-	ROS_INFO("Got associations.");
+  ROS_INFO("Got associations.");
   
   // Update (merge) anchors based on probabilistic object tracking
-	for( auto &msg: associations_ptr->associations) {
-		int idx_id = -1;
-		int idx_best = -1;
-		float best = 0.0;
-		std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl; 
-		for( uint i = 0; i < msg.associations.size(); i++) {
-			std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
-			std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
-			if( msg.probabilities[i] > best ) {
-				best = msg.probabilities[i]; 
-				idx_best = i;
-			}
-			if(msg.id == msg.associations[i]){
-         			idx_id = i;
-			}
-		}
+  for( auto &msg: associations_ptr->associations) {
+    int idx_id = -1;
+    int idx_best = -1;
+    float best = 0.0;
+    std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl; 
+    for( uint i = 0; i < msg.associations.size(); i++) {
+      std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
+      std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
+      if( msg.probabilities[i] > best ) {
+	best = msg.probabilities[i]; 
+	idx_best = i;
+      }
+      if(msg.id == msg.associations[i]){
+	idx_id = i;
+      }
+    }
+    
+    //if( msg.associations[idx] != msg.id && best > 0.5 ) {
+    if (idx_id==-1){
+      if( best > 0.80 ) {
+	this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
+      }
+    }
 
-		//if( msg.associations[idx] != msg.id && best > 0.5 ) {
-		if (idx_id==-1){
-			if( best > 0.80 ) {
-				this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
-			}
-		}
-
-		else {
-			if( msg.associations[idx_best] != msg.id && msg.probabilities[idx_id] < associations_ptr->gamma_newT && best > 0.80 ) {
-				this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
-			}
-			else if (msg.associations[idx_best] == msg.id && best > 0.80){
-				continue;
-			}
-		}    
-	}
+    else {
+      if( msg.associations[idx_best] != msg.id && msg.probabilities[idx_id] < associations_ptr->gamma_newT && best > 0.80 ) {
+	this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
+      }
+      else if (msg.associations[idx_best] == msg.id && best > 0.80){
+	continue;
+      }
+    }    
+  }
 }
 
 /* -----------------------------------------

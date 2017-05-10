@@ -491,12 +491,32 @@ void segmentation::getPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
   pos.position.x = centroid[0];
   pos.position.y = centroid[1];
   pos.position.z = centroid[2];
-
   //std::cout << "Location: [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
+
   pos.orientation.x = 0.0;
   pos.orientation.y = 0.0;
   pos.orientation.z = 0.0;
   pos.orientation.w = 1.0;
+}
+
+void segmentation::getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
+					geometry_msgs::Pose &pos ) {
+  pcl::PCA<Point> pca;
+  pca.setInputCloud(cloud_ptr);
+
+  // Calculate the position and the orientation
+  Eigen::Vector4f centroid = pca.getMean();
+  Eigen::Quaternionf rotation = Eigen::Quaternionf(pca.getEigenVectors());
+
+  pos.position.x = centroid[0];
+  pos.position.y = centroid[1];
+  pos.position.z = centroid[2];
+  //std::cout << "Location: [" << centroid[0] << ", " << centroid[1] << ", " << centroid[2] << "]" << std::endl;
+
+  pos.orientation.x = rotation.x();
+  pos.orientation.y = rotation.y();
+  pos.orientation.z = rotation.z();
+  pos.orientation.w = rotation.w();
 }
 
 void segmentation::getShape( const pcl::PointCloud<Point>::Ptr &cloud_ptr,

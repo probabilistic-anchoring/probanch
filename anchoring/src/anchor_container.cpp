@@ -169,13 +169,22 @@ namespace anchoring {
 
   // Track (or correct) an existing anchor based on data association 
   void AnchorContainer::track(const string &id, const string &corr) {
-    mongo::Database db(this->_db_name, this->_collection);
-    this->_map[id]->merge( db, this->_map[corr]);
-    ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+    try {
 
-    // Delete the 'glitch' anchor
-    //db.remove(corr);
-    //this->_map.erase(corr);  
+      mongo::Database db(this->_db_name, this->_collection);
+      this->_map[id]->merge( db, this->find(corr));
+      ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+
+      // Delete the 'glitch' anchor
+      if( this->_map.find(corr) != this->_map.end() ) {
+	db.remove(corr);
+	this->_map.erase(corr);  
+      }
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[AnchorContainer::track]" << e.what() << std::endl;
+    }
+
   }
 
   // Acquire a new anchor
@@ -185,7 +194,7 @@ namespace anchoring {
       mongo::Database db(this->_db_name, this->_collection);
       anchor->create(db);
     }
-    string id = anchor->getId();
+    string id = anchor->id();
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
     ROS_WARN("[Anchor (acquired): %s", this->_map[id]->toString().c_str());
@@ -203,7 +212,7 @@ namespace anchoring {
     
     // Remove glitches
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ) {
-      if( ite->second->invalid() ) {
+      if( ite->second->expired() ) {
 	ROS_WARN("Anchor [removed]: %s", ite->first.c_str());
 	//this->remove(ite->first); // Remove from the binary descriptor model
 	ite = this->_map.erase( ite );
@@ -212,6 +221,21 @@ namespace anchoring {
 	++ite;
       }      
     }
+  }
+
+  // Find an anchor (the safe way)
+  AnchorPtr& AnchorContainer::find(const string &id) {
+    auto ite = this->_map.find(id);
+    if( ite == this->_map.end() ) {
+      ite = this->_map.begin();
+      for( ; ite != this->_map.end(); ++ite ) {
+	if( ite->second->merged(id) ) {
+	  break;
+	}
+      }
+      throw std::logic_error("[AnchorContainer::find]: there exists no anchor with id '" + id +"'.");
+    }
+    return ite->second;
   }
 
 } // namespace anchoring

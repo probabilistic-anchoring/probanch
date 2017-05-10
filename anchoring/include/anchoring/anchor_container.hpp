@@ -65,13 +65,15 @@ namespace anchoring {
     void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
+
+    // Get anchors as different ROS messages
     template <typename T> T get(const string &id);
     template <typename T> void getArray(vector<T> &array, const ros::Time &t);
 
     const AttributePtr& get(const string &id, AttributeType type) const {
       auto ite = this->_map.find(id);
       if( ite == this->_map.end() ) {
-	throw std::logic_error("[Anchor::getSingle]: there exists no anchor with id '" + id +"'.");
+	throw std::logic_error("[Anchor::get]: there exists no anchor with id '" + id +"'.");
       }
       return ite->second->get(type);
     }
@@ -80,13 +82,15 @@ namespace anchoring {
       if( ite == this->_map.end() ) {
 	throw std::logic_error("[Anchor::diff]: there exists no anchor with id '" + id +"'.");
       }
-      return t.toSec() - ite->second->getTime();
+      return t.toSec() - ite->second->time();
     }
 
     // Map access functions
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
-    std::string toString(const string &id) { return this->_map[id]->toString(); } 
+    AnchorPtr &find(const string &id);
+    std::string toString(const string &id) { this->find(id)->toString(); }
+
   };
 
 
@@ -105,7 +109,7 @@ namespace anchoring {
     
     // Iterate and get a snapshot of all anchors in current scene
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( ( t.toSec() - ite->second->getTime() ) < 0.01 ) { // ...4.0 sec time diff
+      if( ( t.toSec() - ite->second->time() ) < 0.01 ) { // ...4.0 sec time diff
 	array.push_back(ite->second->getAnchor<T>());
       }
     }

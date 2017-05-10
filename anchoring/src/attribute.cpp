@@ -368,13 +368,26 @@ namespace anchoring {
     assert( raw_ptr != nullptr );
 
     // Update the location
-    this->_array.back().header.stamp = raw_ptr->_array.front().header.stamp;
+    if( this->match(query_ptr) < 0.01 ) { // ...not moved more than 1cm
+      this->_array.back().header.stamp = raw_ptr->_array.front().header.stamp;
+      /*
+      this->_array.back() = raw_ptr->_array.front();
+      */
+    }
+    else {
+
+      // Append the location (including a timestamp)
+      this->_array.push_back(raw_ptr->_array.front());
+    }
+
     /*
-    this->_array.back() = raw_ptr->_array.front();
+    // Append the symbol (if there exists an symbol)
     if( !raw_ptr->_symbols.empty() ) {
       this->_symbols.back() = raw_ptr->_symbols.front();
-    }
+      this->_symbols.push_back(raw_ptr->_symbols.front());
+    }  
     */
+
     return true;
   }
 

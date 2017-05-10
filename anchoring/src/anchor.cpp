@@ -55,6 +55,8 @@ namespace anchoring {
       // Read the unique symbol
       this->_x = doc.get<std::string>("x");
       
+      // Read the history
+      doc.get<std::string>( "H", this->_history);
 
       // Read all attributes
       for( mongo::document_iterator ite = doc.begin("attributes"); ite != doc.end("attributes"); ++ite) {
@@ -108,10 +110,10 @@ namespace anchoring {
       // Generate a unique symbol
       AttributeMap::iterator ite = this->_attributes.find(CAFFE);
       if( ite != this->_attributes.end() ) {
-	this->_x = this->generate_symbol( ite->second->toString(), db);
+	this->_x = this->generateSymbol( ite->second->toString(), db);
       }
       else {
-	this->_x = this->generate_symbol( "unknown", db );
+	this->_x = this->generateSymbol( "unknown", db );
       }
 
       // Save document (use this _id as identifier)
@@ -122,6 +124,9 @@ namespace anchoring {
             
       // Add time
       doc.add<double>( "t", this->_t.toSec());
+
+      // Add the history (even if it is empty)
+      doc.add<std::string>( "H", this->_x);
       
       // Add all attributes
       for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
@@ -167,8 +172,15 @@ namespace anchoring {
     try {
 
       // Update the time
-      this->_t = ros::Time(other->getTime());
+      this->_t = ros::Time(other->time());
       db.update<double>( this->_id, "t", this->_t.toSec());      
+
+      // Add and update the history
+      if( !other->_history.empty() ) {
+	this->_history.insert( this->_history.end(), other->_history.begin(), other->_history.end() );
+      }
+      this->_history.push_back( other->id() );
+      db.update<string>( this->_id, "H", this->_history);            
 
       // Update the attributes
       if( !this->compare<AttributeMap>( this->_attributes, other->_attributes ) ) { // Map keys are different
@@ -190,8 +202,8 @@ namespace anchoring {
 
     // Append non-existing attributes and update the database
     try {
-      
-      // Add time
+    
+      // Update time
       db.update<double>( this->_id, "t", this->_t.toSec());
       
       // Add (or move) un-exisiting attributes to this anchor
@@ -219,6 +231,9 @@ namespace anchoring {
     // Update changed attributes
     try {
 
+      // Update time
+      db.update<double>( this->_id, "t", this->_t.toSec());
+
       // Update each attribute
       int idx = 0;
       AttributeMap::iterator ite = this->_attributes.begin();
@@ -231,6 +246,16 @@ namespace anchoring {
 	  db.update<mongo::Database::Document>( this->_id, ss.str(), doc);	  
 	}
       }
+
+      // Check and update the (unique) symbol 
+      ite = this->_attributes.find(CAFFE);
+      if( ite != this->_attributes.end() ) {
+	std::string symbol = ite->second->toString();
+	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	  this->_x = this->generateSymbol( symbol, db);
+	  db.update<std::string>( this->_id, "x", this->_x);
+	}
+      }  
     }
     catch( const std::exception &e ) {
       std::cout << "[Anchor::update]" << e.what() << std::endl;
@@ -274,7 +299,7 @@ namespace anchoring {
   }
 
   // Get time string
-  std::string Anchor::getTimeStr() {
+  std::string Anchor::timeStr() {
     boost::posix_time::ptime boost_t = this->_t.toBoost();
     return boost::posix_time::to_simple_string(boost_t);
   }
@@ -315,7 +340,7 @@ namespace anchoring {
   */
 
   // ---[ Generate a unique symbol ]---
-  std::string Anchor::generate_symbol(const std::string &key, mongo::Database &db) {
+  std::string Anchor::generateSymbol(const std::string &key, mongo::Database &db) {
     std::stringstream ss;
     try {
       db.set_collection("predicates");
@@ -337,7 +362,7 @@ namespace anchoring {
       db.set_collection("anchors");
     }
     catch( const std::exception &e ) {
-      std::cout << "[Anchor::generate_symbol]" << e.what() << std::endl;
+      std::cout << "[Anchor::generateSymbol]" << e.what() << std::endl;
     }
     return ss.str();
   }

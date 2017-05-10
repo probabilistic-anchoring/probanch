@@ -27,8 +27,10 @@ namespace anchoring {
     void create(mongo::Database &db); 
     void maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t);
     void merge(mongo::Database &db, std::shared_ptr<Anchor> &other);
-    bool invalid() { return this->_attributes.empty(); }
     
+    bool expired() { return this->_attributes.empty(); }
+    bool merged(const string &id) { return std::find( _history.begin(), _history.end(), id) != _history.end(); }
+
     // Matching function
     void match( const AttributeMap &attributes,
 		MatchMap &result ); 
@@ -36,9 +38,10 @@ namespace anchoring {
     // Get/set functions 
     void setSymbols( AttributeType type, const vector<string> &symbols); 
     vector<string> getSymbols(AttributeType type);
-    string getId() { return this->_id; }
-    double getTime() { return this->_t.toSec(); }
-    string getTimeStr();
+
+    string id() { return this->_id; }
+    double time() { return this->_t.toSec(); }
+    string timeStr();
     
     string toString();
     template <typename T> T getAnchor();
@@ -56,6 +59,7 @@ namespace anchoring {
 
     // Unique id for each anchor
     string _id;
+    vector<string> _history;
 
     // Unique symbol for each anchor
     string _x;
@@ -72,7 +76,7 @@ namespace anchoring {
     bool _aging;
     void decreaseAnchor(int life);
 
-    string generate_symbol(const string &key, mongo::Database &db);
+    string generateSymbol(const string &key, mongo::Database &db);
 
   };
 
