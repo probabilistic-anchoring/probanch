@@ -56,16 +56,24 @@ class AnchorViewer {
     string _color;
 
     Particle( double x, double y, double z, string color) :
-      _x(x), _y(y), _z(z), _color(color) {}
+      _x(x), _y(y), _z(z), _color(color) { }
+
+    Particle(const Particle& p) :
+      _x(p._x), _y(p._y), _z(p._z), _color(p._color) { }
+    Particle& operator=(Particle p) {
+      _x = p._x;
+      _y = p._y;
+      _z = p._z;
+      _color = p._color;
+      return *this;
+    }
     
     Point2f getPixel( image_geometry::PinholeCameraModel &cam_model,
 		      tf::Transform &tf ) {
       tf::Vector3 vec( _x, _y, _z);
       vec = tf * vec;
-      cv::Point3d pt_cv( vec.getX(), vec.getY(), vec.getZ());
-      //cv::Point3d pt_cv( _x, _y, _z);
+      cv::Point3d pt_cv( vec.x(), vec.y(), vec.z());
       cv::Point2f p = cam_model.project3dToPixel(pt_cv);
-      cout << "Point: " << p.x << " - " << p.y << endl;
       return p;
     };
 
@@ -144,7 +152,7 @@ class AnchorViewer {
     for( uint i = 0; i < msg_ptr->color.size(); i++) {
       this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
     }
-    if( this->_particles.size() > 100 ) {
+    while( this->_particles.size() > 100 ) {
       this->_particles.erase( this->_particles.begin() );
     }
   }
@@ -220,7 +228,7 @@ class AnchorViewer {
       }
       // Draw particles
       else if( this->_display_trigger == "association" ) {
-	cout << "Particles: " << this->_particles.size() << endl;
+	
 	/*
 	for( const auto &p : this->_particles) {
 	  cv::circle( result_img, p.getPixel(this->_cam_model), 2, p.getColor(), -1);
@@ -290,7 +298,7 @@ public:
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/highlight", 10, &AnchorViewer::highlight_cb, this);
-    _selected_pub = _nh.advertise<std_msgs::String>("/display/anchors", 1);
+    _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
     // Used for the web interface
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);

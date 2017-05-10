@@ -12,16 +12,14 @@
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
 
-    <! -- Segmentation parameters -->
     <param name="compar_type" type="int" value="1" />	
-    <param name="plane_min_size" type="int" value="10000" />	
-    <param name="cluster_min_size" type="int" value="160" />	
+    <param name="plane_min_size" type="int" value="12000" />	
+    <param name="cluster_min_size" type="int" value="200" />	
     <param name="angular_th" type="double" value="2.0" />	
     <param name="distance_th" type="double" value="0.016" />	
-    <param name="refine_factor" type="double" value="0.75" />    
+    <param name="refine_factor" type="double" value="0.8" />    
 
-    <!-- Spatial thresholds (used for filter the point cloud) -->
-    <param name="min_x" type="double" value="0.0" />
+    <param name="min_x" type="double" value="0.2" />
     <param name="max_x" type="double" value="1.2" />
     <param name="min_y" type="double" value="0.0" />
     <param name="max_y" type="double" value="0.62" />

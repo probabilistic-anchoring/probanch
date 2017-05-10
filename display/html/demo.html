@@ -91,8 +91,10 @@
     var dict_summary = {
       "segmentation" : 
       "<i>This object segmentation node is used in our framework for segmenting and detecting objects of interest in the scene.</i>",
+	/*
       "tracking" : 
       "<i>The object tracking node is used to track and record swift movements in the scene.</i>",
+	*/
       "extraction" : 
       "<i>The feature extraction node is responsible for extract both geometric and visual features of segmented objects.</i>",
       "classification" : 
@@ -101,14 +103,18 @@
       "<i>In parallel with the category classification procedure is this predicate grounder node used for establishing the connection between measured attributes and semantic symbols.</i>",
       "anchoring" : 
       "<i>The object anchoring node is responsible for creating and maintaining consistent representations of objects, both in time and space.</i>",
+      "association" : 
+      "<i>High-level object tracking through the use of a Joint Probabilistic Data Association Filter (JPDAF).</i>",
 
     };
 
     var dict_body = {
       "segmentation" : 
       "The object segmentation method is based on point cloud data, which is given as input data by an RGB-D sensor. This method relies on organized point cloud data (i.e. the organization of point cloud data is identical to the rows and columns of the imagery data from which the point cloud originates). The whole segmentation procedure can briefly be described using the following steps: <ul><li>Estimate 3D surface normals based on integral images. This function uses the algorithm for calculating average 3D gradients over six integral images, where the horizontal and vertical 3D gradients are used to compute the normal as the cross-product between two gradients.</li><li>Planar segmentation based on the calculated surface normals, where the largest segmented plan is selected as the ground plane.</li> <li>Object segmentation through clustering of the remaining points (points that are not part of the detected planar surface). This segmentation uses a connected component segmentation, where a Euclidean comparison function is used to connect the components that constitute the cloud cluster of an individual object.</li></ul>",
+  	/*
       "tracking" : 
       "This object tracking procedure utilizes a particle filter-based tracking algorithm, which is included in the Point Cloud Library (<a href='http://pointclouds.org/'>PCL</a>). However, a drawback of such particle filter algorithm is that the algorithm is designed for tracking only one object of interest at a time. A pool of particle filters (one filter for each detected object) have therefore been employed in our system setup, and where only the particle filters in the approximation of scene movements are active during the tracking process.",
+	*/
       "extraction" : 
       "The first step of the feature extraction node is to extract both a <i>shape attribute</i> as the 3D bounding box around each segmented object, and a 3D <i>position attribute</i> as the centre of the segmented point cloud. Next, both a <i>color attribute</i> and a <i>descriptor attribute</i> are extracted from each corresponding visual data of each segmented object. A color attribute is here measured as a color histogram (in the HSV color space). However, for the descriptor attribute, a more complicated procedure is invoked, which can be described using the following steps: <ul><li>Detect distinct image key-points through the use of the ORB key-point detector (Oriented FAST and Rotated BRIEF).</li><li>Extract binary feature descriptors by the use of the Fast Retina Keypoint (FREAK), in which a cascade of binary strings is computed as the intensities over retinal sampling patterns of a key-point patch.</li></ul>",
       "classification" : 
@@ -116,7 +122,9 @@
       "grounding" : 
       "This predicate grounder is here responsible for grounding each measured attribute to a predicate grounding symbol, e.g. a certain peek in a color histogram, measured as a color attribute, is grounded to the symbol <i>\'red\'</i>. More specifically, we here rely on color theory and that a color <i>tone</i> is expressed as a mixture of the base color mixed with either <i>tint</i> (mixture of white) or <i>shade</i> (mixture of black), such that an elemental color term, e.g. <i>\'red\'</i>, can be defined as a set of color tones of different color shades of the (base) color term, e.g. <i>shades of red</i>. This information is publicly available on-line through <a href='https://en.wikipedia.org/wiki/List_of_colors_by_shade'>Wikipedia</a>. Our approach for grounding color predicates utilize this information in order to train a Support Vector Machine (SVM) classifier, which has been trained with sets of HSV color values for color shade of 13 elemental color terms (<i>\'white\', \'gray\', \'black\', \'magenta\', \'pink\', \'red\', \'brown\', \'orange\', \'yellow\', \'green\', \'cyan\', \'blue\',</i> and <i>\'violet\'</i>). Hence, the color predicate grounding is given by the color prediction of the most dominant peeks of the HSV color histogram that compose a color attribute.",
       "anchoring" : 
-      "The entry point for the object anchoring node is a matching procedure. This procedure follows a bottom-up approach to perceptual anchoring, where the system constantly receives anchors and invokes a number of different matching algorithms (one matching algorithm for each measured attribute ) in order to determine if a candidate anchor has previously been perceived or not. Depending on the result of the matching procedure, anchors are subsequently maintained in memory through two functionalities:<ul><li><i>Acquire</i> -- stores a new anchor whenever a candidate anchor is received which currently does not match any attributes of an existing anchor.</li><li><i>Re-acquire</i> -- update an existing anchor whenever a candidate anchor is received which matches the attributes of an existing anchor. This functionality assures that the percepts pointed to by the anchor are the most recent and adequate perceptual representation of the object.</li></ul>"
+      "The entry point for the object anchoring node is a matching procedure. This procedure follows a bottom-up approach to perceptual anchoring, where the system constantly receives anchors and invokes a number of different matching algorithms (one matching algorithm for each measured attribute ) in order to determine if a candidate anchor has previously been perceived or not. Depending on the result of the matching procedure, anchors are subsequently maintained in memory through two functionalities:<ul><li><i>Acquire</i> -- stores a new anchor whenever a candidate anchor is received which currently does not match any attributes of an existing anchor.</li><li><i>Re-acquire</i> -- update an existing anchor whenever a candidate anchor is received which matches the attributes of an existing anchor. This functionality assures that the percepts pointed to by the anchor are the most recent and adequate perceptual representation of the object.</li></ul>",
+      "association" : 
+      ""
     };
 
 
@@ -162,9 +170,11 @@
   <li style="width: 16.666%; border-right: 1px solid white; border-left: 1px solid white;">
     <a href="#segmentation" class="w3-padding menuItem active">OBJECT SEGMENTATION</a>
   </li>
+<!--
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#tracking" class="w3-padding menuItem" >OBJECT TRACKING</a>
   </li>
+-->
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#extraction" class="w3-padding menuItem">FEATURE EXTRACTION</a>
   </li>
@@ -177,6 +187,10 @@
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
   </li>
+  <li style="width: 16.666%; border-right: 1px solid white;">
+    <a href="#association" class="w3-padding menuItem">DATA ASSOCIATION</a>
+  </li>
+
 </ul>
 
 <!-- Menu - vertical style 

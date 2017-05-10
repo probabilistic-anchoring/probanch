@@ -44,6 +44,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   output.objects = objects_msg->objects;
   output.image = objects_msg->image;
   output.info = objects_msg->info;
+  output.transform = objects_msg->transform;
 
   // Instaniate main feature processor
   int numKeyPoints = objects_msg->objects.size() * 2000;

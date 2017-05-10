@@ -24,11 +24,16 @@
   <!-- Anchor Caffe node -->
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   
-  <!-- Anchoring framework -->  
+  <!-- Anchoring framework  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
-        output="screen" />	
+        output="screen" />
+	-->
 
-  <!-- Display anchors --> 
+  <!-- Inference system -->
+  <node name="dc_inference_node" pkg="inference" type="dc_inference"
+        output="screen" />
+
+<!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" />
   

@@ -65,7 +65,8 @@ class AnchorCaffe {
     output.objects = objects_msg->objects;
     output.image = objects_msg->image;
     output.info = objects_msg->info;
-
+    output.transform = objects_msg->transform;
+    
     // Red the raw image
     cv_bridge::CvImagePtr cv_ptr;
     cv::Mat img, result;
