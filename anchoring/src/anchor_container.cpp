@@ -168,17 +168,22 @@ namespace anchoring {
   }
 
   // Track (or correct) an existing anchor based on data association 
-  void AnchorContainer::track(const string &id, const string &corr) {
+  void AnchorContainer::track(const string &id, const string &other) {
     try {
 
-      mongo::Database db(this->_db_name, this->_collection);
-      this->_map[id]->merge( db, this->find(corr));
-      ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+      // Resolve the (other) id
+      std::string resolved = this->resolve(other);
 
-      // Delete the 'glitch' anchor
-      if( this->_map.find(corr) != this->_map.end() ) {
-	db.remove(corr);
-	this->_map.erase(corr);  
+      // Saftey check (do NOT merge an anchor with itself!)
+      if( id != resolved ) {
+      
+	mongo::Database db(this->_db_name, this->_collection);
+	this->_map[id]->merge( db, this->_map[resolved]);
+	ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+
+	// Delete the 'glitch' anchor
+	db.remove(resolved);
+	this->_map.erase(resolved);  
       }
     }
     catch( const std::exception &e ) {
@@ -224,18 +229,18 @@ namespace anchoring {
   }
 
   // Find an anchor (the safe way)
-  AnchorPtr& AnchorContainer::find(const string &id) {
+  std::string AnchorContainer::resolve(const string &id) const {
     auto ite = this->_map.find(id);
     if( ite == this->_map.end() ) {
       ite = this->_map.begin();
       for( ; ite != this->_map.end(); ++ite ) {
 	if( ite->second->merged(id) ) {
-	  break;
+	  return ite->second->id();
 	}
       }
-      throw std::logic_error("[AnchorContainer::find]: there exists no anchor with id '" + id +"'.");
+      throw std::logic_error("[AnchorContainer::find] There exists no anchor with id '" + id +"'.");
     }
-    return ite->second;
+    return id;
   }
 
 } // namespace anchoring

@@ -61,7 +61,7 @@ namespace anchoring {
 
     // Public anchoring functions
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
-    void track(const string &id, const string &corr);
+    void track(const string &id, const string &other);
     void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
@@ -71,25 +71,19 @@ namespace anchoring {
     template <typename T> void getArray(vector<T> &array, const ros::Time &t);
 
     const AttributePtr& get(const string &id, AttributeType type) const {
-      auto ite = this->_map.find(id);
-      if( ite == this->_map.end() ) {
-	throw std::logic_error("[Anchor::get]: there exists no anchor with id '" + id +"'.");
-      }
+      auto ite = this->_map.find(this->resolve(id));
       return ite->second->get(type);
     }
     double diff(const string &id, const ros::Time &t) {
-      auto ite = this->_map.find(id);
-      if( ite == this->_map.end() ) {
-	throw std::logic_error("[Anchor::diff]: there exists no anchor with id '" + id +"'.");
-      }
+      auto ite = this->_map.find(this->resolve(id));
       return t.toSec() - ite->second->time();
     }
 
     // Map access functions
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
-    AnchorPtr &find(const string &id);
-    std::string toString(const string &id) { this->find(id)->toString(); }
+    std::string resolve(const string &id) const;
+    std::string toString(const string &id) { this->_map[this->resolve(id)]->toString(); }
 
   };
 
