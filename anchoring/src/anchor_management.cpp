@@ -32,8 +32,16 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
 
   // Create the anchor map
-  //_anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchorspace") );
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
+  std::string db;
+  if( _priv_nh.getParam("db_name", db) ) {
+    ROS_WARN("Using database : %s", db.c_str());
+    _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", db) );
+  }
+  else {  // ...default databas
+    ROS_WARN("Using default database (anchordb).");
+    _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
+  }
+
   _time_zero = -1.0;
 }
 
@@ -162,40 +170,46 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
   ROS_INFO("Got associations.");
-  
-  // Update (merge) anchors based on probabilistic object tracking
-  for( auto &msg: associations_ptr->associations) {
-    int idx_id = -1;
-    int idx_best = -1;
-    float best = 0.0;
-    std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl; 
-    for( uint i = 0; i < msg.associations.size(); i++) {
-      std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
-      std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
-      if( msg.probabilities[i] > best ) {
-	best = msg.probabilities[i]; 
-	idx_best = i;
-      }
-      if(msg.id == msg.associations[i]){
-	idx_id = i;
-      }
-    }
-    
-    //if( msg.associations[idx] != msg.id && best > 0.5 ) {
-    if (idx_id==-1){
-      if( best > 0.80 ) {
-	this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
-      }
-    }
 
-    else {
-      if( msg.associations[idx_best] != msg.id && msg.probabilities[idx_id] < associations_ptr->gamma_newT && best > 0.80 ) {
-	this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
+  try {
+  
+    // Update (merge) anchors based on probabilistic object tracking
+    for( auto &msg: associations_ptr->associations) {
+      int idx_id = -1;
+      int idx_best = -1;
+      float best = 0.0;
+      std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl;
+      for( uint i = 0; i < msg.associations.size(); i++) {
+	std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
+	std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
+	if( msg.probabilities[i] > best ) {
+	  best = msg.probabilities[i]; 
+	  idx_best = i;
+	}
+	if(msg.id == msg.associations[i]){
+	  idx_id = i;
+	}
       }
-      else if (msg.associations[idx_best] == msg.id && best > 0.80){
-	continue;
+    
+      //if( msg.associations[idx] != msg.id && best > 0.5 ) {
+      if (idx_id==-1){
+	if( best > 0.80 ) {
+	  this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
+	}
       }
-    }    
+
+      else {
+	if( msg.associations[idx_best] != msg.id && msg.probabilities[idx_id] < associations_ptr->gamma_newT && best > 0.80 ) {
+	  this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
+	}
+	else if (msg.associations[idx_best] == msg.id && best > 0.80){
+	  continue;
+	}
+      }    
+    }
+  }
+  catch( const std::exception &e ) {
+    ROS_ERROR("[AnchorManagement::track]%s", e.what() );
   }
 }
 

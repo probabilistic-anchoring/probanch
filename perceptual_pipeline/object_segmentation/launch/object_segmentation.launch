@@ -12,19 +12,19 @@
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
 
-    <param name="compar_type" type="int" value="1" />	
-    <param name="plane_min_size" type="int" value="12000" />	
+    <param name="compar_type" type="int" value="2" />	
+    <param name="plane_min_size" type="int" value="6000" />	
     <param name="cluster_min_size" type="int" value="200" />	
-    <param name="angular_th" type="double" value="2.0" />	
-    <param name="distance_th" type="double" value="0.016" />	
-    <param name="refine_factor" type="double" value="0.8" />    
+    <param name="angular_th" type="double" value="1.4" />	
+    <param name="distance_th" type="double" value="0.01" />	
+    <param name="refine_factor" type="double" value="1.54" />    
 
     <param name="min_x" type="double" value="0.2" />
     <param name="max_x" type="double" value="1.2" />
     <param name="min_y" type="double" value="0.0" />
     <param name="max_y" type="double" value="0.62" />
     <param name="min_z" type="double" value="-0.1" />
-    <param name="max_z" type="double" value="0.6" />
+    <param name="max_z" type="double" value="0.3" />
 
   </node>
 

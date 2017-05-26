@@ -170,7 +170,7 @@ namespace anchoring {
   // Track (or correct) an existing anchor based on data association 
   void AnchorContainer::track(const string &id, const string &other) {
     try {
-
+      
       // Resolve the (other) id
       std::string resolved = this->resolve(other);
 
@@ -185,6 +185,7 @@ namespace anchoring {
 	db.remove(resolved);
 	this->_map.erase(resolved);  
       }
+      
     }
     catch( const std::exception &e ) {
       std::cout << "[AnchorContainer::track]" << e.what() << std::endl;

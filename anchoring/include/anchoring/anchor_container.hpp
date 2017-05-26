@@ -83,7 +83,9 @@ namespace anchoring {
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
     std::string resolve(const string &id) const;
-    std::string toString(const string &id) { this->_map[this->resolve(id)]->toString(); }
+    std::string toString(const string &id) {
+      return this->_map[this->resolve(id)]->toString();
+    }
 
   };
 

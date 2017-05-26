@@ -145,23 +145,16 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
-  
+
+  /*
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
 
-  // Filter the transformed point cloud
-  for( auto &p: transformed_cloud_ptr->points) {
-    if( !( p.x > this->min_x_ && p.x < this->max_x_ ) ||
-	!( p.y > this->min_y_ && p.y < this->max_y_ ) ||
-	!( p.z > this->min_z_ && p.z < this->max_z_ ) ) {
-      p.x = std::numeric_limits<double>::quiet_NaN(); //infinity();
-      p.y = std::numeric_limits<double>::quiet_NaN();
-      p.z = std::numeric_limits<double>::quiet_NaN();
-      p.b = p.g = p.r = 0;
-    }
-  }    
-   
+  // Filter the transformed point cloud 
+  this->filter (transformed_cloud_ptr);
+  */
+  
   // Read the RGB image
   cv::Mat img, result;
   cv_bridge::CvImagePtr cv_ptr;
@@ -189,7 +182,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
-  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  //this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -258,17 +252,22 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
 	  cv::drawContours( img, contours, -1, color, 1);
       	  
-	  /*
+	  
 	  // Transform the cloud to the world frame
-	  pcl::PointCloud<segmentation::Point> transformed_cluster;
-	  pcl_ros::transformPointCloud( *cluster_ptr, transformed_cluster, transform);
-	  */	  
-
+	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+	  pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);
+	  
+	  // Filter the transformed point cloud 
+	  this->filter (transformed_cluster_ptr);
+	  if( transformed_cluster_ptr->points.empty() )
+	    continue;
+	  
+	  /*
 	  // Create a transformed point cluster 
 	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
 	  pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
 	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
-
+	  */
 
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
@@ -281,11 +280,11 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
 	  obj.position.data = pose;
 
-	  
-	  // --[ Intially filterinh of the whole point cloud instead ]--
+	  /*
+	  // --[ Intially filtering of the whole point cloud instead ]--
 	  if( !( obj.position.data.pose.position.x > 0.2  && obj.position.data.pose.position.y > 0.0 && obj.position.data.pose.position.y < 0.62 && obj.position.data.pose.position.z < 0.5 ) )
 	    continue;
-	  
+	  */
 
 	  // Add the position to the movement array
 	  movements.movements.push_back(pose);
@@ -367,6 +366,35 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       move_pub_.publish(movements);      
     }
     
+  }
+}
+
+void ObjectSegmentation::filter( pcl::PointCloud<segmentation::Point>::Ptr &cloud_ptr ) {
+
+
+  // Filter the transformed point cloud
+  if( cloud_ptr->isOrganized ()) {
+    for( auto &p: cloud_ptr->points) {
+      if( !( p.x > this->min_x_ && p.x < this->max_x_ ) ||
+	  !( p.y > this->min_y_ && p.y < this->max_y_ ) ||
+	  !( p.z > this->min_z_ && p.z < this->max_z_ ) ) {
+	p.x = std::numeric_limits<double>::quiet_NaN(); //infinity();
+	p.y = std::numeric_limits<double>::quiet_NaN();
+	p.z = std::numeric_limits<double>::quiet_NaN();
+	p.b = p.g = p.r = 0;
+      }
+    }
+  }
+  else {
+    pcl::PointCloud<segmentation::Point>::Ptr result_ptr (new pcl::PointCloud<segmentation::Point>);
+    for( auto &p: cloud_ptr->points) {
+      if( ( p.x > this->min_x_ && p.x < this->max_x_ ) &&
+	  ( p.y > this->min_y_ && p.y < this->max_y_ ) &&
+	  ( p.z > this->min_z_ && p.z < this->max_z_ ) ) {
+	result_ptr->points.push_back (p);
+      }
+    }
+    cloud_ptr.swap (result_ptr);
   }
 }
 

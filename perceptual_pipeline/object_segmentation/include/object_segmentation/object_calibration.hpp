@@ -63,6 +63,7 @@ class ObjectCalibration {
 
   // Private functions
   void segmentationCb( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);
+  void filter( pcl::PointCloud<segmentation::Point>::Ptr &cloud_ptr );
 
   // Segmentation 
   segmentation::Segmentation seg_;
