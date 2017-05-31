@@ -146,14 +146,15 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
 
-  /*
+  
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
 
   // Filter the transformed point cloud 
   this->filter (transformed_cloud_ptr);
-  */
+  // ----------------------
+  
   
   // Read the RGB image
   cv::Mat img, result;
@@ -182,8 +183,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
-  //this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
-  this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
+  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  //this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -252,7 +253,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
 	  cv::drawContours( img, contours, -1, color, 1);
       	  
-	  
+	  /*
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
 	  pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);
@@ -261,13 +262,13 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  this->filter (transformed_cluster_ptr);
 	  if( transformed_cluster_ptr->points.empty() )
 	    continue;
+	  */
 	  
-	  /*
 	  // Create a transformed point cluster 
 	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
 	  pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
 	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
-	  */
+	  
 
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
