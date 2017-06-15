@@ -40,9 +40,11 @@ class AnchorAnnotation {
 
   bool _lock_screen;
   bool _processing;
+  std::string _db_name;
 
   void queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void sort( map< string, map<anchoring::AttributeType, float> > &matches, int num = 5 );
+  void save( map< string, map<anchoring::AttributeType, float> > &matches, std::string id = "");
   void reset(bool complete = false);
   
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 

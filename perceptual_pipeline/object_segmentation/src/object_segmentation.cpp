@@ -294,7 +294,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  img.copyTo( result, cluster_img);
 	  
 
-	  std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
+	  //std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
 
 	  // 2. Extract the shape
 	  segmentation::getShape( transformed_cluster_ptr, obj.shape.data );

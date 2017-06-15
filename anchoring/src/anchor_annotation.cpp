@@ -25,16 +25,25 @@ const char* AnchorAnnotation::window = "Anchor Annotation";
   
 // Constructor
 AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _lock_screen(false), _processing(false), _idx(-1) {
-  
+
+  // ROS subscriber
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorAnnotation::queue, this);
   _leap_time = ros::Duration(0.0);
 
   // Create the anchor map
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
+  if( _priv_nh.getParam("db_name", this->_db_name) ) {
+    ROS_WARN("Using database : %s", this->_db_name.c_str());
+  }
+  else {  // ...default databas
+    this->_db_name = "anchordb";
+    ROS_WARN("Using default database (anchordb).");
+  }
+  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", this->_db_name) );
 
+  // Create the display window
   cv::namedWindow( window, 1);
   cv::setMouseCallback( window, &clickCb, this);
-  cv::createTrackbar( "Negative time warp", window, &this->_time_pos, 100);
+  cv::createTrackbar( "Time slider:", window, &this->_time_pos, 100);
 }
 
 AnchorAnnotation::~AnchorAnnotation() {
@@ -116,11 +125,11 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
     double dist = (ite->second[CAFFE] + ite->second[COLOR] + ite->second[SHAPE]) / 3.0;
     result[dist] = ite->first;
     #if DEBUG == 1
-    std::cout << ite->first << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << ", " << ite->second[POSITION] << "] ";
+    std::cout << this->_anchors->toString(ite->first) << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << ", " << ite->second[POSITION] << "] ";
     std::cout << "t: " << 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) )) << std::endl;
     #endif
   }
-  {
+  if( matches.size() > num ) {
     auto ite = result.begin();
     ite = std::next( ite, num);
     for( ; ite != result.end(); ++ite) {
@@ -131,13 +140,49 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
   #if DEBUG == 1
   std::cout << "Best matches: " << std::endl;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    std::cout << ite->first << std::endl;
+    std::cout << this->_anchors->toString(ite->first) << std::endl;
   }
   std::cout << "---" << std::endl;
   #endif
 }
 
-void AnchorAnnotation::reset(bool complete) {
+void AnchorAnnotation::save( map< string, map<anchoring::AttributeType, float> > &matches, std::string id) {
+  mongo::Database db( this->_db_name, "dataset");
+  try { 
+
+    // Save matches and non-matches
+    for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
+      std::vector<double> result;
+      result.push_back( ite->second[CAFFE] );
+      result.push_back( ite->second[COLOR] );
+      result.push_back( ite->second[POSITION] );
+      result.push_back( ite->second[SHAPE] );
+      result.push_back( 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) )) );  // Add the time as well...
+
+      // Create MongoDB document
+      mongo::Database::Document doc;
+
+      // Add data
+      doc.add<double>( "x", result);
+
+      // Add label
+      if( id == ite->first ) {
+	doc.add<double>( "y", 1.0);
+      }
+      else {
+	doc.add<double>( "y", 0.0);
+      }
+      
+      // Commit all changes to database
+      db.insert(doc);
+    }      
+  }
+  catch( const std::exception &e ) {
+    std::cout << "[AnchorAnnotation::save]" << e.what() << std::endl;
+  }
+}
+
+void AnchorAnnotation::reset (bool complete) {
   if( !complete ) {
     this->_objects.erase( this->_objects.begin() + this->_idx );
   }
@@ -186,7 +231,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
 	// Match attributes of selected object
 	this->_matches.clear();
 	this->_anchors->match( object, this->_matches);
-	this->sort( this->_matches );
+	this->sort( this->_matches, 4);
 
 	this->_time_history = 0.0;
 	for( auto ite = this->_matches.begin(); ite != this->_matches.end(); ++ite) {
@@ -199,7 +244,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
         std::cout << "Time history: " << this->_time_history << std::endl;
 	#endif
 	
-	cv::setTrackbarPos( "Negative time warp", window, 100);
+	cv::setTrackbarPos( "Time slider:", window, 100);
 	break;
       }
       idx++;
@@ -208,7 +253,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
   else {
     std::string id = "";
     double dist = 1.0;
-    int pose = cv::getTrackbarPos( "Negative time warp", window);  
+    int pose = cv::getTrackbarPos( "Time slider:", window);  
     for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
       cv::Rect roi = this->getRect( this->_anchors->get( ite->first, CAFFE) );
       if( roi.contains( cv::Point( x, y ) ) ) {
@@ -227,9 +272,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
     }
     if( !id.empty() ) {
       try {
-        #if DEBUG == 1
-        std::cout << "Re-aquire: " << id << std::endl;
-	#endif
+	this->save( this->_matches, id ); 
 	this->_anchors->re_acquire( id, this->_objects[this->_idx], this->_lock_time ); // RE_ACQUIRE
       }
       catch( const std::exception &e ) {
@@ -238,6 +281,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
     }
     else {
       try {
+	this->save( this->_matches ); 
 	this->_anchors->acquire( this->_objects[this->_idx], this->_lock_time, true); // ACQUIRE
       }
       catch( const std::system_error &e ) {
@@ -257,10 +301,13 @@ cv::Mat AnchorAnnotation::subImages(int idx) {
   result.convertTo( result, -1, 1.0, 50); 
 
   // Iterate and draw sub images
-  int pose = cv::getTrackbarPos( "Negative time warp", window);
+  cv::Scalar color = cv::Scalar::all(255); // White
+  int pose = cv::getTrackbarPos( "Time slider:", window);
   for( auto ite = _matches.begin(); ite != _matches.end(); ++ite) {
     cv::Mat roi = result( this->getRect( this->_anchors->get( ite->first, CAFFE) ) );
-    cv::Mat img = this->getImage( this->_anchors->get( ite->first, CAFFE) ); 
+    cv::Mat img = this->getImage( this->_anchors->get( ite->first, CAFFE) );
+    cv::rectangle( img, cv::Point( 1, 1), cv::Point( img.cols - 1, img.rows - 1), color, 1, 8);
+    cv::putText( img, this->_anchors->toString(ite->first), cv::Point( 10, 16), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
     if( this->_time_history > 1.0 ) {
       double time_diff = this->_anchors->diff( ite->first, this->_lock_time) / this->_time_history;
       double alpha = std::abs(time_diff - pose / 100.0);
@@ -335,7 +382,10 @@ void AnchorAnnotation::spin() {
       _lock_screen = !_lock_screen;
       this->reset(true);
       _processing = false;
-      std::cout << "Screen lock changed." << endl;
+      if( _lock_screen ) 
+	std::cout << "Screen locked." << endl;
+      else 
+	std::cout << "Screen un-locked." << endl;
     }
     else if( key == 'H' || key == 'h' ) {
       this->help();

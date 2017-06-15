@@ -65,6 +65,9 @@ namespace anchoring {
   // ------------------------------------  
   ColorAttribute::ColorAttribute( const anchor_msgs::ColorAttribute &msg, 
 				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    // Initilize counter
+    this->_n = 1.0;  
+    
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
@@ -90,6 +93,9 @@ namespace anchoring {
       }
       doc.add<double>( "data", array);
 
+      // Save the counter
+      doc.add<double>( "n", this->_n);
+      
       // Save (color) predictions
       doc.add<double>( "predictions", this->_predictions);
     }
@@ -111,7 +117,9 @@ namespace anchoring {
 	this->_data.at<float>( 0, i) = (float)array[i];
       } 
       
-
+      // Load the counter
+      this->_n = (float)doc.get<double>("n");
+      
       // Load (color) predictions
       doc.get<double>( "predictions", this->_predictions);
     }
@@ -142,9 +150,24 @@ namespace anchoring {
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
-    float dist = (1.0 + cv::compareHist( raw_ptr->_data, this->_data, CV_COMP_CORREL)) / 2.0; // CV_COMP_CORREL | CV_COMP_INTERSECT | CV_COMP_BHATTACHARYYA
+    float dist = (1.0 + cv::compareHist( raw_ptr->_data, (this->_data / this->_n), CV_COMP_CORREL)) / 2.0; // CV_COMP_CORREL | CV_COMP_INTERSECT | CV_COMP_BHATTACHARYYA
     //std::cout << "Color dist: " << dist << std::endl;
     return dist;
+  }
+
+  bool ColorAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+
+    // Typecast the query pointer
+    ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    // Summarize histograms
+    this->_data = this->_data + raw_ptr->_data;
+    
+    // Increment the counter
+    this->_n = this->_n + 1.0;
+
+    return true;
   }
 
   string ColorAttribute::toString() {
@@ -499,6 +522,7 @@ namespace anchoring {
     this->_border = msg.border;
     this->_point = msg.point;
     this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
+    this->_N = vector<double>( this->_predictions.size(), 1.0);
   }
 
   mongo::Database::Document CaffeAttribute::serialize() {
@@ -520,7 +544,8 @@ namespace anchoring {
 
       // Save (caffe) predictions
       doc.add<double>( "predictions", this->_predictions);
-
+      doc.add<double>( "N", this->_N);  // ..including the frequencies
+      
       // Save the contour
       for( auto &point : _border.contour ) {
 	mongo::Database::Document p_doc;
@@ -554,6 +579,7 @@ namespace anchoring {
 
       // Load (caffe) predictions
       doc.get<double>( "predictions", this->_predictions);
+      doc.get<double>( "N", this->_N);
 
       // Load the contour
       for( mongo::document_iterator ite = doc.begin("border"); ite != doc.end("border"); ++ite) {
@@ -580,8 +606,9 @@ namespace anchoring {
   void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::CaffeAttribute caffe_msg;
     caffe_msg.symbols = this->_symbols;
-    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
-      caffe_msg.predictions.push_back((float)*ite);
+    auto n = this->_N.begin();
+    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
+      caffe_msg.predictions.push_back((float)*ite / *n);
     }
     msg.caffe = caffe_msg;
   }
@@ -591,14 +618,15 @@ namespace anchoring {
     float best = 0.0;
     int index = -1;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      if( this->_predictions[i] > best ) {
-	best = this->_predictions[i];
+      float prob = this->_predictions[i] / this->_N[i]; 
+      if( prob > best ) {
+	best = prob;
 	index = i;
       }
     }
     if( index >= 0 ) {
       msg.category = this->_symbols[index];
-      msg.prediction = this->_predictions[index];
+      msg.prediction = this->_predictions[index] / this->_N[index];
     }
     
   }
@@ -614,8 +642,8 @@ namespace anchoring {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
 	  float diff = 1.0 / 
-	    exp( abs( this->_predictions[i] - raw_ptr->_predictions[j] ) /
-		 ( this->_predictions[i] * raw_ptr->_predictions[j] ) );
+	    exp( abs( (this->_predictions[i] / this->_N[i]) - raw_ptr->_predictions[j] ) /
+		 ( (this->_predictions[i] / this->_N[i]) * raw_ptr->_predictions[j] ) );
 	  if (diff > result ) {
 	    result = diff;
 	  }
@@ -641,6 +669,7 @@ namespace anchoring {
       if( find( this->_symbols.begin(), this->_symbols.end(), raw_ptr->_symbols[i]) == this->_symbols.end() ) {
 	this->_symbols.push_back(raw_ptr->_symbols[i]);
 	this->_predictions.push_back(0.0);
+	this->_N.push_back(0.0);
       }
     }
 
@@ -648,9 +677,8 @@ namespace anchoring {
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	  if( raw_ptr->_predictions[j] > this->_predictions[i] ) {
-	    this->_predictions[i] = raw_ptr->_predictions[j];
-	  }
+	  this->_predictions[i] += raw_ptr->_predictions[j];
+	  this->_N[i] = this->_N[i] + 1.0;
 	} 
       }
     }
@@ -663,8 +691,9 @@ namespace anchoring {
     int index = -1;
     std::stringstream ss;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      if( this->_predictions[i] > best ) {
-	best = this->_predictions[i];
+      float prob = this->_predictions[i] / this->_N[i];
+      if( prob > best ) {
+	best = prob;
 	index = i;
       }
     }
