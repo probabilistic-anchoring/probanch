@@ -11,6 +11,21 @@ namespace ml {
   using namespace cv;
   using namespace mongo;
 
+  void ML::train( const Mat &data, const Mat &labels) {
+    if( this->_type == "svm" ) {
+      CvSVM *swm_ptr = dynamic_cast<CvSVM*>(this->_model.get());
+      swm_ptr->train( data, labels, Mat(), Mat(), this->_svm_p);
+    }
+  }
+
+  float ML::predict(const Mat &sample) {
+    float result;
+    if( this->_type == "svm" ) {
+      CvSVM *swm_ptr = dynamic_cast<CvSVM*>(this->_model.get());
+      result = swm_ptr->predict(sample);
+    }
+    return result;
+  }
 
 } // ...namespace ]---
 
@@ -22,7 +37,31 @@ namespace ml {
 // ---------------------------------------
 // This function will eventually by modified for extra param arguments
 ml::MachinePtr ml::create(std::string type) {
+  ml::MachinePtr ptr;
+  std::shared_ptr<CvStatModel> model;
+  if( type == "svm" ) {
 
+    // SVM parameters
+    CvSVMParams param = CvSVMParams();
+    param.svm_type = CvSVM::C_SVC;
+    param.kernel_type = CvSVM::RBF; //CvSVM::RBF, CvSVM::LINEAR ...
+    param.degree = 0; // for poly
+    param.gamma = 20; // for poly/rbf/sigmoid
+    param.coef0 = 0; // for poly/sigmoid
+
+    param.C = 7; // for CV_SVM_C_SVC, CV_SVM_EPS_SVR and CV_SVM_NU_SVR
+    param.nu = 0.0; // for CV_SVM_NU_SVC, CV_SVM_ONE_CLASS, and CV_SVM_NU_SVR
+    param.p = 0.0; // for CV_SVM_EPS_SVR
+
+    param.class_weights = NULL; // for CV_SVM_C_SVC
+    param.term_crit.type = CV_TERMCRIT_ITER +CV_TERMCRIT_EPS;
+    param.term_crit.max_iter = 1000;
+    param.term_crit.epsilon = 1e-6;
+
+    model = std::shared_ptr<CvStatModel>(new CvSVM());
+    ptr = ml::MachinePtr(new ML( type, model, param));
+  }
+  return ptr;
 }
 
 

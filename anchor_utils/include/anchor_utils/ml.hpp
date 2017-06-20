@@ -24,11 +24,17 @@ namespace ml {
     // ---[ Class definition...
   // --------------------------------
   class ML {
-    ML() {}
-    ~ML() {}
+    string _type;
+    shared_ptr<CvStatModel> _model;
+    CvSVMParams _svm_p;
 
-  private:
-    
+  public:
+    ML(string type, shared_ptr<CvStatModel> model) : _type(type), _model(model) {}
+    ML(string type, shared_ptr<CvStatModel> model, CvSVMParams params ) 
+      : _type(type), _model(model), _svm_p(params) {}
+    ~ML() {}
+    void train( const Mat &data, const Mat &labels); 
+    float predict(const Mat &sample); 
 
   }; // ...end of class. ]---
 
