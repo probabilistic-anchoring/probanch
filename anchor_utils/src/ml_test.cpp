@@ -27,7 +27,7 @@ int main(int, char**) {
   cv::Mat data, labels;
   ml::read( "anchorexp", "dataset", data, labels);
   std::cout<< "Total samples: " << data.rows << "x" << data.cols << std::endl;
-  std::cout<< "Total Llabels: " << labels.rows << "x" << labels.cols << std::endl;
+  std::cout<< "Total labels: " << labels.rows << "x" << labels.cols << std::endl;
   std::cout<< "---" << std::endl;
 
   // Split the data into traning and test data
@@ -49,14 +49,17 @@ int main(int, char**) {
 
   // Create and train a SVM classifier
   ml::MachinePtr classifier = ml::create("svm");
-  classifier->train(trainData, trainLabels);
+  classifier->train( trainData, trainLabels);
 
   // Test the classifier
-  cv::Mat predicted(testData.rows, 1, CV_32F);
+  int correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
     cv::Mat sample = testData.row(i);
-    predicted.at<float>(i, 0) = classifier->predict(sample);
+    float pred = classifier->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
   }
-  std::cout << "Accuracy_{SVM} = " << evaluate(predicted, testLabels) << std::endl;
+  std::cout << "Accuracy_{SVM} = " << correct / (float)testData.rows << std::endl;
 
 }
