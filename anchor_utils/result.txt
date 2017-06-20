@@ -1,0 +1,32 @@
+
+<< Result with time as an attribut >>
+
+Total samples: 2057x5
+Total labels: 2057x1
+---
+Traning samples: 1439
+Test samples: 618
+---
+Accuracy_{SVM} = 0.970874
+Accuracy_{MLP} = 0.881877
+Accuracy_{kNN} = 0.94822
+Accuracy_{Bayes} = 0.962783
+Accuracy_{DTree} = 0.666667
+
+
+<< Result without time as an attribut >>
+
+Total samples: 2057x5
+Total labels: 2057x1
+---
+Traning samples: 1439
+Test samples: 618
+---
+Train data filtered: 1439x4
+Test data filtered: 618x4
+---
+Accuracy_{SVM} = 0.969256
+Accuracy_{MLP} = 0.666667
+Accuracy_{kNN} = 0.953074
+Accuracy_{Bayes} = 0.967638
+Accuracy_{DTree} = 0.666667

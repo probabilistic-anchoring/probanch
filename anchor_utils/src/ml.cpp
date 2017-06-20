@@ -83,7 +83,7 @@ ml::MachinePtr ml::create(string type) {
     params.svm_type = CvSVM::NU_SVC;
     params.kernel_type = CvSVM::RBF; //CvSVM::RBF, CvSVM::LINEAR ...
     params.degree = 0; // for poly
-    params.gamma = 20; // for poly/rbf/sigmoid
+    params.gamma = 10; // for poly/rbf/sigmoid
     params.coef0 = 0; // for poly/sigmoid
 
     params.C = 7; // for CV_SVM_C_SVC, CV_SVM_EPS_SVR and CV_SVM_NU_SVR

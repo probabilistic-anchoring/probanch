@@ -24,17 +24,19 @@ int main(int, char**) {
   cv::Mat trainFiltered, testFiltered;
   ml::filter( trainData, trainFiltered, 4);
   ml::filter( testData, testFiltered, 4);
-  /*
+  
   std::cout<< "Train data filtered: " << trainFiltered.rows << "x" << trainFiltered.cols << std::endl;
   std::cout<< "Test data filtered: " << testFiltered.rows << "x" << testFiltered.cols << std::endl;
   std::cout<< "---" << std::endl;
-  */
+  
 
   // Create, train aand test SVM classifier
   ml::MachinePtr classifier = ml::create("svm");
+  //classifier->train( trainFiltered, trainLabels);
   classifier->train( trainData, trainLabels);
   int correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
+    //cv::Mat sample = testFiltered.row(i);
     cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
@@ -45,9 +47,11 @@ int main(int, char**) {
 
   // Train and test MLP classifier
   classifier = ml::create("mlp");
+  //classifier->train( trainFiltered, trainLabels);
   classifier->train( trainData, trainLabels);
   correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
+    //cv::Mat sample = testFiltered.row(i);
     cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
@@ -58,9 +62,11 @@ int main(int, char**) {
 
   // Train and test kNN classifier
   classifier = ml::create("knn");
+  //classifier->train( trainFiltered, trainLabels);
   classifier->train( trainData, trainLabels);
   correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
+    //cv::Mat sample = testFiltered.row(i);
     cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
@@ -71,9 +77,11 @@ int main(int, char**) {
 
   // Train and test Bayes classifier
   classifier = ml::create("bayes");
+  //classifier->train( trainFiltered, trainLabels);
   classifier->train( trainData, trainLabels);
   correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
+    //cv::Mat sample = testFiltered.row(i);
     cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
@@ -84,9 +92,11 @@ int main(int, char**) {
 
   // Train and test Decesion tree classifier
   classifier = ml::create("tree");
+  //classifier->train( trainFiltered, trainLabels);
   classifier->train( trainData, trainLabels);
   correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
+    //cv::Mat sample = testFiltered.row(i);
     cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
