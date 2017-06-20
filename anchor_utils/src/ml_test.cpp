@@ -3,23 +3,6 @@
 
 using namespace ml;
 
-// accuracy
-float evaluate(cv::Mat& predicted, cv::Mat& actual) {
-  assert(predicted.rows == actual.rows);
-  int t = 0;
-  int f = 0;
-  for(int i = 0; i < actual.rows; i++) {
-    float p = predicted.at<float>(i,0);
-    float a = actual.at<float>(i,0);
-    if((p >= 0.0 && a >= 0.0) || (p <= 0.0 &&  a <= 0.0)) {
-      t++;
-    } else {
-      f++;
-    }
-  }
-  return (t * 1.0) / (t + f);
-}
-
 // --[ Main fn ]--- 
 int main(int, char**) { 
 
@@ -47,11 +30,9 @@ int main(int, char**) {
   std::cout<< "---" << std::endl;
   */
 
-  // Create and train a SVM classifier
+  // Create, train aand test SVM classifier
   ml::MachinePtr classifier = ml::create("svm");
   classifier->train( trainData, trainLabels);
-
-  // Test the classifier
   int correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
     cv::Mat sample = testData.row(i);
@@ -61,5 +42,57 @@ int main(int, char**) {
     }
   }
   std::cout << "Accuracy_{SVM} = " << correct / (float)testData.rows << std::endl;
+
+  // Train and test MLP classifier
+  classifier = ml::create("mlp");
+  classifier->train( trainData, trainLabels);
+  correct = 0;
+  for( uint i = 0; i < testData.rows; i++) {
+    cv::Mat sample = testData.row(i);
+    float pred = classifier->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
+  }
+  std::cout << "Accuracy_{MLP} = " << correct / (float)testData.rows << std::endl;
+
+  // Train and test kNN classifier
+  classifier = ml::create("knn");
+  classifier->train( trainData, trainLabels);
+  correct = 0;
+  for( uint i = 0; i < testData.rows; i++) {
+    cv::Mat sample = testData.row(i);
+    float pred = classifier->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
+  }
+  std::cout << "Accuracy_{kNN} = " << correct / (float)testData.rows << std::endl;
+
+  // Train and test Bayes classifier
+  classifier = ml::create("bayes");
+  classifier->train( trainData, trainLabels);
+  correct = 0;
+  for( uint i = 0; i < testData.rows; i++) {
+    cv::Mat sample = testData.row(i);
+    float pred = classifier->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
+  }
+  std::cout << "Accuracy_{Bayes} = " << correct / (float)testData.rows << std::endl;
+
+  // Train and test Decesion tree classifier
+  classifier = ml::create("tree");
+  classifier->train( trainData, trainLabels);
+  correct = 0;
+  for( uint i = 0; i < testData.rows; i++) {
+    cv::Mat sample = testData.row(i);
+    float pred = classifier->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
+  }
+  std::cout << "Accuracy_{DTree} = " << correct / (float)testData.rows << std::endl;
 
 }

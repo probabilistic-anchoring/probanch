@@ -27,12 +27,22 @@ namespace ml {
     string _type;
     shared_ptr<CvStatModel> _model;
     CvSVMParams _svm_p;
+    CvANN_MLP_TrainParams _mlp_p;
+    Mat _var_type;
 
   public:
+
+    // --[ Constructor(s)/destructor --]
     ML(string type, shared_ptr<CvStatModel> model) : _type(type), _model(model) {}
     ML(string type, shared_ptr<CvStatModel> model, CvSVMParams params ) 
       : _type(type), _model(model), _svm_p(params) {}
+    ML(string type, shared_ptr<CvStatModel> model, CvANN_MLP_TrainParams params ) 
+      : _type(type), _model(model), _mlp_p(params) {}
+    ML(string type, shared_ptr<CvStatModel> model, Mat var_type ) 
+      : _type(type), _model(model), _var_type(var_type) {}
     ~ML() {}
+
+    // --[ Traning/prediction ]--
     void train( const Mat &data, const Mat &labels); 
     float predict(const Mat &sample); 
 
