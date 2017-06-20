@@ -24,11 +24,11 @@ int main(int, char**) {
   cv::Mat trainFiltered, testFiltered;
   ml::filter( trainData, trainFiltered, 4);
   ml::filter( testData, testFiltered, 4);
-  
+  /*
   std::cout<< "Train data filtered: " << trainFiltered.rows << "x" << trainFiltered.cols << std::endl;
   std::cout<< "Test data filtered: " << testFiltered.rows << "x" << testFiltered.cols << std::endl;
   std::cout<< "---" << std::endl;
-  
+  */
 
   // Create, train aand test SVM classifier
   ml::MachinePtr classifier = ml::create("svm");
@@ -44,6 +44,7 @@ int main(int, char**) {
     }
   }
   std::cout << "Accuracy_{SVM} = " << correct / (float)testData.rows << std::endl;
+  classifier->save("anchorexp", "ml");
 
   // Train and test MLP classifier
   classifier = ml::create("mlp");

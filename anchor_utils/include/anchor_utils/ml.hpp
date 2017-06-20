@@ -45,6 +45,9 @@ namespace ml {
     // --[ Traning/prediction ]--
     void train( const Mat &data, const Mat &labels); 
     float predict(const Mat &sample); 
+    
+    // --[ Save function]--
+    void save(string db_name, string collection);
 
   }; // ...end of class. ]---
 
@@ -55,6 +58,7 @@ namespace ml {
 
   // ---[ Namespace functions ]---
   MachinePtr create(string type);
+  MachinePtr load(string db_name, string collection, string type);
   void read(string db_name, string collection, Mat &data, Mat &labels);
   void filter(const Mat &data, Mat &filtered, int idx);
   void split( const Mat &data, const Mat &labels,

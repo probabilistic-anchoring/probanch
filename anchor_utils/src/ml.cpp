@@ -64,6 +64,32 @@ namespace ml {
     return result;
   }
 
+  // ---[ Saves the model to database ]---
+  void ML::save(string db_name, string collection) {
+    using namespace mongo;
+    try {
+
+      // Write the model to string
+      FileStorage fsWrite(".xml", FileStorage::WRITE + FileStorage::MEMORY);
+      this->_model->write( *fsWrite, "");
+      std::string buf = fsWrite.releaseAndGetString();
+
+      // Create MongoDB document
+      mongo::Database::Document doc;
+
+      // Add the model (as string)
+      doc.add<std::string>( "model", buf);
+      doc.add<std::string>( "type", this->_type);
+
+      // Commit all changes to database
+      Database db( db_name, collection);
+      db.insert(doc);
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[ml::load]" << e.what() << std::endl;
+    }
+  }
+
 } // ...namespace ]---
 
 // -------------------
@@ -155,6 +181,31 @@ ml::MachinePtr ml::create(string type) {
 }
 
 
+// ---[ Load model from database ]---
+ml::MachinePtr ml::load(string db_name, string collection, string type) {
+  using namespace mongo;
+
+  ml::MachinePtr ptr;
+  shared_ptr<CvStatModel> model;
+  try { 
+ 
+    // Load the model from the database
+    Database db( db_name, collection);
+    std::string id = db.get_id<std::string>( "type", type);    
+    std::string buf = db.get<std::string>( id, "model");
+
+    // Read model from string
+    FileStorage fsRead( buf, FileStorage::READ + FileStorage::MEMORY);
+    model = std::shared_ptr<CvStatModel>(new CvStatModel());
+    model->read( *fsRead, *(fsRead.getFirstTopLevelNode()) );
+    ptr = ml::MachinePtr(new ML(type, model)); 
+  }
+  catch( const std::exception &e ) {
+    std::cout << "[ml::load]" << e.what() << std::endl;
+  }
+  return ptr;
+}
+
 // ---[ Read samples from the database ]---
 void ml::read( string db_name, string collection, Mat &data, Mat &labels) {
   using namespace mongo;
@@ -189,7 +240,6 @@ void ml::read( string db_name, string collection, Mat &data, Mat &labels) {
   catch( const std::exception &e ) {
     std::cout << "[ml::read]" << e.what() << std::endl;
   }
-
 }
 
 // ---[Filter (remove) one attribute (column) of the samples ]---
