@@ -41,7 +41,7 @@ catkin_package(
   INCLUDE_DIRS include ${LIBMONGOCXX_INCLUDE_DIRS} ${LIBBSONCXX_INCLUDE_DIRS}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS roscpp roslib
-  DEPENDS libbsoncxx libmongocxx
+  DEPENDS libbsoncxx libmongocxx OpenCV
 )
 
 ###########
@@ -65,12 +65,13 @@ link_directories(
 )
 
 ## Declare a C++ library
-add_library( ${PROJECT_NAME} src/database.cpp )
+add_library( ${PROJECT_NAME} src/database.cpp src/ml.cpp )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries( ${PROJECT_NAME}
   ${LIBMONGOCXX_LIBRARIES} 
   ${LIBBSONCXX_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 # For testing
@@ -78,7 +79,11 @@ add_executable(db_test src/db_test.cpp)
 target_link_libraries( db_test
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+)
+add_executable(ml_test src/ml_test.cpp)
+target_link_libraries( ml_test
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
 )
 
 #############

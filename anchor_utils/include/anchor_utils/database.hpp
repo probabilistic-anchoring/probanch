@@ -1,3 +1,6 @@
+#ifndef __DATABASE_HPP__
+#define __DATABASE_HPP__
+
 #include <iostream>
 #include <vector>
 #include <map>
@@ -19,7 +22,7 @@
 
 namespace mongo {
 
-  // ---[ USed namespaces ]---
+  // ---[ Used namespaces ]---
   using namespace std;
   using namespace mongocxx;
   using namespace bsoncxx;
@@ -341,3 +344,5 @@ namespace mongo {
 
 
 } // namespace 'mongo'
+
+#endif // __DATABASE_HPP__
