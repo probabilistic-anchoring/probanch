@@ -30,3 +30,37 @@ Accuracy_{MLP} = 0.666667
 Accuracy_{kNN} = 0.953074
 Accuracy_{Bayes} = 0.967638
 Accuracy_{DTree} = 0.666667
+
+
+------------------
+
+<< Result with time as an attribut >>
+
+Total samples: 3107x5
+Total labels: 3107x1
+---
+Traning samples: 2174
+Test samples: 933
+---
+Accuracy_{SVM} = 0.967846
+Accuracy_{MLP} = 0.843516
+Accuracy_{kNN} = 0.963558
+Accuracy_{Bayes} = 0.94105
+Accuracy_{DTree} = 0.694534
+Accuracy_{SVM loaded} = 0.965702
+
+<< Result without time as an attribut >>
+
+Total samples: 3107x5
+Total labels: 3107x1
+---
+Traning samples: 2174
+Test samples: 933
+---
+Accuracy_{SVM} = 0.961415 
+Accuracy_{MLP} = 0.818864
+Accuracy_{kNN} = 0.957128
+Accuracy_{Bayes} = 0.946409
+Accuracy_{DTree} = 0.694534
+Accuracy_{SVM loaded} = 0.965702
+

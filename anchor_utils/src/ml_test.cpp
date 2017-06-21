@@ -15,7 +15,7 @@ int main(int, char**) {
 
   // Split the data into traning and test data
   cv::Mat trainData, trainLabels, testData, testLabels;
-  ml::split( data, labels, trainData, trainLabels, testData, testLabels);
+  ml::split( data, labels, trainData, trainLabels, testData, testLabels, 0.7);
   std::cout<< "Traning samples: " << trainLabels.rows << std::endl;
   std::cout<< "Test samples: " << testData.rows << std::endl;
   std::cout<< "---" << std::endl;
@@ -44,7 +44,8 @@ int main(int, char**) {
     }
   }
   std::cout << "Accuracy_{SVM} = " << correct / (float)testData.rows << std::endl;
-  classifier->save("anchorexp", "ml");
+  classifier->save("anchortmpdb", "ml");
+  //classifier->save("anchorexp", "ml");
 
   // Train and test MLP classifier
   classifier = ml::create("mlp");
@@ -106,4 +107,17 @@ int main(int, char**) {
   }
   std::cout << "Accuracy_{DTree} = " << correct / (float)testData.rows << std::endl;
 
+  /*
+  // Load train classifier
+  ml::MachinePtr classifier2 = ml::load("anchorexp", "ml", "svm");
+  correct = 0;
+  for( uint i = 0; i < testData.rows; i++) {
+    cv::Mat sample = testData.row(i);
+    float pred = classifier2->predict(sample);
+    if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
+      correct++;
+    }
+  }
+  std::cout << "Accuracy_{SVM loaded} = " << correct / (float)testData.rows << std::endl;
+  */
 }

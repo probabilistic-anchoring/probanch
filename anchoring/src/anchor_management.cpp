@@ -42,6 +42,9 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
     _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
   }
 
+  // Load train classifier
+  _classifier = ml::load( db, "ml", "svm");
+  
   _time_zero = -1.0;
 }
 
@@ -107,6 +110,35 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     map< string, map<anchoring::AttributeType, float> > matches;
     this->_anchors->match( attributes, matches);
 
+    // Process the matches
+    std::string id; 
+    for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
+      cv::Mat sample( 1, 5, CV_32F);
+      sample.at<float>( 0, 0) = ite->second[CAFFE];
+      sample.at<float>( 0, 1) = ite->second[COLOR];
+      sample.at<float>( 0, 2) = ite->second[POSITION];
+      sample.at<float>( 0, 3) = ite->second[SHAPE];
+      sample.at<float>( 0, 4) = 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) ));
+
+      // Classify the sample
+      float pred = this->_classifier->predict(sample);
+      if( pred > 0.9 ) {
+	id = ite->first;
+	break;
+      }
+    }
+    if( !id.empty() ) {
+      this->_anchors->re_acquire(id, attributes, t ); // RE_ACQUIRE
+    }
+    else {
+      this->_anchors->acquire(attributes, t); // ACQUIRE
+
+    }
+    /*
+    // Match all attributes
+    map< string, map<anchoring::AttributeType, float> > matches;
+    this->_anchors->match( attributes, matches);
+
     // Process matches
     string id;
     int result = this->process( matches, id, 0.95, 0.65);
@@ -116,6 +148,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     else {
       this->_anchors->acquire(attributes, t); // ACQUIRE
     } 
+    */
   }
 
   

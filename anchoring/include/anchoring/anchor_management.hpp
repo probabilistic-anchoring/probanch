@@ -9,6 +9,7 @@
 #include <dc_msgs/AssociationArray.h> 
 
 #include <anchoring/anchor_container.hpp>
+#include <anchor_utils/ml.hpp>
 
 using namespace std;
 
@@ -19,7 +20,10 @@ class AnchorManagement {
   
   // An objects for holding all anchors
   std::unique_ptr<anchoring::AnchorContainer> _anchors;
- 
+
+  // Object classicication 
+  ml::MachinePtr _classifier; 
+  
   /* --------------
      ROS variables
      -------------- */  

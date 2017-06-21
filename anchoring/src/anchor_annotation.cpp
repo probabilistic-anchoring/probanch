@@ -231,7 +231,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
 	// Match attributes of selected object
 	this->_matches.clear();
 	this->_anchors->match( object, this->_matches);
-	this->sort( this->_matches, 4);
+	this->sort( this->_matches, 3);
 
 	this->_time_history = 0.0;
 	for( auto ite = this->_matches.begin(); ite != this->_matches.end(); ++ite) {

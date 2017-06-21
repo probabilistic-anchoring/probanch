@@ -22,7 +22,7 @@ namespace ml {
     }
     else if ( this->_type == "knn" ) {
       CvKNearest *knn_ptr = dynamic_cast<CvKNearest*>(this->_model.get());
-      knn_ptr->train( data, labels, Mat(), false, 2);
+      knn_ptr->train( data, labels, Mat(), false, 3);
     }
     else if ( this->_type == "bayes" ) {
       CvNormalBayesClassifier *bayes_ptr = dynamic_cast<CvNormalBayesClassifier*>(this->_model.get());
@@ -50,7 +50,7 @@ namespace ml {
     }
     else if ( this->_type == "knn" ) {
       CvKNearest *knn_ptr = dynamic_cast<CvKNearest*>(this->_model.get());
-      result = knn_ptr->find_nearest(sample, 2);
+      result = knn_ptr->find_nearest(sample, 3);
     }
     else if ( this->_type == "bayes" ) {
       CvNormalBayesClassifier *bayes_ptr = dynamic_cast<CvNormalBayesClassifier*>(this->_model.get());
@@ -70,7 +70,7 @@ namespace ml {
     try {
 
       // Write the model to string
-      FileStorage fsWrite(".xml", FileStorage::WRITE + FileStorage::MEMORY);
+      FileStorage fsWrite(".yml", FileStorage::WRITE + FileStorage::MEMORY);
       this->_model->write( *fsWrite, "");
       std::string buf = fsWrite.releaseAndGetString();
 
@@ -86,7 +86,7 @@ namespace ml {
       db.insert(doc);
     }
     catch( const std::exception &e ) {
-      std::cout << "[ml::load]" << e.what() << std::endl;
+      std::cout << "[ml::save]" << e.what() << std::endl;
     }
   }
 
@@ -109,7 +109,7 @@ ml::MachinePtr ml::create(string type) {
     params.svm_type = CvSVM::NU_SVC;
     params.kernel_type = CvSVM::RBF; //CvSVM::RBF, CvSVM::LINEAR ...
     params.degree = 0; // for poly
-    params.gamma = 10; // for poly/rbf/sigmoid
+    params.gamma = 20; // for poly/rbf/sigmoid
     params.coef0 = 0; // for poly/sigmoid
 
     params.C = 7; // for CV_SVM_C_SVC, CV_SVM_EPS_SVR and CV_SVM_NU_SVR
@@ -134,15 +134,15 @@ ml::MachinePtr ml::create(string type) {
     criteria.epsilon = 0.00001f;
     criteria.type = CV_TERMCRIT_ITER | CV_TERMCRIT_EPS;
     params.train_method = CvANN_MLP_TrainParams::BACKPROP;
-    params.bp_dw_scale = 0.05f;
-    params.bp_moment_scale = 0.05f;
+    params.bp_dw_scale = 0.01f;
+    params.bp_moment_scale = 0.01f;
     params.term_crit = criteria;
 
     // Create the Network 
     cv::Mat layers = cv::Mat(4, 1, CV_32SC1);
     layers.row(0) = cv::Scalar(5);
-    layers.row(1) = cv::Scalar(10);
-    layers.row(2) = cv::Scalar(15);
+    layers.row(1) = cv::Scalar(10); // 10
+    layers.row(2) = cv::Scalar(15); // 15
     layers.row(3) = cv::Scalar(1);
     model = std::shared_ptr<CvStatModel>(new CvANN_MLP(layers));
     ptr = ml::MachinePtr(new ML( type, model, params));    
@@ -193,12 +193,16 @@ ml::MachinePtr ml::load(string db_name, string collection, string type) {
     Database db( db_name, collection);
     std::string id = db.get_id<std::string>( "type", type);    
     std::string buf = db.get<std::string>( id, "model");
-
+    //std::cout << "Buff: " << buf << std::endl;
+    
     // Read model from string
     FileStorage fsRead( buf, FileStorage::READ + FileStorage::MEMORY);
-    model = std::shared_ptr<CvStatModel>(new CvStatModel());
+    if ( type == "svm" ) {
+      model = std::shared_ptr<CvStatModel>(new CvSVM());
+    }
     model->read( *fsRead, *(fsRead.getFirstTopLevelNode()) );
-    ptr = ml::MachinePtr(new ML(type, model)); 
+    ptr = ml::MachinePtr(new ML(type, model));
+
   }
   catch( const std::exception &e ) {
     std::cout << "[ml::load]" << e.what() << std::endl;
