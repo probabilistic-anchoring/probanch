@@ -1,7 +1,9 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -43,7 +45,9 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   }
 
   // Load train classifier
-  _classifier = ml::load( db, "ml", "svm");
+  //_classifier = ml::load( db, "ml", "svm");
+  const string path = ros::package::getPath("anchoring");
+  _classifier = ml::load( path + "/models/svm.yml" );
   
   _time_zero = -1.0;
 }
@@ -63,7 +67,6 @@ void AnchorManagement::init(int threads) {
    --------------------------------------- */
 void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr ) {
   
-  ROS_WARN("Got message!");
   // Get the time
   ros::Time t = object_ptr->header.stamp;
   if( _time_zero < 0.0 ) {
@@ -111,15 +114,15 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     this->_anchors->match( attributes, matches);
 
     // Process the matches
-    std::string id; 
+    std::string id;
     for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-      cv::Mat sample( 1, 5, CV_32F);
+      cv::Mat sample( 1, 4, CV_32F);
       sample.at<float>( 0, 0) = ite->second[CAFFE];
       sample.at<float>( 0, 1) = ite->second[COLOR];
       sample.at<float>( 0, 2) = ite->second[POSITION];
       sample.at<float>( 0, 3) = ite->second[SHAPE];
-      sample.at<float>( 0, 4) = 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) ));
-
+      //sample.at<float>( 0, 4) = 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) ));
+      
       // Classify the sample
       float pred = this->_classifier->predict(sample);
       if( pred > 0.9 ) {
@@ -132,7 +135,6 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     }
     else {
       this->_anchors->acquire(attributes, t); // ACQUIRE
-
     }
     /*
     // Match all attributes

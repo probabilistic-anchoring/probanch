@@ -14,7 +14,7 @@
 
     <param name="compar_type" type="int" value="1" />	
     <param name="plane_min_size" type="int" value="8000" />	
-    <param name="cluster_min_size" type="int" value="200" />	
+    <param name="cluster_min_size" type="int" value="400" />	
     <param name="angular_th" type="double" value="1.4" />	
     <param name="distance_th" type="double" value="0.01" />	
     <param name="refine_factor" type="double" value="1.54" />    

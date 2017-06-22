@@ -32,12 +32,12 @@ int main(int, char**) {
 
   // Create, train aand test SVM classifier
   ml::MachinePtr classifier = ml::create("svm");
-  //classifier->train( trainFiltered, trainLabels);
-  classifier->train( trainData, trainLabels);
+  classifier->train( trainFiltered, trainLabels);
+  //classifier->train( trainData, trainLabels);
   int correct = 0;
   for( uint i = 0; i < testData.rows; i++) {
-    //cv::Mat sample = testFiltered.row(i);
-    cv::Mat sample = testData.row(i);
+    cv::Mat sample = testFiltered.row(i);
+    //cv::Mat sample = testData.row(i);
     float pred = classifier->predict(sample);
     if ( (int)pred == (int)testLabels.at<float>(i, 0) ) {
       correct++;
@@ -46,6 +46,7 @@ int main(int, char**) {
   std::cout << "Accuracy_{SVM} = " << correct / (float)testData.rows << std::endl;
   classifier->save("anchortmpdb", "ml");
   //classifier->save("anchorexp", "ml");
+  classifier->save("svm.yml");
 
   // Train and test MLP classifier
   classifier = ml::create("mlp");
@@ -61,6 +62,7 @@ int main(int, char**) {
     }
   }
   std::cout << "Accuracy_{MLP} = " << correct / (float)testData.rows << std::endl;
+  classifier->save("anchortmpdb", "ml");
 
   // Train and test kNN classifier
   classifier = ml::create("knn");

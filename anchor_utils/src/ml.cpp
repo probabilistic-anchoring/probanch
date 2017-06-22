@@ -90,6 +90,10 @@ namespace ml {
     }
   }
 
+  // ---[ Saves the model to file. ]---
+  void ML::save(string filename) {
+    this->_model->save(filename.c_str());
+  }
 } // ...namespace ]---
 
 // -------------------
@@ -200,6 +204,10 @@ ml::MachinePtr ml::load(string db_name, string collection, string type) {
     if ( type == "svm" ) {
       model = std::shared_ptr<CvStatModel>(new CvSVM());
     }
+    else if ( type == "mlp" ) {
+      model = std::shared_ptr<CvStatModel>(new CvANN_MLP());
+    }
+
     model->read( *fsRead, *(fsRead.getFirstTopLevelNode()) );
     ptr = ml::MachinePtr(new ML(type, model));
 
@@ -209,6 +217,23 @@ ml::MachinePtr ml::load(string db_name, string collection, string type) {
   }
   return ptr;
 }
+
+ml::MachinePtr ml::load(string filename) {
+  ml::MachinePtr ptr;
+  shared_ptr<CvStatModel> model = std::shared_ptr<CvStatModel>(new CvSVM());
+  /*
+  if ( type == "svm" ) {
+    model = std::shared_ptr<CvStatModel>(new CvSVM());
+  }
+  else if ( type == "mlp" ) {
+    model = std::shared_ptr<CvStatModel>(new CvANN_MLP());
+  }
+  */
+  model->load(filename.c_str());
+  ptr = ml::MachinePtr(new ML("svm", model));
+  return ptr;
+}
+
 
 // ---[ Read samples from the database ]---
 void ml::read( string db_name, string collection, Mat &data, Mat &labels) {

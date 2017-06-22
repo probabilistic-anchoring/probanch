@@ -165,7 +165,7 @@ namespace anchoring {
     this->_data = this->_data + raw_ptr->_data;
     
     // Increment the counter
-    this->_n = this->_n + 1.0;
+    this->_n = this->_n + raw_ptr->_n;
 
     return true;
   }
@@ -394,15 +394,14 @@ namespace anchoring {
     if( this->match(query_ptr) < 0.01 ) { // ...not moved more than 1cm
       this->_array.back().header.stamp = raw_ptr->_array.front().header.stamp;
       /*
-      this->_array.back() = raw_ptr->_array.front();
+	this->_array.back() = raw_ptr->_array.front();
       */
-    }
+      }
     else {
-
       // Append the location (including a timestamp)
-      this->_array.push_back(raw_ptr->_array.front());
+      this->_array.push_back(raw_ptr->_array.back());
     }
-
+  
     /*
     // Append the symbol (if there exists an symbol)
     if( !raw_ptr->_symbols.empty() ) {
@@ -678,7 +677,7 @@ namespace anchoring {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
 	  this->_predictions[i] += raw_ptr->_predictions[j];
-	  this->_N[i] = this->_N[i] + 1.0;
+	  this->_N[i] += raw_ptr->_N[j];
 	} 
       }
     }
