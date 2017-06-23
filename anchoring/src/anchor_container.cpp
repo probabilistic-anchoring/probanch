@@ -164,7 +164,7 @@ namespace anchoring {
   void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
     mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->maintain( db, attributes, t);
-    ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+    ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
 
   // Track (or correct) an existing anchor based on data association 
@@ -179,7 +179,7 @@ namespace anchoring {
       
 	mongo::Database db(this->_db_name, this->_collection);
 	this->_map[id]->merge( db, this->_map[resolved]);
-	ROS_WARN("[Anchor (tracked): %s", this->_map[id]->toString().c_str());
+	ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[resolved]->toString().c_str());
 
 	// Delete the 'glitch' anchor
 	db.remove(resolved);
@@ -203,14 +203,15 @@ namespace anchoring {
     string id = anchor->id();
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
-    ROS_WARN("[Anchor (acquired): %s", this->_map[id]->toString().c_str());
+    ROS_WARN("[Anchor (acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
+
   }
   
   // Re-acquire an exisitng anchor
   void AnchorContainer::re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track ) {
     mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->maintain( db, attributes, t);
-    ROS_WARN("[Anchor (re-acquired): %s", this->_map[id]->toString().c_str());
+    ROS_WARN("[Anchor (re-acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
   
   // Maintain the anchor space

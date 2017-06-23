@@ -681,7 +681,6 @@ namespace anchoring {
 	} 
       }
     }
-
     return true;
   }
 

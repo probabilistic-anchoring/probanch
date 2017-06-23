@@ -76,7 +76,7 @@ namespace anchoring {
     }
     double diff(const string &id, const ros::Time &t) {
       auto ite = this->_map.find(this->resolve(id));
-      return t.toSec() - ite->second->time();
+      return abs(t.toSec() - ite->second->time());
     }
 
     // Map access functions
@@ -105,7 +105,7 @@ namespace anchoring {
     
     // Iterate and get a snapshot of all anchors in current scene
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( ( t.toSec() - ite->second->time() ) < 0.001 ) { // ...only updated anchors.
+      if( abs(t.toSec() - ite->second->time()) < 0.001 ) { // ...only updated anchors.
 	array.push_back(ite->second->getAnchor<T>());
       }
     }

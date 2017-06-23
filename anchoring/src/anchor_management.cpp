@@ -122,10 +122,11 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       sample.at<float>( 0, 2) = ite->second[POSITION];
       sample.at<float>( 0, 3) = ite->second[SHAPE];
       //sample.at<float>( 0, 4) = 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) ));
-      
+
       // Classify the sample
       float pred = this->_classifier->predict(sample);
-      if( pred > 0.9 ) {
+      //cout << "Matches: " << sample << " - " << pred << endl;
+      if ( pred > 0.9 ) {
 	id = ite->first;
 	break;
       }
@@ -204,7 +205,7 @@ void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement
 // ---[ Track method based on data association ]---
 void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
-  ROS_INFO("Got associations.");
+  //ROS_INFO("Got associations.");
 
   try {
   
@@ -213,10 +214,10 @@ void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associati
       int idx_id = -1;
       int idx_best = -1;
       float best = 0.0;
-      std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl;
+      //std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl;
       for( uint i = 0; i < msg.associations.size(); i++) {
-	std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
-	std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
+	//std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
+	//std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
 	if( msg.probabilities[i] > best ) {
 	  best = msg.probabilities[i]; 
 	  idx_best = i;
