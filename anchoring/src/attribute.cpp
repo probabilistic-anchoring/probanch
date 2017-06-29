@@ -155,10 +155,10 @@ namespace anchoring {
     return dist;
   }
 
-  bool ColorAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  bool ColorAttribute::update(const AttributePtr &new_ptr) {
 
     // Typecast the query pointer
-    ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
+    ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Summarize histograms
@@ -249,6 +249,17 @@ namespace anchoring {
 					AttributeType type ) : AttributeCommon( msg.symbols, type) {
     // Add the data (including a timestamp)
     this->_array.push_back(msg.data);
+  }
+
+  PositionAttribute::PositionAttribute( const AttributePtr &other_ptr,
+					AttributeType type) : AttributeCommon(type) {
+
+    // Typecast the query pointer
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(other_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    // Add the data (including a timestamp)
+    this->_array.push_back(raw_ptr->_array.back());
   }
 
   mongo::Database::Document PositionAttribute::serialize() {
@@ -384,15 +395,15 @@ namespace anchoring {
   }
   */
 
-  bool PositionAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  bool PositionAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
     // Typecast the query pointer
-    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Update the location
-    if( this->match(query_ptr) < 0.01 ) { // ...not moved more than 1cm
-      this->_array.back().header.stamp = raw_ptr->_array.front().header.stamp;
+    if( this->match(new_ptr) < 0.01 ) { // ...not moved more than 1cm
+      this->_array.back().header.stamp = raw_ptr->_array.back().header.stamp;
       /*
 	this->_array.back() = raw_ptr->_array.front();
       */
@@ -652,10 +663,10 @@ namespace anchoring {
     return result;
   }
 
-  bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &query_ptr) {
+  bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
     // Typecast the query pointer
-    CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
+    CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Update the visual data 

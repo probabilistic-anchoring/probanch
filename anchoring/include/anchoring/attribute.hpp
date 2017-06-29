@@ -54,7 +54,7 @@ namespace anchoring {
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
 
     // Virtual update methods (with default dummy)
-    virtual bool update(const unique_ptr<AttributeCommon> &query_ptr) { return false; }  
+    virtual bool update(const unique_ptr<AttributeCommon> &new_ptr) { return false; }  
     virtual string toString() { return ""; }
 
     string getTypeStr();
@@ -87,7 +87,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
-    bool update(const unique_ptr<AttributeCommon> &query_ptr);
+    bool update(const AttributePtr &new_ptr);
     string toString();
   }; 
   
@@ -124,6 +124,8 @@ namespace anchoring {
       // Add the data (including a timestamp)
       this->_array.push_back(data);
     }
+    PositionAttribute( const AttributePtr &other_ptr,
+		       AttributeType type = POSITION);
     
     // Override methods
     mongo::Database::Document serialize(); 
@@ -131,7 +133,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
-    bool update(const unique_ptr<AttributeCommon> &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &new_ptr);
     string toString();
   }; 
   
@@ -177,7 +179,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
-    bool update(const unique_ptr<AttributeCommon> &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &new_ptr);
     string toString();
   }; 
 

@@ -175,6 +175,13 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 }
 
 /* -----------------------------------------
+   Predict if 
+   --------------------------------------- */
+float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
+
+}
+
+/* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
 /*
@@ -228,7 +235,7 @@ void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associati
       }
     
       //if( msg.associations[idx] != msg.id && best > 0.5 ) {
-      if (idx_id==-1){
+      if (idx_id == -1) {
 	if( best > 0.80 ) {
 	  this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
 	}

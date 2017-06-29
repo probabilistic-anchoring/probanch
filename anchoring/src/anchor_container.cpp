@@ -81,7 +81,6 @@ namespace anchoring {
     try { 
       for( auto ite = ids.begin(); ite != ids.end(); ++ite ) {
 	AnchorPtr anchor( new Anchor(*ite) );
-	//mongo::Database::Document doc = db.get(*ite); // Load a sub document
 	anchor->load(db);  
 	this->_mtx.lock();
 	this->_map[*ite] = anchor;
@@ -159,39 +158,6 @@ namespace anchoring {
   // ------------------
   // Anchoring functions - maintain long term memeory
   // --------------------------------------------------
-  
-  // Track (by position) an exisitng anchor 
-  void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
-    mongo::Database db(this->_db_name, this->_collection);
-    this->_map[id]->maintain( db, attributes, t);
-    ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
-  }
-
-  // Track (or correct) an existing anchor based on data association 
-  void AnchorContainer::track(const string &id, const string &other) {
-    try {
-      
-      // Resolve the (other) id
-      std::string resolved = this->resolve(other);
-
-      // Saftey check (do NOT merge an anchor with itself!)
-      if( id != resolved ) {
-      
-	mongo::Database db(this->_db_name, this->_collection);
-	this->_map[id]->merge( db, this->_map[resolved]);
-	ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[resolved]->toString().c_str());
-
-	// Delete the 'glitch' anchor
-	db.remove(resolved);
-	this->_map.erase(resolved);  
-      }
-      
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[AnchorContainer::track]" << e.what() << std::endl;
-    }
-
-  }
 
   // Acquire a new anchor
   void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t, bool save) {
@@ -213,7 +179,51 @@ namespace anchoring {
     this->_map[id]->maintain( db, attributes, t);
     ROS_WARN("[Anchor (re-acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
-  
+    
+  // Track (by position) an exisitng anchor 
+  void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
+    mongo::Database db(this->_db_name, this->_collection);
+    this->_map[id]->maintain( db, attributes, t);
+    ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
+  }
+
+  // Track (or correct) an existing anchor based on data association 
+  void AnchorContainer::track(const string &id, const string &other) {
+    try {
+      
+      // Resolve the (other) id
+      std::string resolved = this->resolve(other);
+      
+      // Check if if the objects are remotely similar, otherwise only track by postion
+      MatchMap match;
+      this->_map[id]->match(this->_map[resolved]->getAll(), match);
+      if( match[CAFFE] < 0.2 || match[SHAPE] < 0.5 || match[COLOR] < 0.5 ) {
+	//ROS_WARN("[Category match (tracking): %.2f]", match[CAFFE]);
+
+	AttributeMap attributes;
+	attributes[POSITION] = AttributePtr( new PositionAttribute(this->_map[resolved]->get(POSITION)) );    
+	this->track( id, attributes, ros::Time(this->_map[resolved]->time()));
+      }
+      else {
+	// Saftey check (do NOT merge an anchor with itself!)
+	if( id != resolved ) {
+      
+	  mongo::Database db(this->_db_name, this->_collection);
+	  this->_map[id]->merge( db, this->_map[resolved]);
+	  ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[resolved]->toString().c_str());
+
+	  // Delete the 'glitch' anchor
+	  db.remove(resolved);
+	  this->_map.erase(resolved);  
+	}
+      }
+    }
+    catch( const std::exception &e ) {
+      std::cout << "[AnchorContainer::track]" << e.what() << std::endl;
+    }
+
+  }
+
   // Maintain the anchor space
   void AnchorContainer::maintain() {
     

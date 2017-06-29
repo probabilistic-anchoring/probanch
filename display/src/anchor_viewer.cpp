@@ -34,7 +34,6 @@ class AnchorViewer {
   ros::Publisher _selected_pub;
 
   string _display_trigger;
-  //bool _display_web_image;
   ros::Subscriber _display_trigger_sub;
   image_transport::Publisher _display_image_pub;
 
@@ -97,6 +96,7 @@ class AnchorViewer {
     }
   };
   vector<Particle> _particles;
+  int _max_particles;
 
   // Callback fn for web interface trigger 
   void trigger_cb( const std_msgs::String::ConstPtr &msg) {
@@ -152,8 +152,10 @@ class AnchorViewer {
     for( uint i = 0; i < msg_ptr->color.size(); i++) {
       this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
     }
-    while( this->_particles.size() > 100 ) {
-      this->_particles.erase( this->_particles.begin() );
+    if( _max_particles >= 0 ) {
+      while( this->_particles.size() > _max_particles ) {
+	this->_particles.erase( this->_particles.begin() );
+      }
     }
   }
 
@@ -163,13 +165,6 @@ class AnchorViewer {
     // Draw the result
     cv::Mat result_img(this->_img);
     cv::Mat highlight_img(this->_img);
-    /*
-    cv::Mat result_img;
-    cv::cvtColor( ithis->_img, result_img, CV_BGR2GRAY); 
-    cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
-    result_img.convertTo( result_img, -1, 1.0, 50); 
-    cv::Mat highlight_img(result_img);
-    */
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
       if( ite->border.contour.empty() ) {
@@ -201,7 +196,7 @@ class AnchorViewer {
       cv::drawContours( highlight_img, contours, -1, color, 1);
 
       // Print anchoring infromation 
-      if( this->_display_trigger == "anchoring" ) {
+      if( this->_display_trigger == "anchoring" || this->_display_trigger == "both" ) {
 	 std::stringstream ss;
 	 ss << "Symbol: " << ite->x;
 	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
@@ -226,15 +221,9 @@ class AnchorViewer {
 	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	 ss.str("");
       }
+
       // Draw particles
-      else if( this->_display_trigger == "association" ) {
-	
-	/*
-	for( const auto &p : this->_particles) {
-	  cv::circle( result_img, p.getPixel(this->_cam_model), 2, p.getColor(), -1);
-	  cv::circle( highlight_img, p.getPixel(this->_cam_model), 2, p.getColor(), -1);
-	}
-	*/
+      if( this->_display_trigger == "association" || this->_display_trigger == "both" ) {
 	for( uint i = 0; i < this->_particles.size(); i++) {
 	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
 	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
@@ -292,7 +281,7 @@ class AnchorViewer {
   }
 
 public:
-  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh),  _display_trigger("anchoring") { //_display_web_image(false) {
+  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh) { //,  _display_trigger("anchoring"), _max_particles(-1) {
     
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
@@ -304,7 +293,15 @@ public:
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);
     _display_image_pub = _it.advertise("/display/image", 10);
 
-    
+    // Read ROS params
+    if( !_priv_nh.getParam("max_particles", this->_max_particles) ) {
+      this->_max_particles = -1;
+    }
+    if( !_priv_nh.getParam("display_mode", this->_display_trigger) ) {
+      this->_display_trigger = "anchoring";
+    } 
+
+    // Create the display window
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);
     cv::setMouseCallback( window, &AnchorViewer::click_cb, this);

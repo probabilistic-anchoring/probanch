@@ -49,6 +49,9 @@ namespace anchoring {
     const AttributePtr& get(AttributeType type) const {
       return this->_attributes.at(type);
     }
+    const AttributeMap& getAll() const {
+      return this->_attributes;
+    }
     
   private:
 

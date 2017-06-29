@@ -38,6 +38,7 @@ class AnchorManagement {
   double _time_zero;
 
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
+  float predict(map< string, map<anchoring::AttributeType, float> > &matches);
   //void track( const anchor_msgs::MovementArrayConstPtr &movement_ptr );
   void track( const dc_msgs::AssociationArrayConstPtr &associations_ptr);
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 
