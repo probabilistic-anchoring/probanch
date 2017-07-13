@@ -7,6 +7,7 @@
 #include <anchor_msgs/SpatialRequest.h> 
 
 #include <dc_msgs/AssociationArray.h> 
+#include <dc_msgs/MeanPosHiddenArray.h> 
 
 #include <anchoring/anchor_container.hpp>
 #include <anchor_utils/ml.hpp>
@@ -27,20 +28,17 @@ class AnchorManagement {
   /* --------------
      ROS variables
      -------------- */  
-  ros::NodeHandle _nh; 
-  ros::NodeHandle _priv_nh;
-  ros::Subscriber _object_sub, _track_sub;
-  ros::ServiceServer _timed_srv;
-  ros::ServiceServer _spatial_srv;
-  ros::Publisher _anchor_pub;
-  ros::Publisher _display_pub;
+  ros::NodeHandle _nh, _priv_nh;
+  ros::Subscriber _object_sub, _track_sub, _assoc_sub;
+  ros::ServiceServer _spatial_srv, _timed_srv;
+  ros::Publisher _anchor_pub, _display_pub;
 
   double _time_zero;
 
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   float predict(map< string, map<anchoring::AttributeType, float> > &matches);
-  //void track( const anchor_msgs::MovementArrayConstPtr &movement_ptr );
-  void track( const dc_msgs::AssociationArrayConstPtr &associations_ptr);
+  void track( const dc_msgs::MeanPosHiddenArrayConstPtr &movement_ptr );
+  void associate( const dc_msgs::AssociationArrayConstPtr &associations_ptr);
   int process( map< string, map<anchoring::AttributeType, float> > &matches, 
 	       string &id, 
 	       float dist_th,

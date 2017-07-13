@@ -21,8 +21,8 @@ using namespace anchoring;
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
   
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
-  //_track_sub = _nh.subscribe("/movements", 10, &AnchorManagement::track, this);
-  _track_sub = _nh.subscribe("/associations", 10, &AnchorManagement::track, this);
+  _track_sub = _nh.subscribe("/meanposhidden", 10, &AnchorManagement::track, this);
+  //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
 
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
   _spatial_srv = _nh.advertiseService("/anchoring/spatial_request", &AnchorManagement::spatialRequest, this);
@@ -118,12 +118,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Process the matches
     std::string id;
     for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-      cv::Mat sample( 1, 4, CV_32F);
+      cv::Mat sample( 1, 5, CV_32F);
       sample.at<float>( 0, 0) = ite->second[CAFFE];
       sample.at<float>( 0, 1) = ite->second[COLOR];
       sample.at<float>( 0, 2) = ite->second[POSITION];
       sample.at<float>( 0, 3) = ite->second[SHAPE];
-      //sample.at<float>( 0, 4) = 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) ));
+      sample.at<float>( 0, 4) = (float)(2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) )));
 
       // Classify the sample
       float pred = this->_classifier->predict(sample);
@@ -186,33 +186,29 @@ float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float
 /* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
-/*
-void AnchorManagement::track( const anchor_msgs::MovementArrayConstPtr &movement_ptr ) {
+void AnchorManagement::track( const dc_msgs::MeanPosHiddenArrayConstPtr &movement_ptr ) {
   
   // Maintain all incoming object movmements
-  for( uint i = 0; i < movement_ptr->movements.size(); i++) {
+  ros::Time t = movement_ptr->header.stamp;
+  for( uint i = 0; i < movement_ptr->mphs.size(); i++) {
+    
+    // Transform the coordinates to a geometry message 
+    geometry_msgs::PoseStamped msg;
+    msg.header = movement_ptr->header;
+    msg.pose.position.x = movement_ptr->mphs[i].x;
+    msg.pose.position.y = movement_ptr->mphs[i].y;
+    msg.pose.position.z = movement_ptr->mphs[i].z;
+
+    // Track the anchor
     anchoring::AttributeMap attributes;
-    attributes[POSITION] = AttributePtr( new PositionAttribute(movement_ptr->movements[i]) );    
-
-    // Match the location attribute
-    map< string, map<AttributeType, float> > matches;
-    this->_anchors->match( attributes, matches);
-
-    // Process matches
-    string id;
-    ros::Time t = movement_ptr->movements[i].header.stamp;
-    if( this->process( matches, id, 0.25) != 0 ) {
-      this->_anchors->track(id, attributes, t); // TRACK
-    }
-    else {      
-      this->_anchors->acquire(attributes, t); // ACQUIRE
-    }
+    attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );    
+    this->_anchors->track( movement_ptr->mphs[i].a_id, attributes, t); // TRACK
   } 
 }
-*/
+
 
 // ---[ Track method based on data association ]---
-void AnchorManagement::track( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
+void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
   
   //ROS_INFO("Got associations.");
 
