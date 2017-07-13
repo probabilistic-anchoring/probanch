@@ -66,7 +66,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   // Read segmentation parameters
   int type, size;
   double th, factor;
-  if( priv_nh_.getParam("compar_type", type) ) {
+  if( priv_nh_.getParam("compare_type", type) ) {
     if( type >= 0 && type <= 3 ) {
       this->seg_.setComparatorType(type);
     }
@@ -85,6 +85,9 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   }
   if( priv_nh_.getParam("angular_th", th) ) {
     this->seg_.setAngularTh (th);
+  }
+  if( priv_nh_.getParam("distance_th", th) ) {
+    this->seg_.setDistanceTh (th);
   }
   if( priv_nh_.getParam("refine_factor", factor) ) {
     this->seg_.setRefineFactor (factor);
@@ -134,7 +137,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Get the transformation
   tf::StampedTransform transform;
   try{
-    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.5) ); 
+    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.01) ); 
     tf_listener_->lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, transform );
   }
   catch( tf::TransformException ex) {
@@ -146,7 +149,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
 
-  
+  /*
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
@@ -154,7 +157,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Filter the transformed point cloud 
   this->filter (transformed_cloud_ptr);
   // ----------------------
-  
+  */
   
   // Read the RGB image
   cv::Mat img, result;
@@ -183,8 +186,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
-  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
-  //this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
+  //this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -217,8 +220,21 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       // Create the point cluster from the orignal point cloud
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
-  
-      // Pots-process the cluster
+
+      // Transform the cloud to the world frame
+      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+      pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);       
+
+      // Filter the transformed point cloud 
+      this->filter (transformed_cluster_ptr);
+      if( transformed_cluster_ptr->points.empty() )
+	continue;
+
+      // Reverser transform to get the contour right
+      pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
+
+      
+      // Post-process the cluster
       try {
 
 	// Create the cluster image 
@@ -246,7 +262,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	    obj.caffe.border.contour.push_back(p);
 	  }
 	  
-	  
 	  // Draw the contour (for display)
 	  cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
 	  //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
@@ -263,12 +278,13 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  if( transformed_cluster_ptr->points.empty() )
 	    continue;
 	  */
-	  
+
+	  /*
 	  // Create a transformed point cluster 
 	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
 	  pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
 	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
-	  
+	  */
 
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
@@ -375,6 +391,10 @@ void ObjectSegmentation::filter( pcl::PointCloud<segmentation::Point>::Ptr &clou
 
   // Filter the transformed point cloud
   if( cloud_ptr->isOrganized ()) {
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "x", this->min_x_, this->max_x_); 
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "y", this->min_y_, this->max_y_); 
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "z", this->min_z_, this->max_z_); 
+    /*
     for( auto &p: cloud_ptr->points) {
       if( !( p.x > this->min_x_ && p.x < this->max_x_ ) ||
 	  !( p.y > this->min_y_ && p.y < this->max_y_ ) ||
@@ -385,6 +405,7 @@ void ObjectSegmentation::filter( pcl::PointCloud<segmentation::Point>::Ptr &clou
 	p.b = p.g = p.r = 0;
       }
     }
+    */
   }
   else {
     pcl::PointCloud<segmentation::Point>::Ptr result_ptr (new pcl::PointCloud<segmentation::Point>);

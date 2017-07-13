@@ -1,12 +1,6 @@
 <launch>
   
-  <!-- Laucnh Kinect2 bridge (with default parameters) -->
-  <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">	
-    <arg name="calib_path" value="$(find anchoring)/data/" />
-    <arg name="publish_tf" value="true" />
-  </include>	
-
-  <!-- Object segmentation node -->
+  <!-- Object segmentation node (including the Kinect) -->
   <include file="$(find object_segmentation)/launch/object_segmentation.launch" />	
 
   <!-- Run object tracking node 
@@ -24,13 +18,13 @@
   <!-- Anchor Caffe node -->
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   
-  <!-- Anchoring framework -->  
+  <!-- Anchoring framework --> 
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
     <param name="db_name" type="string" value="anchortmpdb" />
   </node>
+  
 	
-
   <!-- Inference system --> 
   <node name="dc_inference_node" pkg="inference" type="dc_inference"
         output="screen" />
@@ -38,7 +32,10 @@
 	
   <!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
-        output="screen" />
+        output="screen" >
+    <param name="max_particles" type="int" value="200" />
+    <param name="display_mode" type="string" value="both" />	
+  </node>
   
   <!-- Include the display interface (including the websocket bridge) --> 
   <include file="$(find display)/launch/web_interface.launch" />

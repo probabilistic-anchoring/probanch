@@ -134,7 +134,7 @@ void ObjectCalibration::segmentationCb( const sensor_msgs::Image::ConstPtr image
   // Get the transformation
   tf::StampedTransform transform;
   try{
-    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.1) ); 
+    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.01) ); 
     tf_listener_->lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, transform );
   }
   catch( tf::TransformException ex) {
@@ -152,9 +152,9 @@ void ObjectCalibration::segmentationCb( const sensor_msgs::Image::ConstPtr image
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
 
   // Filter the transformed point cloud 
-  this->filter (transformed_cloud_ptr);
+  this->filter (transformed_cloud_ptr);  
   */
-  
+    
   // Read the RGB image
   cv::Mat img, result;
   cv_bridge::CvImagePtr cv_ptr;
@@ -204,7 +204,7 @@ void ObjectCalibration::segmentationCb( const sensor_msgs::Image::ConstPtr image
       this->filter (transformed_cluster_ptr);
       if( transformed_cluster_ptr->points.empty() )
 	continue;
-
+      
       
       // Pots-process the cluster
       try {
@@ -236,6 +236,10 @@ void ObjectCalibration::filter( pcl::PointCloud<segmentation::Point>::Ptr &cloud
 
   // Filter the transformed point cloud
   if( cloud_ptr->isOrganized ()) {
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "x", this->min_x_, this->max_x_); 
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "y", this->min_y_, this->max_y_); 
+    segmentation::passThroughFilter( cloud_ptr, cloud_ptr, "z", this->min_z_, this->max_z_); 
+    /*
     for( auto &p: cloud_ptr->points) {
       if( !( p.x > this->min_x_ && p.x < this->max_x_ ) ||
 	  !( p.y > this->min_y_ && p.y < this->max_y_ ) ||
@@ -246,6 +250,7 @@ void ObjectCalibration::filter( pcl::PointCloud<segmentation::Point>::Ptr &cloud
 	p.b = p.g = p.r = 0;
       }
     }
+    */
   }
   else {
     pcl::PointCloud<segmentation::Point>::Ptr result_ptr (new pcl::PointCloud<segmentation::Point>);

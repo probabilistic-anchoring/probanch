@@ -304,7 +304,7 @@ void ml::split( const cv::Mat &data, const cv::Mat &labels,
   std::iota( n.begin(), n.end(), 0);
 
   // Random generator
-  cv::RNG rng( 0xFFFFFFFF );
+  cv::RNG rng( time(NULL) );
 
   // Randomly split the total data collection
   while ( !n.empty() && (n.size() / (float)data.rows) > k ) {

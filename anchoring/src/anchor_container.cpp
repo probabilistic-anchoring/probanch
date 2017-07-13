@@ -197,7 +197,7 @@ namespace anchoring {
       // Check if if the objects are remotely similar, otherwise only track by postion
       MatchMap match;
       this->_map[id]->match(this->_map[resolved]->getAll(), match);
-      if( match[CAFFE] < 0.2 || match[SHAPE] < 0.5 || match[COLOR] < 0.5 ) {
+      if( match[CAFFE] < 0.5 || match[SHAPE] < 0.75 || match[COLOR] < 0.75 ) {
 	//ROS_WARN("[Category match (tracking): %.2f]", match[CAFFE]);
 
 	AttributeMap attributes;

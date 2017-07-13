@@ -99,7 +99,9 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Create a map of all object attributes
     AttributeMap attributes;
     try {
-      attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
+      if( !object_ptr->objects[i].descriptor.data.data.empty() ) {
+	attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
+      }
       attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
       attributes[SHAPE] = AttributePtr( new ShapeAttribute(object_ptr->objects[i].shape) );
       attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );    

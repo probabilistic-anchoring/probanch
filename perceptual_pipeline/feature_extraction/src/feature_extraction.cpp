@@ -10,6 +10,9 @@
 
 #include <feature_extraction/feature_extraction.hpp>
 
+//#define USE_KEYPOINT_FEATURES 1
+
+
 FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
   : nh_(nh)
   , priv_nh_("~")
@@ -20,7 +23,6 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
   // Publisher & subscribers
   obj_sub_ = nh_.subscribe("/objects/raw", 1, &FeatureExtraction::processCb, this);
   obj_pub_ = nh_.advertise<anchor_msgs::ObjectArray>("/objects/processed", 1);
-  //boxed_pub_ = it_.advertise("/display/boxed", 1);
 
   // Used for the web interface
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &FeatureExtraction::triggerCb, this);
@@ -46,10 +48,12 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   output.info = objects_msg->info;
   output.transform = objects_msg->transform;
 
+  #ifdef USE_KEYPOINT_FEATURES
   // Instaniate main feature processor
   int numKeyPoints = objects_msg->objects.size() * 2000;
   KeypointFeatures kf(numKeyPoints);
-
+  #endif
+  
   // Try to recive the image
   cv_bridge::CvImagePtr cv_ptr;
   cv::Mat img;
@@ -74,7 +78,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   // Histogram equalization
   //img = ColorFeatures::equalizeIntensity(img);
   //std::cout << "This part works.. " << std::endl;
-  
+
+  #ifdef USE_KEYPOINT_FEATURES
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
   cv::cvtColor( img, gray, CV_BGR2GRAY); // <-- Gray scale
@@ -84,6 +89,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   if (!keypoints.empty()) {
     descriptor = kf.extract( gray, keypoints, numKeyPoints);    
   }
+  #endif
 
   // Go through each contour and extract features for each object
   std::vector< std::vector< cv::KeyPoint> > total_keypoints;
@@ -96,9 +102,10 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       cv::Point p( objects_msg->objects[i].caffe.border.contour[j].x, objects_msg->objects[i].caffe.border.contour[j].y );
       contour.push_back(p);
     }
-    
+
     // 1. Get keypoint features (from keypoints within the contour)
     // ---------------------------
+    #ifdef USE_KEYPOINT_FEATURES
     std::vector<int> idxs;
     std::vector<cv::KeyPoint> sub_keypoints;
     for (uint j = 0; j < keypoints.size(); j++) {
@@ -117,12 +124,12 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       total_keypoints.push_back(sub_keypoints);
       total_descriptor.push_back(sub_descriptor);
     }
-
+    
     // Add extracted descriptor 
     cv_ptr->image = sub_descriptor;
     cv_ptr->encoding = "mono8";
     cv_ptr->toImageMsg(output.objects[i].descriptor.data);      
-    
+    #endif
     
     // 2. Extrace sub-image (based on the bounding box)
     // --------------------------- 
@@ -152,7 +159,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     if( !display_image_.empty() ) {
       img.copyTo( result, mask);
       cv::drawContours( img, contours, -1, cv::Scalar( 0, 0, 255), 1);
-      //cv::drawContours( result, contours, -1, cv::Scalar::all(64), 1);
     }
     
     // Calculate the HSV color histogram over the image mask

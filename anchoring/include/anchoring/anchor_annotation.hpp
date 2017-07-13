@@ -41,6 +41,7 @@ class AnchorAnnotation {
   bool _lock_screen;
   bool _processing;
   std::string _db_name;
+  int _max_matches;
 
   void queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void sort( map< string, map<anchoring::AttributeType, float> > &matches, int num = 5 );

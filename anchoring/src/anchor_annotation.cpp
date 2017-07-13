@@ -40,6 +40,11 @@ AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"),
   }
   _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", this->_db_name) );
 
+  // Read (other) ROS params
+  if( !_priv_nh.getParam("max_matches", this->_max_matches) ) {
+    this->_max_matches = 3;
+  }
+  
   // Create the display window
   cv::namedWindow( window, 1);
   cv::setMouseCallback( window, &clickCb, this);
@@ -92,7 +97,9 @@ void AnchorAnnotation::queue( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 	// Create a map of all object attributes
 	AttributeMap attributes;
 	try {
-	  attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
+	  if( !object_ptr->objects[i].descriptor.data.data.empty() ) {
+	    attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
+	  }
 	  attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
 	  attributes[SHAPE] = AttributePtr( new ShapeAttribute(object_ptr->objects[i].shape) );
 	  attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );    
@@ -126,7 +133,7 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
     result[dist] = ite->first;
     #if DEBUG == 1
     std::cout << this->_anchors->toString(ite->first) << ": [" << ite->second[CAFFE] << ", " << ite->second[COLOR] << ", " << ite->second[SHAPE] << ", " << ite->second[POSITION] << "] ";
-    std::cout << "t: " << 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) )) << std::endl;
+    std::cout << "t: " << (float)(2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) ))) << std::endl;
     #endif
   }
   if( matches.size() > num ) {
@@ -157,7 +164,7 @@ void AnchorAnnotation::save( map< string, map<anchoring::AttributeType, float> >
       result.push_back( ite->second[COLOR] );
       result.push_back( ite->second[POSITION] );
       result.push_back( ite->second[SHAPE] );
-      result.push_back( 2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) )) );  // Add the time as well...
+      result.push_back( (float)(2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) ))) );  // Add the time as well...
 
       // Create MongoDB document
       mongo::Database::Document doc;
@@ -231,7 +238,7 @@ void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
 	// Match attributes of selected object
 	this->_matches.clear();
 	this->_anchors->match( object, this->_matches);
-	this->sort( this->_matches, 3);
+	this->sort( this->_matches, this->_max_matches);
 
 	this->_time_history = 0.0;
 	for( auto ite = this->_matches.begin(); ite != this->_matches.end(); ++ite) {

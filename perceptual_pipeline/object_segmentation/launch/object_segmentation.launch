@@ -1,10 +1,16 @@
 <launch>
 
+  <!-- Laucnh Kinect2 bridge (with default parameters) --> 
+  <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">	
+    <arg name="calib_path" value="$(find anchoring)/data/" />
+    <arg name="publish_tf" value="true" />
+  </include>
+
   <!--  Static transform publisher --> 	  
-  <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect_tilt_tf" args="0 0 0.08 0 0 0 kinect_tilt_link kinect_rotate_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect_base_tf" args="0 0 0.5 0 0.4363 0 kinect_base_link kinect_tilt_link 10" />
-  <node pkg="tf" type="static_transform_publisher" name="table_tf" args="1.2 0.36 0 3.1415 0 0 base_link kinect_base_link 10" />
+  <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="kinect_tilt_tf" args="0 0 0.08 0 0 0 kinect_tilt_link kinect_rotate_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="kinect_base_tf" args="0 0 0.5 0 0.4363 0 kinect_base_link kinect_tilt_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="table_tf" args="1.2 0.36 0 3.1415 0 0 base_link kinect_base_link 100" />
 
   <!-- Run object segmentation (recognition) node -->
   <node name="object_segmentation_node" pkg="object_segmentation" type="object_segmentation" output="screen">
@@ -12,19 +18,20 @@
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
 
-    <param name="compar_type" type="int" value="1" />	
-    <param name="plane_min_size" type="int" value="8000" />	
+    <param name="compare_type" type="int" value="3" />	
+    <param name="plane_min_size" type="int" value="12000" />	
     <param name="cluster_min_size" type="int" value="400" />	
-    <param name="angular_th" type="double" value="1.4" />	
-    <param name="distance_th" type="double" value="0.01" />	
-    <param name="refine_factor" type="double" value="1.54" />    
+    <param name="angular_th" type="double" value="2.0" />	
+    <param name="distance_th" type="double" value="0.014" />	
+    <param name="refine_factor" type="double" value="0.84" />    
 
+    <!-- Spatial thresholds (used for filter the point cloud) -->
     <param name="min_x" type="double" value="0.2" />
     <param name="max_x" type="double" value="1.2" />
     <param name="min_y" type="double" value="0.0" />
     <param name="max_y" type="double" value="0.62" />
     <param name="min_z" type="double" value="-0.1" />
-    <param name="max_z" type="double" value="0.3" />
+    <param name="max_z" type="double" value="0.6" />
 
   </node>
 

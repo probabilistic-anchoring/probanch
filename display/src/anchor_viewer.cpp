@@ -40,7 +40,7 @@ class AnchorViewer {
   cv::Mat _img;
   vector<anchor_msgs::Display> _anchors;
   string _highlight;
-
+  
   // Camera information
   image_geometry::PinholeCameraModel _cam_model;
 
@@ -97,7 +97,8 @@ class AnchorViewer {
   };
   vector<Particle> _particles;
   int _max_particles;
-
+  cv::RNG _rng;
+  
   // Callback fn for web interface trigger 
   void trigger_cb( const std_msgs::String::ConstPtr &msg) {
     if( msg->data == "anchoring" || msg->data == "association" ) {
@@ -149,12 +150,13 @@ class AnchorViewer {
 
   // Callback function for receiving particles from the data association
   void particles_cb(const dc_msgs::ParticlePlotConstPtr& msg_ptr) {
+    this->_particles.clear();
     for( uint i = 0; i < msg_ptr->color.size(); i++) {
       this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
     }
     if( _max_particles >= 0 ) {
       while( this->_particles.size() > _max_particles ) {
-	this->_particles.erase( this->_particles.begin() );
+	this->_particles.erase( this->_particles.begin() + this->_rng.uniform( 0, (int)this->_particles.size() ) );
       }
     }
   }
@@ -165,6 +167,10 @@ class AnchorViewer {
     // Draw the result
     cv::Mat result_img(this->_img);
     cv::Mat highlight_img(this->_img);
+    cv::cvtColor( result_img, result_img, CV_BGR2GRAY); 
+    cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
+    result_img.convertTo( result_img, -1, 1.0, 50); 
+
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
       if( ite->border.contour.empty() ) {
@@ -231,7 +237,7 @@ class AnchorViewer {
 
       }
     } 
-    cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
+    //cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
 
     return result_img;
   }
@@ -305,6 +311,8 @@ public:
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);
     cv::setMouseCallback( window, &AnchorViewer::click_cb, this);
+
+    this->_rng = cv::RNG( 0xFFFFFFFF );
   }
   ~AnchorViewer() {}
 
