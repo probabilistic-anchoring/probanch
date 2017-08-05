@@ -7,15 +7,11 @@
 #include <memory>
 
 // OpenCV includes
+#include <opencv2/core/version.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/ml/ml.hpp>
-/*
-#include <cv.h>
-#include <ml.h>
-#include <highgui.h>
-*/
 
-namespace ml {
+namespace machine {
 
   // ---[ Used namespaces ]---
   using namespace std;
@@ -25,14 +21,21 @@ namespace ml {
   // --------------------------------
   class ML {
     string _type;
+    Mat _var_type;
+
+    // Support for both opencv2 and opencv3
+#if CV_MAJOR_VERSION == 2
     shared_ptr<CvStatModel> _model;
     CvSVMParams _svm_p;
     CvANN_MLP_TrainParams _mlp_p;
-    Mat _var_type;
+#elif CV_MAJOR_VERSION == 3
+    Ptr<Algorithm> _model;
+#endif
 
   public:
 
     // --[ Constructor(s)/destructor --]
+#if CV_MAJOR_VERSION == 2
     ML(string type, shared_ptr<CvStatModel> model) : _type(type), _model(model) {}
     ML(string type, shared_ptr<CvStatModel> model, CvSVMParams params ) 
       : _type(type), _model(model), _svm_p(params) {}
@@ -40,6 +43,9 @@ namespace ml {
       : _type(type), _model(model), _mlp_p(params) {}
     ML(string type, shared_ptr<CvStatModel> model, Mat var_type ) 
       : _type(type), _model(model), _var_type(var_type) {}
+#elif CV_MAJOR_VERSION == 3
+    ML(string type, Ptr<Algorithm> model) : _type(type), _model(model) {}
+#endif
     ~ML() {}
 
     // --[ Traning/prediction ]--
@@ -69,6 +75,6 @@ namespace ml {
 	      float k = 0.7 );
 
 
-} // namespace 'ml'
+} // namespace 'machine'
 
 #endif // __ML_HPP__

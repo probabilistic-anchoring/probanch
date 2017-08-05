@@ -8,10 +8,13 @@ using namespace std;
 using namespace cv;
 
 // ---[ Namespace 
-namespace ml {
+namespace machine {
 
   // ---[ Main traning function ]---
   void ML::train( const Mat &data, const Mat &labels) {
+
+    // opencv2
+#if CV_MAJOR_VERSION == 2
     if ( this->_type == "svm" ) {
       CvSVM *svm_ptr = dynamic_cast<CvSVM*>(this->_model.get());
       svm_ptr->train( data, labels, Mat(), Mat(), this->_svm_p);
@@ -33,11 +36,24 @@ namespace ml {
       tree_ptr->train( data, CV_ROW_SAMPLE, labels, cv::Mat(), cv::Mat(), this->_var_type);
     }
 
+    // opencv3
+#elif CV_MAJOR_VERSION == 3
+    if ( this->_type == "svm" ) {
+      Mat s_labels;
+      labels.convertTo( s_labels, CV_32S);
+      Ptr<ml::SVM> m = this->_model.dynamicCast<ml::SVM>(); 
+      m->train( data, ml::ROW_SAMPLE, s_labels );
+    }
+#endif
+    
   }
 
   // ---[ Main prediction function ]---
   float ML::predict(const Mat &sample) {
     float result = -1.0;
+    
+    // opencv2
+#if CV_MAJOR_VERSION == 2
     if ( this->_type == "svm" ) {
       CvSVM *svm_ptr = dynamic_cast<CvSVM*>(this->_model.get());
       result = svm_ptr->predict(sample);
@@ -61,6 +77,17 @@ namespace ml {
       CvDTreeNode* prediction = tree_ptr->predict(sample);
       result = prediction->value;
     }
+
+    // opencv3
+#elif CV_MAJOR_VERSION == 3
+    if ( this->_type == "svm" ) {
+      cv::Mat response;
+      Ptr<ml::SVM> m = this->_model.dynamicCast<ml::SVM>(); 
+      m->predict( sample, response);
+      result = response.at<float>(0, 0);
+    }
+#endif
+
     return result;
   }
 
@@ -69,9 +96,11 @@ namespace ml {
     using namespace mongo;
     try {
 
+      // openc2
+#if CV_MAJOR_VERSION == 2
       // Write the model to string
       FileStorage fsWrite(".yml", FileStorage::WRITE + FileStorage::MEMORY);
-      this->_model->write( *fsWrite, "");
+      this->_model->write( *fsWrite,);
       std::string buf = fsWrite.releaseAndGetString();
 
       // Create MongoDB document
@@ -84,6 +113,8 @@ namespace ml {
       // Commit all changes to database
       Database db( db_name, collection);
       db.insert(doc);
+#endif
+      
     }
     catch( const std::exception &e ) {
       std::cout << "[ml::save]" << e.what() << std::endl;
@@ -103,8 +134,11 @@ namespace ml {
 // ---[ Common create function ]---
 // ---------------------------------------
 // This function will eventually by modified for extra param arguments
-ml::MachinePtr ml::create(string type) {
-  ml::MachinePtr ptr;
+machine::MachinePtr machine::create(string type) {
+  machine::MachinePtr ptr;
+
+  // openc2
+#if CV_MAJOR_VERSION == 2  
   shared_ptr<CvStatModel> model;
   if ( type == "svm" ) {
 
@@ -179,17 +213,48 @@ ml::MachinePtr ml::create(string type) {
     ptr = ml::MachinePtr(new ML(type, model, var_type)); 
   }
   else {
-    assert(type && "Given type of machine learning algorithm is not supported.");
+    std::cout << "Given type of machine learning algorithm is not supported." << std::endl;;
   }
+
+  // opencv3
+#elif CV_MAJOR_VERSION == 3
+  if ( type == "svm" ) {
+    Ptr<ml::SVM> model = ml::SVM::create();
+
+    // SVM parameters
+    model->setType(ml::SVM::NU_SVC); //CvSVM::RBF, CvSVM::LINEAR ...
+    model->setKernel(ml::SVM::RBF);
+    model->setGamma(20.0); // for poly/rbf/sigmoid
+    model->setC(7.0);  // for CV_SVM_C_SVC, CV_SVM_EPS_SVR and CV_SVM_NU_SVR
+    model->setNu(0.1);  // for CV_SVM_NU_SVC, CV_SVM_ONE_CLASS, and CV_SVM_NU_SVR
+    model->setP(0.0);  // for CV_SVM_EPS_SVR
+
+    // Termination criterias
+    cv::TermCriteria crit;
+    crit.type = CV_TERMCRIT_ITER + CV_TERMCRIT_EPS;
+    crit.maxCount = 1000;
+    crit.epsilon = 1e-6;
+    model->setTermCriteria(crit);
+    
+    ptr = machine::MachinePtr(new ML(type, model)); 
+  }  
+  else {
+    std::cout << "Given type of machine learning algorithm is not supported." << std::endl;;
+  }
+#endif
+
+  
   return ptr;
 }
 
 
 // ---[ Load model from database ]---
-ml::MachinePtr ml::load(string db_name, string collection, string type) {
+machine::MachinePtr machine::load(string db_name, string collection, string type) {
   using namespace mongo;
 
-  ml::MachinePtr ptr;
+  machine::MachinePtr ptr;
+  // openc2
+#if CV_MAJOR_VERSION == 2  
   shared_ptr<CvStatModel> model;
   try { 
  
@@ -215,12 +280,19 @@ ml::MachinePtr ml::load(string db_name, string collection, string type) {
   catch( const std::exception &e ) {
     std::cout << "[ml::load]" << e.what() << std::endl;
   }
+#endif
   return ptr;
 }
 
-ml::MachinePtr ml::load(string filename) {
-  ml::MachinePtr ptr;
+machine::MachinePtr machine::load(string filename) {
+  machine::MachinePtr ptr;
+
+#if CV_MAJOR_VERSION == 2   // openc2    
   shared_ptr<CvStatModel> model = std::shared_ptr<CvStatModel>(new CvSVM());
+  model->load(filename.c_str());
+#elif CV_MAJOR_VERSION == 3 // opencv3
+  Ptr<ml::SVM> model = cv::Algorithm::load<ml::SVM>(filename);
+#endif  
   /*
   if ( type == "svm" ) {
     model = std::shared_ptr<CvStatModel>(new CvSVM());
@@ -229,14 +301,13 @@ ml::MachinePtr ml::load(string filename) {
     model = std::shared_ptr<CvStatModel>(new CvANN_MLP());
   }
   */
-  model->load(filename.c_str());
-  ptr = ml::MachinePtr(new ML("svm", model));
+  ptr = machine::MachinePtr(new ML("svm", model));
   return ptr;
 }
 
 
 // ---[ Read samples from the database ]---
-void ml::read( string db_name, string collection, Mat &data, Mat &labels) {
+void machine::read( string db_name, string collection, Mat &data, Mat &labels) {
   using namespace mongo;
   try { 
 
@@ -272,7 +343,7 @@ void ml::read( string db_name, string collection, Mat &data, Mat &labels) {
 }
 
 // ---[Filter (remove) one attribute (column) of the samples ]---
-void ml::filter(const Mat &data, Mat &filtered, int idx) {
+void machine::filter(const Mat &data, Mat &filtered, int idx) {
   
   // Remove a attribute (column) given by indx
   for( uint i = 0; i < data.cols; i++) {
@@ -294,7 +365,7 @@ void ml::filter(const Mat &data, Mat &filtered, int idx) {
 // ---------------------------------------------
 // Default: 70-30[%] training-testing samples
 // -----------------------------------------------
-void ml::split( const cv::Mat &data, const cv::Mat &labels,
+void machine::split( const cv::Mat &data, const cv::Mat &labels,
 		cv::Mat &trainData, cv::Mat &trainLabels,
 		cv::Mat &testData, cv::Mat &testLabels,
 		float k) {
@@ -307,6 +378,10 @@ void ml::split( const cv::Mat &data, const cv::Mat &labels,
   cv::RNG rng( time(NULL) );
 
   // Randomly split the total data collection
+  if ( !testData.empty() ) {
+    testData.resize(0);
+    testLabels.resize(0);
+  }
   while ( !n.empty() && (n.size() / (float)data.rows) > k ) {
     int i = rng.uniform(0, (int)n.size());
     testData.push_back(data.row(n[i]));
@@ -317,6 +392,10 @@ void ml::split( const cv::Mat &data, const cv::Mat &labels,
   } 
 
   // Assign the remaining samples...
+  if ( !trainData.empty() ) {
+    trainData.resize(0);
+    trainLabels.resize(0);
+  }
   for ( auto ite = n.begin(); ite != n.end(); ++ite) {
     trainData.push_back(data.row(*ite));
     trainLabels.push_back(labels.row(*ite));    

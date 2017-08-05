@@ -19,10 +19,13 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
 )
 
+# Prevent Cude library from giving a linking error
+#set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+
 ## System dependencies are found with CMake's conventions
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -41,7 +44,7 @@ catkin_package(
   INCLUDE_DIRS include ${LIBMONGOCXX_INCLUDE_DIRS} ${LIBBSONCXX_INCLUDE_DIRS}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS roscpp roslib
-  DEPENDS libbsoncxx libmongocxx OpenCV
+  DEPENDS OpenCV
 )
 
 ###########

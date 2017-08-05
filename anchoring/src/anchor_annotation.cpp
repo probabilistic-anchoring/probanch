@@ -306,7 +306,8 @@ cv::Mat AnchorAnnotation::subImages(int idx) {
   cv::cvtColor( this->_img, result, CV_BGR2GRAY); 
   cv::cvtColor( result, result, CV_GRAY2BGR);
   result.convertTo( result, -1, 1.0, 50); 
-
+  //cv::Mat result( this->_img.size(), this->_img.type(), cv::Scalar::all(255)); // <-- ...white bg
+  
   // Iterate and draw sub images
   cv::Scalar color = cv::Scalar::all(255); // White
   int pose = cv::getTrackbarPos( "Time slider:", window);

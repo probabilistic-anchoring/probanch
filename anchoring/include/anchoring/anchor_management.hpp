@@ -23,7 +23,7 @@ class AnchorManagement {
   std::unique_ptr<anchoring::AnchorContainer> _anchors;
 
   // Object classicication 
-  ml::MachinePtr _classifier; 
+  machine::MachinePtr _classifier; 
   
   /* --------------
      ROS variables

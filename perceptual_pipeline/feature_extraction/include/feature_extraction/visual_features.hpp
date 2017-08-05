@@ -4,12 +4,20 @@
 #include <cmath> 
 #include <iostream>
 #include <vector>
+
+// OpenCV includes
+#include <opencv2/core/version.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/features2d/features2d.hpp>
 #include <opencv2/ml/ml.hpp>
+
+#if CV_MAJOR_VERSION == 2 // opencv2 only
+#include <opencv2/features2d/features2d.hpp>
+#endif
 
 #include <feature_extraction/shades.hpp>
 
+
+#if CV_MAJOR_VERSION == 2 // opencv2 only
 // --------------------------
 // Class for handling keypoint features
 // ----------------------------------------
@@ -92,6 +100,7 @@ private:
   int _descriptorLevel;
 
 }; 
+#endif // opencv2 ...
 
 
 // --------------------------
@@ -130,7 +139,12 @@ public:
 private:
 
   // SVM classifier
+#if CV_MAJOR_VERSION == 2
   CvSVM _svm;
+#elif CV_MAJOR_VERSION == 3
+  cv::Ptr<cv::ml::SVM> _svm;
+#endif
+  
   int _hbins;
   int _sbins;
   int _vbins;

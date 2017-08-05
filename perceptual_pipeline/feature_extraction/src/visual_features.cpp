@@ -16,6 +16,7 @@ using namespace std;
    Keypoint features
 
    --------------------------- */
+#if CV_MAJOR_VERSION == 2 // opencv2 only
 
 // Constructor
 KeypointFeatures::KeypointFeatures( int numKeyPoints,
@@ -236,6 +237,7 @@ cv::Mat KeypointFeatures::filterDescriptor( const Mat& descriptor,
   }
   return filtered;
 }
+#endif // opencv2 ...
 
 
 /* ----------------------------
@@ -279,6 +281,9 @@ ColorFeatures::ColorFeatures(int hbins,
     trainingDataMat.push_back(row);
   }
 
+
+#if CV_MAJOR_VERSION == 2
+
   // Set up SVM's parameters
   CvSVMParams params;
   params.svm_type    = CvSVM::NU_SVC; // CvSVM::C_SVC | CvSVM::NU_SVC
@@ -287,10 +292,33 @@ ColorFeatures::ColorFeatures(int hbins,
   params.C = 0.01;
   params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e6, 1e-7); // (int)1e9, 1e-6
 
-  //params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, (int)1e10, 1e-8); // 1e-6
-
   // Train the SVM
   this->_svm.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+
+#elif CV_MAJOR_VERSION == 3
+  this->_svm = ml::SVM::create();
+
+  // SVM parameters
+  this->_svm->setType(ml::SVM::NU_SVC); //CvSVM::RBF, CvSVM::LINEAR ...
+  this->_svm->setKernel(ml::SVM::LINEAR);
+  this->_svm->setNu(0.1);
+  this->_svm->setC(0.01);
+  
+  // Termination criterias
+  cv::TermCriteria crit;
+  crit.type = CV_TERMCRIT_ITER + CV_TERMCRIT_EPS;
+  crit.maxCount = 1000;
+  crit.epsilon = 1e-6;
+  this->_svm->setTermCriteria(crit);
+
+  // Train the SVM
+  Mat labelsShort;
+  labelsMat.convertTo( labelsShort, CV_32S);
+
+  this->_svm->train( trainingDataMat, ml::ROW_SAMPLE, labelsShort);
+  
+#endif
+
 }
 
 // Destructor - clean up...
@@ -345,7 +373,11 @@ void ColorFeatures::predict( const Mat &hist,
       for( int v = 0; v < this->_vbins; v++ ) 
 	if( hist.at<float>(h, s, v) > 0.0 ) {
 	  Mat sampleMat = (Mat_<float>(1,3) << h,s,v);
+#if CV_MAJOR_VERSION == 2
 	  float response = this->_svm.predict(sampleMat);
+#elif CV_MAJOR_VERSION == 3
+	  float response = this->_svm->predict(sampleMat);
+#endif	  
 	  preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
 	}
   preds[SHADES_OF_RED_LOW] += preds[SHADES_OF_RED_HIGH];

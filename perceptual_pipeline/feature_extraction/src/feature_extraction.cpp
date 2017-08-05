@@ -5,13 +5,13 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <opencv2/core/version.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 #include <feature_extraction/feature_extraction.hpp>
 
 //#define USE_KEYPOINT_FEATURES 1
-
 
 FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
   : nh_(nh)
@@ -27,6 +27,8 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
   // Used for the web interface
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &FeatureExtraction::triggerCb, this);
   display_image_pub_ = it_.advertise("/display/image", 1);
+
+
 } 
 
 void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -39,7 +41,6 @@ void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
 }
 
 void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
-
   // Create a (editable) copy
   anchor_msgs::ObjectArray output;
   output.header = objects_msg->header;
@@ -255,12 +256,16 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	  */
 	}
       }
-    
+
+#if CV_MAJOR_VERSION == 2 // opencv2 onlt
+
       for (uint i = 0; i < total_keypoints.size(); i++) {
 	if( !total_keypoints[i].empty() )
 	  cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	  //cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
       }
+#endif
+      
     }
     cv_ptr->image = result;
     cv_ptr->encoding = "bgr8";
@@ -290,9 +295,17 @@ void FeatureExtraction::spin() {
 // Main function
 // -----------------------
 int main(int argc, char **argv) {
+#if CV_MAJOR_VERSION == 2
+  // do opencv 2 code
+  std::cout << "Opencv 2" << std::endl;
+#elif CV_MAJOR_VERSION == 3
+  // do opencv 3 code
+  std::cout << "Opencv 2" << std::endl;
+#endif
+  
   ros::init(argc, argv, "feature_extraction_node");
   ros::NodeHandle nh;
-
+  
   FeatureExtraction node(nh);
   node.spin();
   return 0;
