@@ -19,11 +19,11 @@
     <remap to="/kinect2/qhd/points" from="/cloud"/>
 
     <param name="compare_type" type="int" value="3" />	
-    <param name="plane_min_size" type="int" value="12000" />	
-    <param name="cluster_min_size" type="int" value="400" />	
+    <param name="plane_min_size" type="int" value="9000" />	
+    <param name="cluster_min_size" type="int" value="300" />	
     <param name="angular_th" type="double" value="2.0" />	
-    <param name="distance_th" type="double" value="0.014" />	
-    <param name="refine_factor" type="double" value="0.84" />    
+    <param name="distance_th" type="double" value="0.016" />	
+    <param name="refine_factor" type="double" value="0.89" />    
 
     <!-- Spatial thresholds (used for filter the point cloud) -->
     <param name="min_x" type="double" value="0.2" />

@@ -23,7 +23,6 @@
         output="screen">
     <param name="db_name" type="string" value="anchortmpdb" />
   </node>
-  
 	
   <!-- Inference system  
   <node name="dc_inference_node" pkg="inference" type="dc_inference"
@@ -37,7 +36,7 @@
     <param name="display_mode" type="string" value="anchoring" />	
   </node>
   
-  <!-- Include the display interface (including the websocket bridge) -->  
+  <!-- Include the display interface (including the websocket bridge) --> 
   <include file="$(find display)/launch/web_interface.launch" />
   
 </launch>

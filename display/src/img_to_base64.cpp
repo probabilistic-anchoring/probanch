@@ -120,7 +120,7 @@ public:
 
   // ROS handler
   void spin() {
-    ros::Rate rate(30);
+    ros::Rate rate(100);
     while(ros::ok()) {
       ros::spinOnce();
       rate.sleep();

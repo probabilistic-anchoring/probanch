@@ -206,6 +206,10 @@ class AnchorViewer {
       rect = rect - cv::Point( 25, 25);
       rect &= cv::Rect( cv::Point(0.0), this->_img.size()); // Saftey routine! 
 
+      // Draw the object
+      this->_img.copyTo( result_img, mask);
+      cv::drawContours( result_img, contours, -1, color, 1);
+      /*
       // Draw contour or sub image 
       if( this->_display_trigger == "association" ) {
 	this->_img.copyTo( result_img, mask);
@@ -217,6 +221,7 @@ class AnchorViewer {
 	//sub_img.copyTo(result_img);
 	this->_img(rect).copyTo( result_img(rect) );
       }
+      */
 
       // Draw highlighted result
       if( ite->id == this->_highlight ) {
@@ -264,9 +269,9 @@ class AnchorViewer {
 
       }
     } 
-    //cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
+    cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
 
-    
+    /*
     // TMP
     cv::Rect roi;
     roi.x = 80;
@@ -276,7 +281,7 @@ class AnchorViewer {
     cv::Mat crop = result_img(roi);
     cv::rectangle( crop, cv::Rect( 0, 0, crop.cols, crop.rows), cv::Scalar( 32, 84, 233), 2);
     cv::imwrite( "/home/aspo/testbed/images/" + std::to_string(_counter) + ".jpg", crop);
-    
+    */
 
     // Return the result
     return result_img;
@@ -333,8 +338,8 @@ public:
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
-    _highlight_sub = _nh.subscribe("/display/highlight", 10, &AnchorViewer::highlight_cb, this);
-    _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
+    _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
+    //_selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
     // Used for the web interface
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);
@@ -358,7 +363,7 @@ public:
   ~AnchorViewer() {}
 
   void spin() {
-    ros::Rate rate(30);
+    ros::Rate rate(100);
     while(ros::ok()) {
 
       // OpenCV window for display
