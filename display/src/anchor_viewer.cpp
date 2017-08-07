@@ -111,6 +111,8 @@ class AnchorViewer {
   }
 
   // Callback function for reciving and displaying the image
+  // TMP 
+  int _counter;
   void display_cb(const anchor_msgs::DisplayArrayConstPtr& msg_ptr) {
 
     // Store the image
@@ -146,6 +148,7 @@ class AnchorViewer {
       cv_ptr->encoding = "bgr8";
       _display_image_pub.publish(cv_ptr->toImageMsg());
     }
+    _counter++;
   }
 
   // Callback function for receiving particles from the data association
@@ -165,19 +168,26 @@ class AnchorViewer {
   cv::Mat anchor_img() {
 
     // Draw the result
-    cv::Mat result_img(this->_img);
-    cv::Mat highlight_img(this->_img);
+    cv::Mat result_img, highlight_img;
+    this->_img.copyTo(result_img);
+    this->_img.copyTo(highlight_img);
+    //cv::Mat highlight_img(this->_img);
     cv::cvtColor( result_img, result_img, CV_BGR2GRAY); 
     cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
     result_img.convertTo( result_img, -1, 1.0, 50); 
 
+    // Set contour color
+    //cv::Scalar color = cv::Scalar::all(255); // White
+    cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+    //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
+    //cv::Scalar color = cv::Scalar::all(64); // Dark gray
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
       if( ite->border.contour.empty() ) {
 	continue;
       }
 
-      // Draw the contour
+      // Get the contour
       std::vector<cv::Point> contour;
       for( uint i = 0; i < ite->border.contour.size(); i++) {
 	cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
@@ -186,23 +196,39 @@ class AnchorViewer {
       std::vector<std::vector<cv::Point> > contours;
       contours.push_back(contour);
 
+      // Create an image mask
+      cv::Mat mask( this->_img.size(), CV_8U, cv::Scalar(0) );
+      cv::drawContours( mask, contours, -1, cv::Scalar(255), CV_FILLED);
+
       // Get the bounding box
       cv::Rect rect = cv::boundingRect(contour);
-      
+      rect = rect + cv::Size( 50, 50);  // ...add padding
+      rect = rect - cv::Point( 25, 25);
+      rect &= cv::Rect( cv::Point(0.0), this->_img.size()); // Saftey routine! 
+
+      // Draw contour or sub image 
+      if( this->_display_trigger == "association" ) {
+	this->_img.copyTo( result_img, mask);
+	cv::drawContours( result_img, contours, -1, color, 1);
+      }
+      else {
+	//cv::Mat sub_img = result_img(rect);
+	//this->_img.copyTo( result_img, rect);
+	//sub_img.copyTo(result_img);
+	this->_img(rect).copyTo( result_img(rect) );
+      }
+
       // Draw highlighted result
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
+	cv::drawContours( highlight_img, contours, -1, color, 1);
       }
 
-      // Draw contour
-      cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
-      //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
-      //cv::Scalar color = cv::Scalar::all(64); // Dark gray
-      cv::drawContours( result_img, contours, -1, color, 1);
-      cv::drawContours( highlight_img, contours, -1, color, 1);
-
-      // Print anchoring infromation 
+      // Print anchoring information 
       if( this->_display_trigger == "anchoring" || this->_display_trigger == "both" ) {
+	cv::rectangle( result_img, rect, color, 1, 8);
+	cv::putText( result_img, ite->x, cv::Point( rect.x+10, rect.y+16), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	/*
 	 std::stringstream ss;
 	 ss << "Symbol: " << ite->x;
 	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
@@ -226,19 +252,33 @@ class AnchorViewer {
 	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	 ss.str("");
+	*/
       }
 
       // Draw particles
       if( this->_display_trigger == "association" || this->_display_trigger == "both" ) {
 	for( uint i = 0; i < this->_particles.size(); i++) {
-	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
-	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
+	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 1, this->_particles[i].getColor(), -1);
+	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 1, this->_particles[i].getColor(), -1);
 	}
 
       }
     } 
     //cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
 
+    
+    // TMP
+    cv::Rect roi;
+    roi.x = 80;
+    roi.y = 200;
+    roi.width = 320;
+    roi.height = 320;
+    cv::Mat crop = result_img(roi);
+    cv::rectangle( crop, cv::Rect( 0, 0, crop.cols, crop.rows), cv::Scalar( 32, 84, 233), 2);
+    cv::imwrite( "/home/aspo/testbed/images/" + std::to_string(_counter) + ".jpg", crop);
+    
+
+    // Return the result
     return result_img;
   }
 
@@ -288,6 +328,7 @@ class AnchorViewer {
 
 public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh) { //,  _display_trigger("anchoring"), _max_particles(-1) {
+    _counter = 0;
     
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
