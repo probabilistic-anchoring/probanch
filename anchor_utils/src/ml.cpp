@@ -100,7 +100,7 @@ namespace machine {
 #if CV_MAJOR_VERSION == 2
       // Write the model to string
       FileStorage fsWrite(".yml", FileStorage::WRITE + FileStorage::MEMORY);
-      this->_model->write( *fsWrite,);
+      this->_model->write( *fsWrite, "");
       std::string buf = fsWrite.releaseAndGetString();
 
       // Create MongoDB document
@@ -161,7 +161,7 @@ machine::MachinePtr machine::create(string type) {
 
     // Create the SVM classifier
     model = std::shared_ptr<CvStatModel>(new CvSVM());
-    ptr = ml::MachinePtr(new ML( type, model, params));
+    ptr = machine::MachinePtr(new ML( type, model, params));
   }
   else if( type == "mlp" ) {
 
@@ -183,19 +183,19 @@ machine::MachinePtr machine::create(string type) {
     layers.row(2) = cv::Scalar(15); // 15
     layers.row(3) = cv::Scalar(1);
     model = std::shared_ptr<CvStatModel>(new CvANN_MLP(layers));
-    ptr = ml::MachinePtr(new ML( type, model, params));    
+    ptr = machine::MachinePtr(new ML( type, model, params));    
   }
   else if( type == "knn" ) {
 
     // Create the kNN classifier
     model = std::shared_ptr<CvStatModel>(new CvKNearest());
-    ptr = ml::MachinePtr(new ML(type, model)); 
+    ptr = machine::MachinePtr(new ML(type, model)); 
   }
   else if( type == "bayes" ) {
 
     // Create the Bayes classifier
     model = std::shared_ptr<CvStatModel>(new CvNormalBayesClassifier());
-    ptr = ml::MachinePtr(new ML(type, model)); 
+    ptr = machine::MachinePtr(new ML(type, model)); 
   }
   else if( type == "tree" ) {
 
@@ -210,7 +210,7 @@ machine::MachinePtr machine::create(string type) {
 
     // Create the Decision tree classifier
     model = std::shared_ptr<CvStatModel>(new CvDTree());
-    ptr = ml::MachinePtr(new ML(type, model, var_type)); 
+    ptr = machine::MachinePtr(new ML(type, model, var_type)); 
   }
   else {
     std::cout << "Given type of machine learning algorithm is not supported." << std::endl;;
@@ -274,7 +274,7 @@ machine::MachinePtr machine::load(string db_name, string collection, string type
     }
 
     model->read( *fsRead, *(fsRead.getFirstTopLevelNode()) );
-    ptr = ml::MachinePtr(new ML(type, model));
+    ptr = machine::MachinePtr(new ML(type, model));
 
   }
   catch( const std::exception &e ) {
