@@ -25,7 +25,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
-find_package(OpenCV 3 REQUIRED)
+
+# Find 
+if(OpenCV_VERSION VERSION_LESS "3.0")
+  find_package(OpenCV 2 REQUIRED)
+else()
+  find_package(OpenCV 3 REQUIRED)
+endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##

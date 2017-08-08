@@ -246,7 +246,12 @@ cv::Mat KeypointFeatures::filterDescriptor( const Mat& descriptor,
 
    --------------------------- */
 
-// Constructor
+// Constructor(s)
+ColorFeatures::ColorFeatures(const std::string &filename) {
+  this->_svm = machine::load(filename);
+}
+
+/*
 ColorFeatures::ColorFeatures(int hbins,
 			     int sbins,
 			     int vbins ) : _hbins(hbins), _sbins(sbins), _vbins(vbins) {
@@ -320,6 +325,7 @@ ColorFeatures::ColorFeatures(int hbins,
 #endif
 
 }
+*/
 
 // Destructor - clean up...
 ColorFeatures::~ColorFeatures() {
@@ -373,11 +379,7 @@ void ColorFeatures::predict( const Mat &hist,
       for( int v = 0; v < this->_vbins; v++ ) 
 	if( hist.at<float>(h, s, v) > 0.0 ) {
 	  Mat sampleMat = (Mat_<float>(1,3) << h,s,v);
-#if CV_MAJOR_VERSION == 2
-	  float response = this->_svm.predict(sampleMat);
-#elif CV_MAJOR_VERSION == 3
 	  float response = this->_svm->predict(sampleMat);
-#endif	  
 	  preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
 	}
   preds[SHADES_OF_RED_LOW] += preds[SHADES_OF_RED_HIGH];

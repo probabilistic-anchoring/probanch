@@ -13,7 +13,7 @@ class FeatureExtraction {
 private:
 
   // Color feature object 
-  ColorFeatures cf_; 
+  std::shared_ptr<ColorFeatures> _cf; 
 
   // ROS node handles 
   ros::NodeHandle nh_; 

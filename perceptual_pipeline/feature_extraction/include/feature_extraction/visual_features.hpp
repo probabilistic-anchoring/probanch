@@ -6,9 +6,7 @@
 #include <vector>
 
 // OpenCV includes
-#include <opencv2/core/version.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/ml/ml.hpp>
+#include <anchor_utils/ml.hpp>
 
 #if CV_MAJOR_VERSION == 2 // opencv2 only
 #include <opencv2/features2d/features2d.hpp>
@@ -112,7 +110,8 @@ public:
   // -------------------
   // Public function
   // -------------------
-  ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
+  ColorFeatures(const std::string &filename);
+  //ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
   ~ColorFeatures();
 
   // Color detection
@@ -139,11 +138,7 @@ public:
 private:
 
   // SVM classifier
-#if CV_MAJOR_VERSION == 2
-  CvSVM _svm;
-#elif CV_MAJOR_VERSION == 3
-  cv::Ptr<cv::ml::SVM> _svm;
-#endif
+  machine::MachinePtr _svm; 
   
   int _hbins;
   int _sbins;

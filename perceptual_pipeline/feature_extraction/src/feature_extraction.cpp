@@ -1,7 +1,9 @@
 
 #include <string>
 #include <algorithm>
+
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
@@ -28,6 +30,9 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &FeatureExtraction::triggerCb, this);
   display_image_pub_ = it_.advertise("/display/image", 1);
 
+  // Load the color classifier
+  const std::string path = ros::package::getPath("feature_extraction"); 
+  this->_cf = std::shared_ptr<ColorFeatures>( new ColorFeatures(path + "/models/colors.yml") );
 
 } 
 
@@ -165,11 +170,11 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     // Calculate the HSV color histogram over the image mask
     cv::Mat hist;
     cv::Mat sub_mask = mask(rect);
-    cf_.calculate( sub_img, hist, sub_mask);
+    this->_cf->calculate( sub_img, hist, sub_mask);
 
     // Classify the histogram
     std::vector<float> preds;
-    cf_.predict( hist, preds);
+    this->_cf->predict( hist, preds);
     cv::Mat preds_img( 1, preds.size(), CV_32FC1, &preds.front()); 
     
     /*
@@ -196,7 +201,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	  continue;
 	p2.x = p1.x + 6;
 	p2.y = p1.y - (int)(preds[i] * 50.0);
-	cv::rectangle( result, p1, p2, cf_.getColor(i), CV_FILLED);
+	cv::rectangle( result, p1, p2, this->_cf->getColor(i), CV_FILLED);
 	p1.x += 7;
       }  
     }
@@ -205,7 +210,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     double max = *std::max_element( preds.begin(), preds.end());
     for( uint j = 0; j < preds.size(); j++) {
       if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the max value
-	output.objects[i].color.symbols.push_back(cf_.colorSymbol(j));
+	output.objects[i].color.symbols.push_back(this->_cf->colorSymbol(j));
 	output.objects[i].color.predictions.push_back(preds[j]);
       }
     }

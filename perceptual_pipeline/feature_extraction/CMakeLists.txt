@@ -16,6 +16,7 @@ endif()
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
+  anchor_utils
   cv_bridge
   image_transport
   roscpp
@@ -47,14 +48,14 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include ${OpenCV_INCLUDE_DIRS}
 #  LIBRARIES feature_extraction
-  CATKIN_DEPENDS anchor_msgs cv_bridge image_transport roscpp
+  CATKIN_DEPENDS anchor_msgs anchor_utils cv_bridge image_transport roscpp
   DEPENDS OpenCV
 )
 
 ###########
 ## Build ##
 ###########
-set(catkin_INCLUDE_DIRS "/opt/ros/kinetic/include/" "/home/aspo/Workspace/devel/include/")
+#set(catkin_INCLUDE_DIRS "/opt/ros/kinetic/include/" "/home/aspo/Workspace/devel/include/")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
