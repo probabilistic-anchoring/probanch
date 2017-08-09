@@ -111,10 +111,11 @@ public:
   // Public function
   // -------------------
   ColorFeatures(const std::string &filename);
-  //ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
+  ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
   ~ColorFeatures();
 
   // Color detection
+  void load(const std::string &filename);
   void calculate( const cv::Mat &img,
 		  cv::Mat &hist,
 		  const cv::Mat &mask = cv::Mat() );

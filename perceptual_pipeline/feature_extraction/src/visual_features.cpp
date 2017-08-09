@@ -251,11 +251,10 @@ ColorFeatures::ColorFeatures(const std::string &filename) {
   this->_svm = machine::load(filename);
 }
 
-/*
 ColorFeatures::ColorFeatures(int hbins,
 			     int sbins,
 			     int vbins ) : _hbins(hbins), _sbins(sbins), _vbins(vbins) {
-
+  /*
   // Classifier training data
   Mat labelsMat(0, 1, CV_32FC1);
   Mat dataMat(0, 1, CV_8UC3);
@@ -323,13 +322,18 @@ ColorFeatures::ColorFeatures(int hbins,
   this->_svm->train( trainingDataMat, ml::ROW_SAMPLE, labelsShort);
   
 #endif
-
+  */
 }
-*/
+
 
 // Destructor - clean up...
 ColorFeatures::~ColorFeatures() {
   //this->_svm.release();
+}
+
+// Load a pre-trained moel
+void ColorFeatures::load(const std::string &filename) {
+  this->_svm = machine::load(filename);
 }
 
 // Color detection
@@ -352,16 +356,16 @@ void ColorFeatures::calculate( const Mat &img,
 
   // Calculate the color histogram
   if( !mask.data ) {
-    calcHist( &hsv, 1, channels, Mat(), // ...do not use mask
-	      hist, 3, histSize, ranges,
-	      true, // ...the histogram is uniform
-	      false );
+    cv::calcHist( &hsv, 1, channels, Mat(), // ...do not use mask
+		  hist, 3, histSize, ranges,
+		  true, // ...the histogram is uniform
+		  false );
   }
   else {
-    calcHist( &hsv, 1, channels, mask, 
-	      hist, 3, histSize, ranges,
-	      true, // ...the histogram is uniform
-	      false );
+    cv::calcHist( &hsv, 1, channels, mask, 
+		  hist, 3, histSize, ranges,
+		  true, // ...the histogram is uniform
+		  false );
   }
 }
 

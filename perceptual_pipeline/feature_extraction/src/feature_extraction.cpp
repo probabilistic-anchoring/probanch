@@ -31,8 +31,11 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
   display_image_pub_ = it_.advertise("/display/image", 1);
 
   // Load the color classifier
-  const std::string path = ros::package::getPath("feature_extraction"); 
-  this->_cf = std::shared_ptr<ColorFeatures>( new ColorFeatures(path + "/models/colors.yml") );
+  const std::string path = ros::package::getPath("feature_extraction");
+  std::cout << path + "/models/colors.yml" << std::endl; 
+  //this->_cf = std::shared_ptr<ColorFeatures>( new ColorFeatures(path + "/models/colors.yml") );
+  this->_cf.load(path + "/models/colors.yml");
+  std::cout << "Loaded fine..." << std::endl;
 
 } 
 
@@ -170,11 +173,11 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     // Calculate the HSV color histogram over the image mask
     cv::Mat hist;
     cv::Mat sub_mask = mask(rect);
-    this->_cf->calculate( sub_img, hist, sub_mask);
+    this->_cf.calculate( sub_img, hist, sub_mask);
 
     // Classify the histogram
     std::vector<float> preds;
-    this->_cf->predict( hist, preds);
+    this->_cf.predict( hist, preds);
     cv::Mat preds_img( 1, preds.size(), CV_32FC1, &preds.front()); 
     
     /*
@@ -201,7 +204,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	  continue;
 	p2.x = p1.x + 6;
 	p2.y = p1.y - (int)(preds[i] * 50.0);
-	cv::rectangle( result, p1, p2, this->_cf->getColor(i), CV_FILLED);
+	cv::rectangle( result, p1, p2, this->_cf.getColor(i), CV_FILLED);
 	p1.x += 7;
       }  
     }
@@ -210,7 +213,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     double max = *std::max_element( preds.begin(), preds.end());
     for( uint j = 0; j < preds.size(); j++) {
       if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the max value
-	output.objects[i].color.symbols.push_back(this->_cf->colorSymbol(j));
+	output.objects[i].color.symbols.push_back(this->_cf.colorSymbol(j));
 	output.objects[i].color.predictions.push_back(preds[j]);
       }
     }
@@ -305,7 +308,7 @@ int main(int argc, char **argv) {
   std::cout << "Opencv 2" << std::endl;
 #elif CV_MAJOR_VERSION == 3
   // do opencv 3 code
-  std::cout << "Opencv 2" << std::endl;
+  std::cout << "Opencv 3" << std::endl;
 #endif
   
   ros::init(argc, argv, "feature_extraction_node");

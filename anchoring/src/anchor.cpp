@@ -318,7 +318,8 @@ namespace anchoring {
   }
 
   std::string Anchor::toString() {
-    return this->_x;
+    AttributeMap::iterator ite = this->_attributes.find(POSITION);
+    return this->_x + " " + ite->second->toString();
     /*
     std::ostringstream oss;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {   
