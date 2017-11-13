@@ -149,7 +149,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
 
-  /*
+  
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
@@ -157,7 +157,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Filter the transformed point cloud 
   this->filter (transformed_cloud_ptr);
   // ----------------------
-  */
+  
   
   // Read the RGB image
   cv::Mat img, result;
@@ -186,8 +186,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
-  //this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
-  this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
+  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  //this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
   if( !cluster_indices.empty() ) {
   
     // Camera information
@@ -217,22 +217,39 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
       
+      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+      pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
+      if( transformed_cluster_ptr->points.empty() )
+	continue;
+      
+      
+      // Reverser transform to get the contour right
+      pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+      pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
+
+      /*
       // Create the point cluster from the orignal point cloud
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
 
+      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+      pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *cluster_ptr);
+      
+      
       // Transform the cloud to the world frame
       pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);       
 
+      
       // Filter the transformed point cloud 
       this->filter (transformed_cluster_ptr);
       if( transformed_cluster_ptr->points.empty() )
 	continue;
-
+      
+      
       // Reverser transform to get the contour right
       pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
-
+      */
       
       // Post-process the cluster
       try {

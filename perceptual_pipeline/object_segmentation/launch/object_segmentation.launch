@@ -21,7 +21,7 @@
     <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
     <remap to="/kinect2/qhd/points" from="/cloud"/>
 
-    <param name="compare_type" type="int" value="3" />	
+    <param name="compare_type" type="int" value="1" />	
     <param name="plane_min_size" type="int" value="9000" />	
     <param name="cluster_min_size" type="int" value="300" />	
     <param name="angular_th" type="double" value="2.0" />	
