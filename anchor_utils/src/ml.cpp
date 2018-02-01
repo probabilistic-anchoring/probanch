@@ -41,8 +41,11 @@ namespace machine {
     if ( this->_type == "svm" ) {
       Mat s_labels;
       labels.convertTo( s_labels, CV_32S);
-      Ptr<ml::SVM> m = this->_model.dynamicCast<ml::SVM>(); 
-      m->train( data, ml::ROW_SAMPLE, s_labels );
+      Ptr<ml::SVM> m = this->_model.dynamicCast<ml::SVM>();
+      //m->train( data, ml::ROW_SAMPLE, s_labels );
+
+      Ptr<ml::TrainData> d = ml::TrainData::create( data, cv::ml::ROW_SAMPLE, s_labels);
+      m->trainAuto( d, 10 );
     }
 #endif
     
@@ -222,8 +225,8 @@ machine::MachinePtr machine::create(string type) {
     Ptr<ml::SVM> model = ml::SVM::create();
 
     // SVM parameters
-    model->setType(ml::SVM::NU_SVC); //CvSVM::RBF, CvSVM::LINEAR ...
-    model->setKernel(ml::SVM::RBF);
+    model->setType(ml::SVM::NU_SVC); 
+    model->setKernel(ml::SVM::RBF); //CvSVM::RBF, CvSVM::LINEAR ...
     model->setGamma(20.0); // for poly/rbf/sigmoid
     model->setC(7.0);  // for CV_SVM_C_SVC, CV_SVM_EPS_SVR and CV_SVM_NU_SVR
     model->setNu(0.1);  // for CV_SVM_NU_SVC, CV_SVM_ONE_CLASS, and CV_SVM_NU_SVR
@@ -344,6 +347,7 @@ void machine::read( string db_name, string collection, Mat &data, Mat &labels) {
 
 // ---[Filter (remove) one attribute (column) of the samples ]---
 void machine::filter(const Mat &data, Mat &filtered, int idx) {
+  Mat result;
   
   // Remove a attribute (column) given by indx
   for( uint i = 0; i < data.cols; i++) {
@@ -351,14 +355,14 @@ void machine::filter(const Mat &data, Mat &filtered, int idx) {
       continue;
 
     Mat col = data.col(i);
-    if ( filtered.empty() ) {
-      filtered = col;
+    if ( result.empty() ) {
+      result = col;
     }
     else {
-      cv::hconcat( filtered, col, filtered);
+      cv::hconcat( result, col, result);
     }
   }
-
+  filtered = result;
 }
 
 // ---[ Create the training/testing split ]---
@@ -402,3 +406,47 @@ void machine::split( const cv::Mat &data, const cv::Mat &labels,
   }
 }
 
+// ---[ Evenly distribute the dataset ]---
+// ---------------------------------------------
+void machine::distribute(const Mat &data, const Mat &labels,
+			 Mat &distData, Mat &distLabels, int k) {
+  //int cnt = cv::countNonZero(trainLabels);
+  //std::cout << "Zeros: " <<  trainLabels.rows - cnt << std::endl;
+  //std::cout << "Ones: " <<  cnt << std::endl;
+
+  // Create index vector
+  std::vector<int> n(data.rows);
+  std::iota( n.begin(), n.end(), 0);
+
+  // Clear existing data
+  if ( !distData.empty() ) {
+    distData.resize(0);
+    distLabels.resize(0);
+  }
+  
+  // Random generator
+  cv::RNG rng( time(NULL) );
+
+  // Randomly split the total data collection
+  float dest = 0.0;
+  while ( k > 0 ) {
+    int i = rng.uniform(0, (int)n.size());
+    if( (int)dest != (int)labels.at<float>(n[i], 0) )
+      continue;
+
+    // Add to dataset
+    distData.push_back(data.row(n[i]));
+    distLabels.push_back(labels.row(n[i]));
+    
+    // Remove from index
+    n.erase( n.begin() + i );
+
+    if( dest == 1.0 ) {
+      dest = 0.0;
+      k--;
+    }
+    else {
+      dest += 1.0;
+    }
+  }
+}

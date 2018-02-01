@@ -17,7 +17,7 @@ namespace machine {
   using namespace std;
   using namespace cv;
   
-    // ---[ Class definition...
+  // ---[ Class definition...
   // --------------------------------
   class ML {
     string _type;
@@ -73,7 +73,8 @@ namespace machine {
 	      Mat &trainData, Mat &trainLabels,
 	      Mat &testData, Mat &testLabels,
 	      float k = 0.7 );
-
+  void distribute(const Mat &data, const Mat &labels,
+		  Mat &distData, Mat &distLabels, int k = 800);
 
 } // namespace 'machine'
 

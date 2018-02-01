@@ -56,8 +56,10 @@ namespace anchoring {
       this->_x = doc.get<std::string>("x");
       
       // Read the history
-      doc.get<std::string>( "H", this->_history);
-
+      if( doc.exist("H") ) {
+	doc.get<std::string>( "H", this->_history);
+      }
+      
       // Read all attributes
       for( mongo::document_iterator ite = doc.begin("attributes"); ite != doc.end("attributes"); ++ite) {
 
@@ -125,7 +127,7 @@ namespace anchoring {
       // Add time
       doc.add<double>( "t", this->_t.toSec());
 
-      // Add the history (even if it is empty)
+      // Add the history 
       doc.add<std::string>( "H", this->_x);
       
       // Add all attributes
@@ -252,8 +254,16 @@ namespace anchoring {
       if( ite != this->_attributes.end() ) {
 	std::string symbol = ite->second->toString();
 	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	  for( auto x : this->_history ) {
+	    if( x.compare( 0, symbol.size(), symbol) == 0 ) {
+	      this->_x = x;
+	      return;
+	    }
+	  }
+	  this->_history.push_back(this->_x);
 	  this->_x = this->generateSymbol( symbol, db);
 	  db.update<std::string>( this->_id, "x", this->_x);
+	  db.update<std::string>( this->_id, "H", this->_history);
 	}
       }  
     }
@@ -319,7 +329,8 @@ namespace anchoring {
 
   std::string Anchor::toString() {
     AttributeMap::iterator ite = this->_attributes.find(POSITION);
-    return this->_x + " " + ite->second->toString();
+    //return this->_x + " " + ite->second->toString();
+    return this->_x;
     /*
     std::ostringstream oss;
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {   

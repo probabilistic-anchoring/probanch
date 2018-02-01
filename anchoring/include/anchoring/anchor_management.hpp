@@ -35,6 +35,57 @@ class AnchorManagement {
 
   double _time_zero;
 
+  /* Struct for temporary storage of matching results */
+  struct ObjectMatching {
+    ObjectMatching(anchoring::AttributeMap &attributes) : _attributes(std::move(attributes)) {}
+    /*
+    ObjectMatching( ObjectMatching&& other ) :
+      _attributes(std::move(other._attributes)),
+      _matches(other._matches),
+      _predictions(other._predictions)
+    {
+    }
+    ObjectMatching& operator=(ObjectMatching &&other) {
+      _attributes = std::move(other._attributes);
+      _matches = other._matches;
+      _predictions = other._predictions;
+      return *this;
+    }
+    */
+
+    // Local variables
+    anchoring::AttributeMap _attributes;
+    map< string, map<anchoring::AttributeType, float> > _matches;
+    map< string, float> _predictions;
+
+    // Filter classification predictions
+    void filter(ObjectMatching &other) {
+      for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
+	if( other._predictions.find(ite->first) != other._predictions.end() ) {
+	  if( ite->second > other._predictions[ite->first] ) {
+	    other._predictions.erase(ite->first);
+	  }
+	  else {
+	    this->_predictions.erase(ite);
+	  }
+	}
+      }
+    }
+    
+    // Get the id of the best matching anchor
+    string getId() {
+      string id = "";
+      float best = 0.0;
+      for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
+	if( ite->second > best ) {
+	  best = ite->second;
+	  id = ite->first;
+	}
+      }
+      return id;
+    }
+  };
+  
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   float predict(map< string, map<anchoring::AttributeType, float> > &matches);
   void track( const dc_msgs::MeanPosHiddenArrayConstPtr &movement_ptr );

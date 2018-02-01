@@ -87,6 +87,7 @@ namespace mongo {
       vector<Document>::const_iterator begin(const std::string &key) const;
       vector<Document>::const_iterator end(const std::string &key) const;
       const vector<Document> &access(const std::string &key);
+      bool exist(const std::string &key);
 
       document::value serialize();
       

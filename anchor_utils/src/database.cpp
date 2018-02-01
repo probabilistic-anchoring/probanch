@@ -173,6 +173,15 @@ namespace mongo {
     }
     return _sub_array[key];
   }
+
+  // Check if a an element or sub-array exists
+  bool Database::Document::exist(const std::string &key) {
+    if( _sub_array.find(key) != _sub_array.end() ) {
+      return true;
+    }
+    return false;
+  }
+
   
   // Seralize the document structure and return a database document value
   document::value Database::Document::serialize() {
