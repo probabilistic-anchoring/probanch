@@ -205,7 +205,7 @@ class AnchorViewer {
       rect = rect + cv::Size( 50, 50);  // ...add padding
       rect = rect - cv::Point( 25, 25);
       rect &= cv::Rect( cv::Point(0.0), this->_img.size()); // Saftey routine! 
-
+      
       // Draw the object
       this->_img.copyTo( result_img, mask);
       cv::drawContours( result_img, contours, -1, color, 1);

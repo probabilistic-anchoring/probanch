@@ -38,11 +38,13 @@ Create a distribute directory with all the Caffe headers, compiled libraries, bi
 `$ make distribute`
 
 
-* Download Caffe BVLC Reference CaffeNet model (AlexNet trained on ILSVRC 2012):
+* Download ReGround GoogLeNet model (fine-tuned with 101 object categories):
 
 ```
 $ roscd anchor_caffe/model
-$ ./download_caffe_model.sh
+$ ./download_model.py
 ```
+
+*Note, the download script is dependent of the `requests` Python library, which can be installed by:* `$ sudo pip install requests`
 
 

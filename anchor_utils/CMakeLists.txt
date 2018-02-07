@@ -27,11 +27,11 @@ find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
 # Find 
-#if(OpenCV_VERSION VERSION_LESS "3.0")
-#  find_package(OpenCV 2 REQUIRED)
-#else()
+if(OpenCV_VERSION VERSION_LESS "3.0")
+  find_package(OpenCV 2 REQUIRED)
+else()
   find_package(OpenCV 3 REQUIRED)
-#endif()
+endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##

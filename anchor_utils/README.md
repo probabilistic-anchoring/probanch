@@ -26,7 +26,7 @@ $ sudo apt-get update
 $ sudo apt-get install cmake
 ```
 
-* Install MongoDB C drivers:
+* Install MongoDB C drivers (Ubuntu 14.04):
 ```
 $ sudo apt-get install pkg-config libssl-dev libsasl2-dev git gcc automake autoconf libtool
 $ git clone https://github.com/mongodb/mongo-c-driver.git
@@ -36,7 +36,7 @@ $ ./autogen.sh --with-libbson=bundled --enable-static
 $ make
 $ sudo make install
 ```
-*Note, in later Ubuntu versions can the instructions above be substituted by:* `$ sudo apt-get install libmongoc-1.0-0`
+*Note, in later Ubuntu versions (>= 16.04), the instructions above be can be substituted by:* `$ sudo apt-get install libmongoc-1.0-0`
 
 * Install MongoDB C++ drivers:
 ```
