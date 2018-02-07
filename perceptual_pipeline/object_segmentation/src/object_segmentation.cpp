@@ -18,9 +18,12 @@
 #include <anchor_msgs/ClusterArray.h>
 #include <anchor_msgs/MovementArray.h>
 
+#include <hand_tracking/TrackingService.h>
+
 #include <object_segmentation/object_segmentation.hpp>
 
 #include <pcl_ros/point_cloud.h>
+
 
 // ------------------------
 // Public functions
@@ -31,7 +34,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   , it_(nh)
   , priv_nh_("~")
   , queueSize_(5)
-  , display_image_(false) {
+  , display_image_(true) {
 
   // Subscribers / publishers
   //image_transport::TransportHints hints(useCompressed ? "compressed" : "raw");
@@ -45,6 +48,9 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   cluster_pub_ = nh_.advertise<anchor_msgs::ClusterArray>("/objects/clusters", queueSize_);
   move_pub_ = nh_.advertise<anchor_msgs::MovementArray>("/movements", queueSize_);
 
+  // Hand tracking 
+  _tracking_client = nh_.serviceClient<hand_tracking::TrackingService>("/hand_tracking");
+  
   // Used for the web interface
   display_trigger_sub_ = nh_.subscribe("/display/trigger", 1, &ObjectSegmentation::triggerCb, this);
   display_image_pub_ = it_.advertise("/display/image", 1);
@@ -100,6 +106,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   this->priv_nh_.param<double>( "max_y", this->max_y_, -1.0);
   this->priv_nh_.param<double>( "min_z", this->min_z_, 0.0);
   this->priv_nh_.param<double>( "max_z", this->max_z_, -1.0);
+
 }
   
 ObjectSegmentation::~ObjectSegmentation() {
@@ -116,9 +123,28 @@ ObjectSegmentation::~ObjectSegmentation() {
 }
 
 void ObjectSegmentation::spin() {
+  ros::Rate rate(100);
+  while(ros::ok()) {
+
+    // OpenCV window for display
+    if( !this->result_img_.empty() ) {
+      cv::imshow( "Segmented clusters...", this->result_img_ );
+    }
+
+    // Wait for a keystroke in the window
+    char key = cv::waitKey(1);            
+    if( key == 27 || key == 'Q' || key == 'q' ) {
+      break;
+    }
+
+    ros::spinOnce();
+    rate.sleep();
+  }
+  /*
   while (ros::ok()) {
     ros::spin();
-  }    
+  } 
+  */   
 }
 
 void ObjectSegmentation::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -144,7 +170,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     ROS_WARN("[ObjectSegmentation::callback] %s" , ex.what());
     return;
   }
-
+  
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
@@ -157,10 +183,11 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Filter the transformed point cloud 
   this->filter (transformed_cloud_ptr);
   // ----------------------
-  
+  pcl::PointCloud<segmentation::Point>::Ptr original_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
+  pcl_ros::transformPointCloud( *transformed_cloud_ptr, *original_cloud_ptr, transform.inverse());       
   
   // Read the RGB image
-  cv::Mat img, result;
+  cv::Mat img;
   cv_bridge::CvImagePtr cv_ptr;
   try {
     cv_ptr = cv_bridge::toCvCopy( image_msg, image_msg->encoding);
@@ -178,22 +205,74 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // Convert to grayscale and back (for display purposes)
   if( display_image_ ) {
-    cv::cvtColor( img, result, CV_BGR2GRAY); 
-    cv::cvtColor( result, result, CV_GRAY2BGR);
-    result.convertTo( result, -1, 1.0, 50); 
+    cv::cvtColor( img, this->result_img_, CV_BGR2GRAY); 
+    cv::cvtColor( this->result_img_, this->result_img_, CV_GRAY2BGR);
+    this->result_img_.convertTo( this->result_img_, -1, 1.0, 50); 
   }
+  
+  // Camera information
+  image_geometry::PinholeCameraModel cam_model;
+  cam_model.fromCameraInfo(camera_info_msg);
+
+  // Make a remote call to get the 'hand' (or glove)
+  pcl::PointIndices hand_indices;
+  std::vector<cv::Point> hand_contour;
+  hand_tracking::TrackingService srv;
+  srv.request.image = *image_msg;
+  if( this->_tracking_client.call(srv)) {
+
+    // Get the hand mask contour
+    for( uint i = 0; i < srv.response.contour.size(); i++) {
+      cv::Point p( srv.response.contour[i].x, srv.response.contour[i].y );
+      hand_contour.push_back(p);
+    }
+    //std::cout << "Contour size: " << srv.response.contour.size() << std::endl;
+
+    // Filter the indices of all 3D points within the hand contour
+    if ( !hand_contour.empty() ) {
+      uint idx = 0;
+      BOOST_FOREACH  ( const segmentation::Point pt, original_cloud_ptr->points ) {
+	cv::Point3d pt_3d( pt.x, pt.y, pt.z);
+	cv::Point2f pt_2d = cam_model.project3dToPixel(pt_3d);
+	if( cv::pointPolygonTest( hand_contour, pt_2d, false ) > 0.0 ) { 
+	  hand_indices.indices.push_back(idx);
+	}
+	idx++;
+      }
+    }
+  }
+  
 
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
   this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
   //this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
+
+  // Pre-process the segmented clusters (filter out the 'hand' points)
+  if( !hand_indices.indices.empty() ) {
+    for (size_t i = 0; i < cluster_indices.size (); i++) {
+      for( auto &idx: hand_indices.indices) {
+	auto ite = std::find (cluster_indices[i].indices.begin(), cluster_indices[i].indices.end(), idx);
+	if( ite != cluster_indices[i].indices.end() ) {
+	  cluster_indices[i].indices.erase(ite);
+	}
+      }
+      if( cluster_indices[i].indices.size() < this->seg_.getClusterMinSize() )
+	cluster_indices.erase( cluster_indices.begin() + i );
+    }
+    cluster_indices.push_back(hand_indices);
+    std::cout << "Clusters: " << cluster_indices.size() << " (include a 'hand' cluster)" << std::endl;
+
+  }
+  else {
+    std::cout << "Clusters: " << cluster_indices.size() << std::endl;
+  }
+  
+
+  // Process all segmented clusters (including the 'hand' cluster)
   if( !cluster_indices.empty() ) {
   
-    // Camera information
-    image_geometry::PinholeCameraModel cam_model;
-    cam_model.fromCameraInfo(camera_info_msg);
-
     // Image & Cloud output
     anchor_msgs::ClusterArray clusters;
     anchor_msgs::ObjectArray objects;
@@ -216,18 +295,26 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
  
     // Process the segmented clusters
     for (size_t i = 0; i < cluster_indices.size (); i++) {
+
+      // Get the cluster
+      pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
+      pcl::copyPointCloud( *original_cloud_ptr, cluster_indices[i], *cluster_ptr);
+      if( cluster_ptr->points.empty() )
+	continue;
+
       
+      /*
+      // Get the cluster
       pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
       if( transformed_cluster_ptr->points.empty() )
 	continue;
       
-      
       // Reverser transform to get the contour right
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
 
-      /*
+      
       // Create the point cluster from the orignal point cloud
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
       pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
@@ -278,13 +365,19 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	    p.y = contours[0][j].y;
 	    obj.caffe.border.contour.push_back(p);
 	  }
+
+	  // Add segmented object to display image
+	  img.copyTo( this->result_img_, cluster_img);
 	  
 	  // Draw the contour (for display)
 	  cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
 	  //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
 	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
-	  cv::drawContours( img, contours, -1, color, 1);
-      	  
+	  if( !hand_indices.indices.empty() && i ==  cluster_indices.size() - 1 ) {
+	    color = cv::Scalar( 0, 233, 0); // Green
+	  }
+	  cv::drawContours( this->result_img_, contours, -1, color, 1);
+	    
 	  /*
 	  // Transform the cloud to the world frame
 	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
@@ -303,6 +396,9 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
 	  */
 
+	  // Transfrom the the cloud once again
+	  pcl_ros::transformPointCloud( *cluster_ptr, *cluster_ptr, transform);
+	  
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
 	  pose.header.stamp = cloud_msg->header.stamp;
@@ -310,7 +406,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //segmentation::getPosition( cluster_ptr, obj.position.data.pose );
 	  //segmentation::getPosition( transformed_cluster.makeShared(), obj.position.data.pose );
 	  
-	  segmentation::getPosition( transformed_cluster_ptr, pose.pose);
+	  segmentation::getPosition( cluster_ptr, pose.pose);
 	  //segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
 	  obj.position.data = pose;
 
@@ -321,16 +417,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  */
 
 	  // Add the position to the movement array
-	  movements.movements.push_back(pose);
-
-	  // Add segmented object to display image
-	  img.copyTo( result, cluster_img);
-	  
+	  movements.movements.push_back(pose);	  
 
 	  //std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
 
 	  // 2. Extract the shape
-	  segmentation::getShape( transformed_cluster_ptr, obj.shape.data );
+	  segmentation::getShape( cluster_ptr, obj.shape.data );
 	  //segmentation::getShape( transformed_cluster.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
@@ -387,7 +479,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
     // Publish the "segmented" image
     if( display_image_ ) {
-      cv_ptr->image = result;
+      cv_ptr->image = this->result_img_;
       cv_ptr->encoding = "bgr8";
       display_image_pub_.publish(cv_ptr->toImageMsg());
     }

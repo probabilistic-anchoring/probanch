@@ -59,7 +59,8 @@ class ObjectSegmentation {
   ros::Publisher obj_pub_;
   ros::Publisher cluster_pub_;
   ros::Publisher move_pub_;
-
+  ros::ServiceClient _tracking_client;
+  
   message_filters::Synchronizer<ExactSyncPolicy> *syncExact_;
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;
 
@@ -67,7 +68,8 @@ class ObjectSegmentation {
   bool display_image_;
   ros::Subscriber display_trigger_sub_;
   image_transport::Publisher display_image_pub_;
-
+  cv::Mat result_img_;
+  
   // Private functions
   void triggerCb( const std_msgs::String::ConstPtr &msg);
   void segmentationCb( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);

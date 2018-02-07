@@ -78,6 +78,7 @@ namespace segmentation {
     void setComparatorType (int type);
     void setPlaneMinSize (int size) { this->plane_min_size_ = size; }
     void setClusterMinSize (int size) { this->cluster_min_size_ = size; }
+    int  getClusterMinSize () { return this->cluster_min_size_; }
     void setAngularTh (double th) { this->angular_th_ = th; }
     void setDistanceTh (double th) { this->distance_th_ = th; }
     void setRefineFactor (double factor) { if( factor >= 0.0 && factor <= 2.0 ) { this->refine_factor_ = factor; } }

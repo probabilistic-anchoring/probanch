@@ -1,0 +1,3 @@
+sensor_msgs/Image image
+---
+anchor_msgs/Point2d[] contour
