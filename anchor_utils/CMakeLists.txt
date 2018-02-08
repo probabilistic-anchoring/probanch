@@ -20,13 +20,13 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # Prevent Cude library from giving a linking error
-#set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
 ## System dependencies are found with CMake's conventions
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
-# Find 
+# Find OpenCV 
 if(OpenCV_VERSION VERSION_LESS "3.0")
   find_package(OpenCV 2 REQUIRED)
 else()

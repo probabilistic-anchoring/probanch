@@ -26,10 +26,20 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
+# Prevent Cude library from giving a linking error
+set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
 find_package(PCL REQUIRED)
-find_package(OpenCV REQUIRED)
+
+# Find OpenCV 
+#find_package(OpenCV REQUIRED)
+if(OpenCV_VERSION VERSION_LESS "3.0")
+  find_package(OpenCV 2 REQUIRED)
+else()
+  find_package(OpenCV 3 REQUIRED)
+endif()
+
 
 
 ################################################

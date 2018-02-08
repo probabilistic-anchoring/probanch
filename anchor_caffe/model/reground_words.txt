@@ -21,6 +21,7 @@ n03331599 cable
 n03359137 flashlight
 n03418915 garlic_press
 n03438257 glass
+n03441112 glove
 n03454885 grater
 n03481172 hammer
 n03593526 jar
