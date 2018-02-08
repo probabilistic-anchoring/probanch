@@ -39,8 +39,8 @@ int main(int argc, char* argv[]) {
   std::vector<int> result( 5, 0);
   for ( uint x = 0; x < ite; x++) { 
 
-    /*
     // Filter the data
+    /*
     cv::Mat trainFiltered, testFiltered;
     machine::filter( trainData, trainFiltered, 4);
     machine::filter( testData, testFiltered, 4);
@@ -49,9 +49,6 @@ int main(int argc, char* argv[]) {
     std::cout<< "Test data filtered: " << testFiltered.rows << "x" << testFiltered.cols << std::endl;
     std::cout<< "---" << std::endl;
     */
-     
-    machine::filter( trainData, trainFiltered, 4);
-    machine::filter( testData, testFiltered, 4);
 
     // Create, train and test SVM classifier
     machine::MachinePtr classifier = machine::create("svm");
@@ -183,15 +180,10 @@ int main(int argc, char* argv[]) {
     /*
     // Filter the data
     cv::Mat trainFiltered, testFiltered;
-    machine::filter( trainData, trainFiltered, 2);
-    machine::filter( testData, testFiltered, 2);
-    
-    machine::filter( trainFiltered, trainFiltered, 0);
-    machine::filter( testFiltered, testFiltered, 0);
-    
     machine::filter( trainFiltered, trainFiltered, 0);
     machine::filter( testFiltered, testFiltered, 0);
     */
+
     // Create, train and test SVM classifier
     machine::MachinePtr classifier = machine::create("svm");
     //classifier->train( trainFiltered, trainLabels);
