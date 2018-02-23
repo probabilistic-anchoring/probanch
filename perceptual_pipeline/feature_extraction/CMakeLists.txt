@@ -26,12 +26,12 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Find 
-#if(OpenCV_VERSION VERSION_LESS "3.0")
-#  find_package(OpenCV 2 REQUIRED)
-#else()
-#  find_package(OpenCV 3 REQUIRED)
-#endif()
-find_package(OpenCV REQUIRED)
+if(OpenCV_VERSION VERSION_GREATER "2.9")
+  find_package(OpenCV 3 REQUIRED)
+else()
+  find_package(OpenCV 2 REQUIRED)
+endif()
+#find_package(OpenCV REQUIRED)
 
 #MESSAGE( STATUS "OpenCV_INCLUDE_DIRS: " ${OpenCV_INCLUDE_DIRS} )
 #MESSAGE( STATUS "OpenCV_LIBRARIES: " ${OpenCV_LIBRARIES} )
