@@ -25,13 +25,14 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 
-# Find 
-if(OpenCV_VERSION VERSION_GREATER "2.9")
+# Find OpenCV 
+if(OpenCV_VERSION VERSION_GREATER "2.4")
   find_package(OpenCV 3 REQUIRED)
 else()
   find_package(OpenCV 2 REQUIRED)
 endif()
-#find_package(OpenCV REQUIRED)
+message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
+
 
 #MESSAGE( STATUS "OpenCV_INCLUDE_DIRS: " ${OpenCV_INCLUDE_DIRS} )
 #MESSAGE( STATUS "OpenCV_LIBRARIES: " ${OpenCV_LIBRARIES} )
