@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find ar_transform)/launch/kinect2_bridge.launch"/>
+	<include file="$(find ar_transform)/launch/alvar.launch" />
+</launch>
