@@ -28,7 +28,15 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(PCL REQUIRED)
-find_package(OpenCV 2 REQUIRED)
+
+# Find appropriate OpenCV version 
+if(OpenCV_VERSION VERSION_GREATER "2.4")
+  find_package(OpenCV 3 REQUIRED)
+else()
+  find_package(OpenCV 2 REQUIRED)
+endif()
+message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
+
 
 ################################################
 ## Declare ROS messages, services and actions ##

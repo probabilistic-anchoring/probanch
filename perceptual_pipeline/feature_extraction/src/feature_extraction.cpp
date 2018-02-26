@@ -145,7 +145,10 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::Rect rect = cv::boundingRect(contour); 
     rect = rect + cv::Size( 50, 50);  // ...add padding
     rect = rect - cv::Point( 25, 25);
-    rect &= cv::Rect( cv::Point(0.0), img.size()); // Saftey routine! 
+    rect &= cv::Rect( cv::Point(0.0), img.size()); // Saftey routine!
+    if( rect.area() == 0.0 )
+      continue;
+    
     cv::Mat sub_img = img(rect);
     sub_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
     cv_ptr->encoding = "bgr8";
@@ -265,7 +268,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	}
       }
 
-#if CV_MAJOR_VERSION == 2 // opencv2 onlt
+#if CV_MAJOR_VERSION == 2 // opencv2 only
 
       for (uint i = 0; i < total_keypoints.size(); i++) {
 	if( !total_keypoints[i].empty() )

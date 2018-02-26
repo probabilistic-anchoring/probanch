@@ -341,31 +341,33 @@ void ColorFeatures::calculate( const Mat &img,
 			       Mat &hist,
 			       const Mat &mask ) {
   // Convert the image to HSV color space
-  Mat hsv;
-  cvtColor( img, hsv, CV_BGR2HSV);    
+  if( img.data ) {
+    Mat hsv;
+    cvtColor( img, hsv, CV_BGR2HSV);    
 
-  // Quantize value levels and ranges
-  int histSize[] = { _hbins, _sbins, _vbins};
-  float hranges[] = { 0, (float)_hbins };
-  float sranges[] = { 0, (float)_sbins };
-  float vranges[] = { 0, (float)_vbins };
-  const float* ranges[] = { hranges, sranges, vranges };
+    // Quantize value levels and ranges
+    int histSize[] = { _hbins, _sbins, _vbins};
+    float hranges[] = { 0, (float)_hbins };
+    float sranges[] = { 0, (float)_sbins };
+    float vranges[] = { 0, (float)_vbins };
+    const float* ranges[] = { hranges, sranges, vranges };
 
-  // Compute the histogram for all channels
-  int channels[] = {0, 1, 2};
+    // Compute the histogram for all channels
+    int channels[] = {0, 1, 2};
 
-  // Calculate the color histogram
-  if( !mask.data ) {
-    cv::calcHist( &hsv, 1, channels, Mat(), // ...do not use mask
-		  hist, 3, histSize, ranges,
-		  true, // ...the histogram is uniform
-		  false );
-  }
-  else {
-    cv::calcHist( &hsv, 1, channels, mask, 
-		  hist, 3, histSize, ranges,
-		  true, // ...the histogram is uniform
-		  false );
+    // Calculate the color histogram
+    if( !mask.data ) {
+      cv::calcHist( &hsv, 1, channels, Mat(), // ...do not use mask
+		    hist, 3, histSize, ranges,
+		    true, // ...the histogram is uniform
+		    false );
+    }
+    else {
+      cv::calcHist( &hsv, 1, channels, mask, 
+		    hist, 3, histSize, ranges,
+		    true, // ...the histogram is uniform
+		    false );
+    }
   }
 }
 

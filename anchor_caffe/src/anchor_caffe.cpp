@@ -53,6 +53,9 @@ class AnchorCaffe {
   string _label_file;
   //string _image_path;
 
+  // TMP
+  //cv::Mat _result_img;
+  
   void triggerCb( const std_msgs::String::ConstPtr &msg) {
     this->display_image_ = (msg->data == "classification") ? true : false;
   }
@@ -143,6 +146,9 @@ class AnchorCaffe {
 	}
       }
     }
+
+    // TMP
+    //result.copyTo(_result_img);
     
     // Publish the new object array
     obj_pub_.publish(output);
@@ -227,6 +233,21 @@ public:
   void spin() {
     ros::Rate rate(30);
     while (ros::ok()) {
+
+      // TMP
+      /*
+      // OpenCV window for display
+      if( !this->_result_img.empty() ) {
+	cv::imshow( "Classified objects...", this->_result_img );
+      }
+      
+      // Wait for a keystroke in the window
+      char key = cv::waitKey(1);            
+      if( key == 27 || key == 'Q' || key == 'q' ) {
+	break;
+      }
+      */
+      
       ros::spinOnce();
       rate.sleep();
     }
