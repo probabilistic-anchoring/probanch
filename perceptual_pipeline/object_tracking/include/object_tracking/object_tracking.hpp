@@ -45,9 +45,19 @@
 #include <pcl/common/centroid.h>
 #include <pcl/common/transforms.h>
 
+
+
 // OpenCV includes
+#include <opencv2/core/version.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/contrib/contrib.hpp> 
+
+// Support for both opencv2 and opencv3
+#if CV_MAJOR_VERSION == 2
+#include <opencv2/contrib/contrib.hpp>
+#elif CV_MAJOR_VERSION == 3
+#include <opencv2/video/background_segm.hpp>
+#endif
+
 
 // Anchoring includes
 #include <anchor_msgs/ClusterArray.h>
@@ -102,9 +112,11 @@ class ObjectTracking {
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
   ros::Subscriber clusters_sub_;
 
+  // Display 
   bool display_image_;
   ros::Subscriber display_trigger_sub_;
   image_transport::Publisher display_image_pub_;
+  cv::Mat result_img_;
 
   // Defined sync policies
   bool useApprox_;

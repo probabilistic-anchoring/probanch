@@ -26,12 +26,9 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
-# Find OpenCV 
-if(OpenCV_VERSION VERSION_GREATER "2.4")
-  find_package(OpenCV 3 REQUIRED)
-else()
-  find_package(OpenCV 2 REQUIRED)
-endif()
+# Find OpenCV
+find_package(OpenCV REQUIRED)
+
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 ################################################
@@ -63,14 +60,14 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${LIBMONGOCXX_INCLUDE_DIRS} 
+  ${LIBMONGOCXX_INCLUDE_DIRS}
   ${LIBBSONCXX_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
 # Link the external libraries
 link_directories(
-  ${LIBMONGOCXX_LIBRARY_DIRS} 
+  ${LIBMONGOCXX_LIBRARY_DIRS}
   ${LIBBSONCXX_LIBRARY_DIRS}
 )
 
@@ -79,7 +76,7 @@ add_library( ${PROJECT_NAME} src/database.cpp src/ml.cpp )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( ${PROJECT_NAME}
-  ${LIBMONGOCXX_LIBRARIES} 
+  ${LIBMONGOCXX_LIBRARIES}
   ${LIBBSONCXX_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )

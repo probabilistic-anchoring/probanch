@@ -61,7 +61,7 @@ ObjectTracking::ObjectTracking (ros::NodeHandle nh, bool useApprox)
   , priv_nh_("~")
   , useApprox_(useApprox)
   , queueSize_(5)
-  , display_image_(false)
+  , display_image_(true)
 {
 
   // Subscribers / publishers
@@ -91,9 +91,16 @@ ObjectTracking::ObjectTracking (ros::NodeHandle nh, bool useApprox)
   priv_nh_.param( "base_frame", base_frame_, std::string("base_link"));
 
 
-  // Create background subtractors
+  // Create background subtractors (supported in opencv2 and opencv3)
+#if CV_MAJOR_VERSION == 2
   depth_subtractor_ = new cv::BackgroundSubtractorMOG2( 500, 16.0f, false);
   rgb_subtractor_ = new cv::BackgroundSubtractorMOG2( 500, 16.0f, true);
+#elif CV_MAJOR_VERSION == 3
+  depth_subtractor_ = cv::createBackgroundSubtractorMOG2 ( 500, 16.0f, false);
+  rgb_subtractor_ = cv::createBackgroundSubtractorMOG2 ( 500, 16.0f, true);
+#endif
+
+
 }
 
 // Destructor
@@ -115,9 +122,28 @@ ObjectTracking::~ObjectTracking () {
 
 // ROS access function
 void ObjectTracking::spin() {
+  ros::Rate rate(100);
+  while(ros::ok()) {
+
+    // OpenCV window for display
+    if( !this->result_img_.empty() ) {
+      cv::imshow( "Object trackiong...", this->result_img_ );
+    }
+
+    // Wait for a keystroke in the window
+    char key = cv::waitKey(1);            
+    if( key == 27 || key == 'Q' || key == 'q' ) {
+      break;
+    }
+
+    ros::spinOnce();
+    rate.sleep();
+  }
+  /*
   while (ros::ok()) {
     ros::spin();
-  }    
+  } 
+  */   
 }
 
 void ObjectTracking::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -263,10 +289,17 @@ void ObjectTracking::trackCb( const sensor_msgs::Image::ConstPtr &rgb_msg,
   cvtColor( gray, gray, CV_GRAY2BGR);
   gray.convertTo( gray, -1, 1.0, 50);
 
-  double learning_rate = 0.01; 
+  double learning_rate = 0.01;
+
+#if CV_MAJOR_VERSION == 2
   rgb_subtractor_->operator()( frame_lab, rgb_mask, learning_rate);
-  FPS_CALC_END("processVisualData");
   depth_subtractor_->operator()( depth_frame, depth_mask, learning_rate);
+#elif CV_MAJOR_VERSION == 3
+  rgb_subtractor_->apply( frame_lab, rgb_mask, learning_rate);
+  depth_subtractor_->apply( depth_frame, depth_mask, learning_rate);
+#endif
+  FPS_CALC_END("processVisualData");
+
     
   // Saftey check
   if( rgb_mask.empty() ||
@@ -324,11 +357,16 @@ void ObjectTracking::trackCb( const sensor_msgs::Image::ConstPtr &rgb_msg,
   // Activate particle filters and track objects
   this->activate (pts);
 
+  // Transform the cloud to the world frame
+  pcl::PointCloud<Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<Point>);
+  pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
+  
   // Downsample the point cloud
   pcl::PointCloud<Point>::Ptr filtered_cloud_ptr (new pcl::PointCloud<Point>);
-  radiusSearch ( raw_cloud_ptr, filtered_cloud_ptr);
+  radiusSearch ( transformed_cloud_ptr, filtered_cloud_ptr);
   pcl::PointCloud<Point>::Ptr downsampled_cloud_ptr (new pcl::PointCloud<Point>);
   gridSampleApprox ( filtered_cloud_ptr, downsampled_cloud_ptr);
+  
   // Track the particle filters
   this->process (downsampled_cloud_ptr);
   
@@ -359,7 +397,10 @@ void ObjectTracking::trackCb( const sensor_msgs::Image::ConstPtr &rgb_msg,
       }
     }
     */
-
+    
+    // Display 
+    result.copyTo( this->result_img_ );
+    
     cv_ptr->image = result;
     cv_ptr->encoding = "bgr8";
     display_image_pub_.publish(cv_ptr->toImageMsg());
@@ -381,6 +422,9 @@ void ObjectTracking::clustersCb (const anchor_msgs::ClusterArray::ConstPtr &msg)
   static bool got_it = false;
 
   if( !got_it ) {
+
+    ROS_WARN("Got clusters");
+    std::cout << "Tracking clusters: " << msg->clusters.size() << std::endl; 
     // Receive and store all segmented clusters
     for ( auto i = 0; i < msg->clusters.size(); i++) {
     

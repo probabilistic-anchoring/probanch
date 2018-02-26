@@ -27,7 +27,7 @@ $ roscd anchor_caffe/caffe
 $ cp Makefile.config.example Makefile.config
 ```
 
-Edit `Makefile.config` and uncomment `CPU_ONLY := 1` (for CPU-only Caffe) and set `USE_OPENCV := 1` (for OpenCV support). Also, change `BLAS := atlas` to `BLAS := open` for OpenBLAS support.
+Edit `Makefile.config` and uncomment `CPU_ONLY := 1` (for CPU-only Caffe) and `USE_CUDNN := 1` to enable cudnn accellaration (if available). Set `USE_OPENCV := 1` (for OpenCV support). Also, change `BLAS := atlas` to `BLAS := open` for OpenBLAS support. Change line `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include` to `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial/` if an error with hdf5 occurs.
 
 `$ make all -j8; make test -j8; make runtest -j8`
 
