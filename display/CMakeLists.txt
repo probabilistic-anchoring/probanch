@@ -33,14 +33,11 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(PCL REQUIRED)
 
 # Find OpenCV 
-#find_package(OpenCV REQUIRED)
-if(OpenCV_VERSION VERSION_LESS "3.0")
-  find_package(OpenCV 2 REQUIRED)
-else()
+if(OpenCV_VERSION VERSION_GREATER "2.4")
   find_package(OpenCV 3 REQUIRED)
+else()
+  find_package(OpenCV 2 REQUIRED)
 endif()
-
-
 
 ################################################
 ## Declare ROS messages, services and actions ##

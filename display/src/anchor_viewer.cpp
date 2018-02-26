@@ -339,7 +339,7 @@ public:
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
-    //_selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
+    _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
     // Used for the web interface
     _display_trigger_sub = _nh.subscribe("/display/trigger", 1, &AnchorViewer::trigger_cb, this);
