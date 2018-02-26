@@ -27,12 +27,8 @@ find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
 # Find OpenCV
-# Find OpenCV
-if(OpenCV_VERSION VERSION_GREATER "2.4")
-  find_package(OpenCV 3 REQUIRED)
-else()
-  find_package(OpenCV 2 REQUIRED)
-endif()
+find_package(OpenCV REQUIRED)
+
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 ################################################
