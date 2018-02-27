@@ -59,6 +59,7 @@ namespace mongo {
 
     void set_collection(const std::string &collection);
     template<typename T> std::string get_id( const std::string &key, T val);
+    void id_array( vector<std::string> &array, int limit = -1 );
 
     // ---[ Struct for handle a database document...
     // ------------------------------------------------

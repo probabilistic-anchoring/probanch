@@ -26,9 +26,12 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
-# Find OpenCV
-find_package(OpenCV REQUIRED)
-
+# Find OpenCV 
+if(OpenCV_VERSION_MAJOR GREATER 2)
+  find_package(OpenCV 3 REQUIRED)
+else()
+  find_package(OpenCV 2 REQUIRED)
+endif()
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 ################################################
@@ -79,6 +82,13 @@ target_link_libraries( ${PROJECT_NAME}
   ${LIBMONGOCXX_LIBRARIES}
   ${LIBBSONCXX_LIBRARIES}
   ${OpenCV_LIBRARIES}
+)
+
+# Simple database cleaner
+add_executable(cleaner src/db_clean.cpp)
+target_link_libraries( cleaner
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
 )
 
 # For testing

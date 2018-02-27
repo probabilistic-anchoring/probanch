@@ -33,7 +33,7 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(PCL REQUIRED)
 
 # Find OpenCV 
-if(OpenCV_VERSION VERSION_GREATER "2.4")
+if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()
   find_package(OpenCV 2 REQUIRED)

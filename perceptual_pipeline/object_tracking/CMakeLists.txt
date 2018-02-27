@@ -30,13 +30,12 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(PCL REQUIRED)
 
 # Find appropriate OpenCV version 
-if(OpenCV_VERSION VERSION_GREATER "2.4")
+if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()
   find_package(OpenCV 2 REQUIRED)
 endif()
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
-
 
 ################################################
 ## Declare ROS messages, services and actions ##

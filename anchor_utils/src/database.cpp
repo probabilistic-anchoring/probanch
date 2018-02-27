@@ -72,6 +72,22 @@ namespace mongo {
     _coll_ptr = mongocxx::stdx::make_unique<mongocxx::collection>(database[collection]);
   }
 
+  // Get an array of ids (from current active collection).
+  void Database::id_array( vector<std::string> &array, int limit ) {
+
+    // Add options
+    mongocxx::options::find opts;
+    if( limit >= 0 ) {
+      opts.limit( limit );
+    }   
+    // Make the query
+    auto cursor = _coll_ptr->find( {}, opts);
+    for (auto&& view: cursor) {
+      bsoncxx::oid oid = view["_id"].get_oid().value;
+      array.push_back(oid.to_string());
+    }
+  }
+
   // ----------------------------
   // Static methods
   // -----------------------------------

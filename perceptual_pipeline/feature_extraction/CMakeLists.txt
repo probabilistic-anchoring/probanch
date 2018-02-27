@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Find OpenCV 
-if(OpenCV_VERSION VERSION_GREATER "2.4")
+if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()
   find_package(OpenCV 2 REQUIRED)
