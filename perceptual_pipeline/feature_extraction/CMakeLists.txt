@@ -28,9 +28,9 @@ find_package(Boost REQUIRED COMPONENTS system)
 # Find OpenCV 
 find_package( OpenCV )
 if(OpenCV_VERSION_MAJOR GREATER 2)
-  find_package(OpenCV 3 REQUIRED)
+  find_package(OpenCV 3 REQUIRED COMPONENTS xfeatures2d)
 else()
-  find_package(OpenCV 2 REQUIRED)
+  find_package(OpenCV 2 REQUIRED COMPONENTS features2d)
 endif()
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 

@@ -27,12 +27,7 @@ find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
 # Find OpenCV
-find_package( OpenCV )
-if(OpenCV_VERSION_MAJOR GREATER 2)
-  find_package(OpenCV 3 REQUIRED)
-else()
-  find_package(OpenCV 2 REQUIRED)
-endif()
+find_package(OpenCV REQUIRED COMPONENTS core highgui ml)
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 ################################################
@@ -95,7 +90,7 @@ target_link_libraries( cleaner
 # For testing
 add_executable(db_test src/db_test.cpp)
 target_link_libraries( db_test
-  ${PROJECT_NAME}
+  ${PROJECT_NAME} 
   ${catkin_LIBRARIES}
 )
 add_executable(ml_test src/ml_test.cpp)
