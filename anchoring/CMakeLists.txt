@@ -36,6 +36,7 @@ find_package(Boost REQUIRED COMPONENTS date_time system thread)
 find_package(PCL REQUIRED)
 
 # Find OpenCV 
+find_package( OpenCV )
 if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()

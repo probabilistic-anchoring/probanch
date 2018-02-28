@@ -26,7 +26,8 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(libbsoncxx REQUIRED)
 find_package(libmongocxx REQUIRED)
 
-# Find OpenCV 
+# Find OpenCV
+find_package( OpenCV )
 if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()

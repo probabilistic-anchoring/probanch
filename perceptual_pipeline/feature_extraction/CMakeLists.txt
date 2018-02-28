@@ -26,18 +26,13 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Find OpenCV 
+find_package( OpenCV )
 if(OpenCV_VERSION_MAJOR GREATER 2)
   find_package(OpenCV 3 REQUIRED)
 else()
   find_package(OpenCV 2 REQUIRED)
 endif()
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
-
-
-#MESSAGE( STATUS "OpenCV_INCLUDE_DIRS: " ${OpenCV_INCLUDE_DIRS} )
-#MESSAGE( STATUS "OpenCV_LIBRARIES: " ${OpenCV_LIBRARIES} )
-#MESSAGE( STATUS "OpenCV_LIBRARY_DIRS: " ${OpenCV_LIBRARY_DIRS} )
-#MESSAGE( STATUS "OpenCV_VERSION: " ${OpenCV_VERSION} )
 
 ################################################
 ## Declare ROS messages, services and actions ##
