@@ -188,7 +188,7 @@ void AnchorManagement::track( const inference::MeanPosHiddenArrayConstPtr &movem
 
 
 // ---[ Track method based on data association ]---
-void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
+void AnchorManagement::associate( const inference::AssociationArrayConstPtr &associations_ptr ) {
 
   //ROS_INFO("Got associations.");
 
