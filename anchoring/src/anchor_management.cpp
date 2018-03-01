@@ -16,10 +16,10 @@
 using namespace cv;
 using namespace std;
 using namespace anchoring;
-  
+
 // Constructor
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
-  
+
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/meanposhidden", 10, &AnchorManagement::track, this);
   //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
@@ -29,7 +29,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   // Publisher used for collecting bag files
   _anchor_pub = _nh.advertise<anchor_msgs::AnchorArray>("/anchors", 1);
-  
+
   // Publischer used for displaying the anchors
   _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
 
@@ -48,7 +48,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   //_classifier = ml::load( db, "ml", "svm");
   const string path = ros::package::getPath("anchoring");
   _classifier = machine::load( path + "/models/svm.yml" );
-  
+
   _time_zero = -1.0;
 }
 
@@ -60,21 +60,21 @@ void AnchorManagement::init(int threads) {
 }
 
 /* -----------------------------------------
-   Main matcher function 
+   Main matcher function
    ----------------------
-   Receives and process each incomming 
+   Receives and process each incomming
    scene of object(s).
    --------------------------------------- */
 void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr ) {
-  
+
   // Get the time
   ros::Time t = object_ptr->header.stamp;
   if( _time_zero < 0.0 ) {
     _time_zero = t.toSec();
   }
-  
+
   // Maintain all incoming objects
-  std::vector<ObjectMatching> objects; 
+  std::vector<ObjectMatching> objects;
   for( uint i = 0; i < object_ptr->objects.size(); i++) {
 
     // Create a map of all object attributes
@@ -85,8 +85,8 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       }
       attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
       attributes[SHAPE] = AttributePtr( new ShapeAttribute(object_ptr->objects[i].shape) );
-      attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );    
-      attributes[CAFFE] = AttributePtr( new CaffeAttribute(object_ptr->objects[i].caffe) ); 
+      attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );
+      attributes[CAFFE] = AttributePtr( new CaffeAttribute(object_ptr->objects[i].caffe) );
     } catch( const std::exception &e ) {
       ROS_ERROR("[AnchorManagement::match]%s", e.what() );
       continue;
@@ -136,12 +136,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
       this->_anchors->acquire(objects[i]._attributes, t); // ACQUIRE
     }
   }
-  
+
   // Get a snapshot of all anchors seen in the scene at time t
   anchor_msgs::AnchorArray msg;
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
-  
+
   // Get all information about anchors (for display purposes )
   anchor_msgs::DisplayArray display_msg;
   display_msg.header = object_ptr->header;
@@ -157,7 +157,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 }
 
 /* -----------------------------------------
-   Predict if 
+   Predict if
    --------------------------------------- */
 float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
 
@@ -166,13 +166,13 @@ float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float
 /* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
-void AnchorManagement::track( const dc_msgs::MeanPosHiddenArrayConstPtr &movement_ptr ) {
-  
+void AnchorManagement::track( const inference::MeanPosHiddenArrayConstPtr &movement_ptr ) {
+
   // Maintain all incoming object movmements
   ros::Time t = movement_ptr->header.stamp;
   for( uint i = 0; i < movement_ptr->mphs.size(); i++) {
-    
-    // Transform the coordinates to a geometry message 
+
+    // Transform the coordinates to a geometry message
     geometry_msgs::PoseStamped msg;
     msg.header = movement_ptr->header;
     msg.pose.position.x = movement_ptr->mphs[i].x;
@@ -181,19 +181,19 @@ void AnchorManagement::track( const dc_msgs::MeanPosHiddenArrayConstPtr &movemen
 
     // Track the anchor
     anchoring::AttributeMap attributes;
-    attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );    
+    attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );
     this->_anchors->track( movement_ptr->mphs[i].a_id, attributes, t); // TRACK
-  } 
+  }
 }
 
 
 // ---[ Track method based on data association ]---
 void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &associations_ptr ) {
-  
+
   //ROS_INFO("Got associations.");
 
   try {
-  
+
     // Update (merge) anchors based on probabilistic object tracking
     for( auto &msg: associations_ptr->associations) {
       int idx_id = -1;
@@ -204,14 +204,14 @@ void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &assoc
 	//std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
 	//std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
 	if( msg.probabilities[i] > best ) {
-	  best = msg.probabilities[i]; 
+	  best = msg.probabilities[i];
 	  idx_best = i;
 	}
 	if(msg.id == msg.associations[i]){
 	  idx_id = i;
 	}
       }
-    
+
       //if( msg.associations[idx] != msg.id && best > 0.5 ) {
       if (idx_id == -1) {
 	if( best > 0.80 ) {
@@ -226,7 +226,7 @@ void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &assoc
 	else if (msg.associations[idx_best] == msg.id && best > 0.80){
 	  continue;
 	}
-      }    
+      }
     }
   }
   catch( const std::exception &e ) {
@@ -235,12 +235,12 @@ void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &assoc
 }
 
 /* -----------------------------------------
-   Process function  
+   Process function
    -----------------
-   Process all matches and return true in 
+   Process all matches and return true in
    case an object is re-observed.
    ---
-   All matching values are in range 
+   All matching values are in range
    [0.0 1.0] (where 1.0 is a perfect match).
    ---
 
@@ -249,11 +249,11 @@ void AnchorManagement::associate( const dc_msgs::AssociationArrayConstPtr &assoc
       0 - no match
      +1 - re-acquried by match
    -------------------------------------- */
-int AnchorManagement::process( map< string, map<AttributeType, float> > &matches, 
-			       string &id, 
+int AnchorManagement::process( map< string, map<AttributeType, float> > &matches,
+			       string &id,
 			       float dist_th,
 			       float rate_th ) {
- 
+
   // Check the location (main feature for track)
   float best = 0.0;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
@@ -272,11 +272,11 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
 
     // ( DESCRIPTOR OR CAFFE ) AND ( COLOR AND SHAPE )
-    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CAFFE] ); 
-    float rate_2 = min( ite->second[COLOR], ite->second[SHAPE] );      
-    float rate = min( rate_1, rate_2 ); 
+    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CAFFE] );
+    float rate_2 = min( ite->second[COLOR], ite->second[SHAPE] );
+    float rate = min( rate_1, rate_2 );
     if( rate > best ) {
-      best = rate;      
+      best = rate;
       id = ite->first;
     }
   }
