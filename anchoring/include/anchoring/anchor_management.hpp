@@ -7,7 +7,7 @@
 #include <anchor_msgs/SpatialRequest.h>
 
 #include <inference/AssociationArray.h>
-#include <inference/MeanPosHiddenArray.h> 
+#include <inference/MeanPosHiddenArray.h>
 
 #include <anchoring/anchor_container.hpp>
 #include <anchor_utils/ml.hpp>
@@ -88,8 +88,8 @@ class AnchorManagement {
 
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   float predict(map< string, map<anchoring::AttributeType, float> > &matches);
-  void track( const dc_msgs::MeanPosHiddenArrayConstPtr &movement_ptr );
-  void associate( const dc_msgs::AssociationArrayConstPtr &associations_ptr);
+  void track( const inference::MeanPosHiddenArrayConstPtr &movement_ptr );
+  void associate( const inference::AssociationArrayConstPtr &associations_ptr);
   int process( map< string, map<anchoring::AttributeType, float> > &matches,
 	       string &id,
 	       float dist_th,
