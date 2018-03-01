@@ -152,7 +152,7 @@ class AnchorViewer {
   }
 
   // Callback function for receiving particles from the data association
-  void particles_cb(const dc_msgs::ParticlePlotConstPtr& msg_ptr) {
+  void particles_cb(const inference::ParticlePlotConstPtr& msg_ptr) {
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->color.size(); i++) {
       this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
