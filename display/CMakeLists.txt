@@ -19,7 +19,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
   cv_bridge
-  dc_msgs
+  inference
   image_geometry
   image_transport
   roscpp
@@ -32,7 +32,7 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 ## System dependencies are found with CMake's conventions
 find_package(PCL REQUIRED)
 
-# Find OpenCV 
+# Find OpenCV
 find_package(OpenCV REQUIRED)
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
@@ -119,7 +119,7 @@ add_executable(anchor_recorder src/anchor_recorder.cpp)
 # add_dependencies(display_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(anchor_viewer 
+target_link_libraries(anchor_viewer
    ${catkin_LIBRARIES}
    ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
@@ -128,7 +128,7 @@ target_link_libraries(img2str
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
-target_link_libraries(anchor_recorder 
+target_link_libraries(anchor_recorder
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
