@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
   anchor_utils
   cv_bridge
-  dc_msgs
+  inference
   image_geometry
   image_transport
   message_filters
@@ -35,7 +35,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS date_time system thread)
 find_package(PCL REQUIRED)
 
-# Find OpenCV 
+# Find OpenCV
 find_package(OpenCV REQUIRED)
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
@@ -63,7 +63,7 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 catkin_package(
 #   INCLUDE_DIRS include
 #   LIBRARIES anchoring
-#   CATKIN_DEPENDS anchor_msgs cv_bridge image_geometry image_transport pcl_conversions pcl_ros roscpp rostime  
+#   CATKIN_DEPENDS anchor_msgs cv_bridge image_geometry image_transport pcl_conversions pcl_ros roscpp rostime
  #   DEPENDS MongoClient
 )
 
@@ -74,7 +74,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories( 
+include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
