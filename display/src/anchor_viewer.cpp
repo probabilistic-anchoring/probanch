@@ -15,7 +15,7 @@
 
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
-#include <dc_msgs/ParticlePlot.h>
+#include <inference/ParticlePlot.h>
 
 using namespace std;
 using namespace cv;
@@ -25,7 +25,7 @@ class AnchorViewer {
   /* --------------
      ROS variables
      -------------- */
-  ros::NodeHandle _nh; 
+  ros::NodeHandle _nh;
   ros::NodeHandle _priv_nh;
   image_transport::ImageTransport _it;
   ros::Subscriber _anchor_sub;
@@ -40,7 +40,7 @@ class AnchorViewer {
   cv::Mat _img;
   vector<anchor_msgs::Display> _anchors;
   string _highlight;
-  
+
   // Camera information
   image_geometry::PinholeCameraModel _cam_model;
 
@@ -66,7 +66,7 @@ class AnchorViewer {
       _color = p._color;
       return *this;
     }
-    
+
     Point2f getPixel( image_geometry::PinholeCameraModel &cam_model,
 		      tf::Transform &tf ) {
       tf::Vector3 vec( _x, _y, _z);
@@ -98,8 +98,8 @@ class AnchorViewer {
   vector<Particle> _particles;
   int _max_particles;
   cv::RNG _rng;
-  
-  // Callback fn for web interface trigger 
+
+  // Callback fn for web interface trigger
   void trigger_cb( const std_msgs::String::ConstPtr &msg) {
     if( msg->data == "anchoring" || msg->data == "association" ) {
       this->_display_trigger = msg->data;
@@ -111,16 +111,16 @@ class AnchorViewer {
   }
 
   // Callback function for reciving and displaying the image
-  // TMP 
+  // TMP
   int _counter;
   void display_cb(const anchor_msgs::DisplayArrayConstPtr& msg_ptr) {
 
     // Store the image
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      cv_ptr = cv_bridge::toCvCopy( msg_ptr->image, 
-				    sensor_msgs::image_encodings::BGR8 ); 
-      cv_ptr->image.copyTo(this->_img);  
+      cv_ptr = cv_bridge::toCvCopy( msg_ptr->image,
+				    sensor_msgs::image_encodings::BGR8 );
+      cv_ptr->image.copyTo(this->_img);
     }
     catch (cv_bridge::Exception& e) {
       ROS_ERROR("[AnchorViewer::display_cb] Could not convert image.");
@@ -164,7 +164,7 @@ class AnchorViewer {
     }
   }
 
-  // Function for processing the scene image 
+  // Function for processing the scene image
   cv::Mat anchor_img() {
 
     // Draw the result
@@ -172,9 +172,9 @@ class AnchorViewer {
     this->_img.copyTo(result_img);
     this->_img.copyTo(highlight_img);
     //cv::Mat highlight_img(this->_img);
-    cv::cvtColor( result_img, result_img, CV_BGR2GRAY); 
+    cv::cvtColor( result_img, result_img, CV_BGR2GRAY);
     cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
-    result_img.convertTo( result_img, -1, 1.0, 50); 
+    result_img.convertTo( result_img, -1, 1.0, 50);
 
     // Set contour color
     //cv::Scalar color = cv::Scalar::all(255); // White
@@ -192,7 +192,7 @@ class AnchorViewer {
       for( uint i = 0; i < ite->border.contour.size(); i++) {
 	cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
 	contour.push_back(p);
-      }	  
+      }
       std::vector<std::vector<cv::Point> > contours;
       contours.push_back(contour);
 
@@ -204,13 +204,13 @@ class AnchorViewer {
       cv::Rect rect = cv::boundingRect(contour);
       rect = rect + cv::Size( 50, 50);  // ...add padding
       rect = rect - cv::Point( 25, 25);
-      rect &= cv::Rect( cv::Point(0.0), this->_img.size()); // Saftey routine! 
-      
+      rect &= cv::Rect( cv::Point(0.0), this->_img.size()); // Saftey routine!
+
       // Draw the object
       this->_img.copyTo( result_img, mask);
       cv::drawContours( result_img, contours, -1, color, 1);
       /*
-      // Draw contour or sub image 
+      // Draw contour or sub image
       if( this->_display_trigger == "association" ) {
 	this->_img.copyTo( result_img, mask);
 	cv::drawContours( result_img, contours, -1, color, 1);
@@ -229,7 +229,7 @@ class AnchorViewer {
 	cv::drawContours( highlight_img, contours, -1, color, 1);
       }
 
-      // Print anchoring information 
+      // Print anchoring information
       if( this->_display_trigger == "anchoring" || this->_display_trigger == "both" ) {
 	cv::rectangle( result_img, rect, color, 1, 8);
 	cv::putText( result_img, ite->x, cv::Point( rect.x+10, rect.y+16), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
@@ -268,7 +268,7 @@ class AnchorViewer {
 	}
 
       }
-    } 
+    }
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
 
     /*
@@ -300,7 +300,7 @@ class AnchorViewer {
     cout << "  q - Quit." << endl;
     cout << "----------------------" << endl;
   }
-  
+
   // Mouse click callback function(s)
   static void click_cb(int event, int x, int y, int flags, void *obj) {
     AnchorViewer *self = static_cast<AnchorViewer*>(obj);
@@ -316,7 +316,7 @@ class AnchorViewer {
       for( uint i = 0; i < ite->border.contour.size(); i++) {
 	cv::Point p( ite->border.contour[i].x, ite->border.contour[i].y );
 	contour.push_back(p);
-      }	  
+      }
       if( cv::pointPolygonTest( contour, cv::Point( x, y ), false) > 0 ) {
 	this->_highlight = ite->id;
 	ROS_WARN("Anchored selected at: x = %.2f, y = %.2f, z = %.2f", (float)ite->pos.pose.position.x, (float)ite->pos.pose.position.y, (float)ite->pos.pose.position.z);
@@ -334,7 +334,7 @@ class AnchorViewer {
 public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh) { //,  _display_trigger("anchoring"), _max_particles(-1) {
     _counter = 0;
-    
+
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
@@ -351,7 +351,7 @@ public:
     }
     if( !_priv_nh.getParam("display_mode", this->_display_trigger) ) {
       this->_display_trigger = "anchoring";
-    } 
+    }
 
     // Create the display window
     const char *window = "Anchors with information...";
@@ -372,7 +372,7 @@ public:
       }
 
       // Wait for a keystroke in the window
-      char key = cv::waitKey(1);            
+      char key = cv::waitKey(1);
       if( key == 27 || key == 'Q' || key == 'q' ) {
 	break;
       }
