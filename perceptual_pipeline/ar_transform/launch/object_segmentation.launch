@@ -26,10 +26,10 @@
     <param name="refine_factor" type="double" value="0.89" />
 
     <!-- Spatial thresholds (used for filter the point cloud) -->
-    <param name="min_x" type="double" value="0.2" />
-    <param name="max_x" type="double" value="1.2" />
-    <param name="min_y" type="double" value="0.0" />
-    <param name="max_y" type="double" value="0.62" />
+    <param name="min_x" type="double" value="0.05" />
+    <param name="max_x" type="double" value="0.4" />
+    <param name="min_y" type="double" value="-0.8" />
+    <param name="max_y" type="double" value="-0.05" />
     <param name="min_z" type="double" value="-0.1" />
     <param name="max_z" type="double" value="0.6" />
 

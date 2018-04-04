@@ -55,8 +55,13 @@ class AlvarTFBroadcaster():
         t.header.stamp = rospy.Time.now()
         t.child_frame_id = 'kinect2_link'
         tfm = tf2_msgs.msg.TFMessage([t])
-
         self.pub_tf.publish([t])
+
+
+        # trans = t.transform.translation
+        # rot = t.transform.rotation
+        # launch_transform = "{x} {y} {z} {rx} {ry} {rz} {w}".format(x=trans.x, y=trans.y, z=trans.z, rx=rot.x, ry=rot.y, rz=rot.z, w=rot.w)
+        # print(launch_transform)
 
         return
 
