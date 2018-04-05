@@ -15,31 +15,38 @@ from cv_bridge import CvBridge, CvBridgeError
 from hand_tracking.srv import *
 from anchor_msgs.msg import Point2d
 
+# Global (init) params
+g_h_min = 32
+g_h_max = 46
+g_s_min = 55
+g_s_max = 175
+g_v_min = 180
+g_v_max = 255
 
-
+# Global slider functions
 def handleTrackbarChanges(obj):
     params = obj.getTrackbarParams()
 
 def trackbar_callback(x):
     pass
 
+
 def createHSVTrackbars():
-    cv2.namedWindow('test')
+    cv2.namedWindow('Tracking window...')
 
-    cv2.createTrackbar('h_min', 'test', 0, 179, trackbar_callback)
-    cv2.createTrackbar('h_max', 'test', 0, 179, trackbar_callback)
-    cv2.createTrackbar('s_min', 'test', 0, 255, trackbar_callback)
-    cv2.createTrackbar('s_max', 'test', 0, 255, trackbar_callback)
-    cv2.createTrackbar('v_min', 'test', 0, 255, trackbar_callback)
-    cv2.createTrackbar('v_max', 'test', 0, 255, trackbar_callback)
+    cv2.createTrackbar('h_min', 'Tracking window...', 0, 179, trackbar_callback)
+    cv2.createTrackbar('h_max', 'Tracking window...', 0, 179, trackbar_callback)
+    cv2.createTrackbar('s_min', 'Tracking window...', 0, 255, trackbar_callback)
+    cv2.createTrackbar('s_max', 'Tracking window...', 0, 255, trackbar_callback)
+    cv2.createTrackbar('v_min', 'Tracking window...', 0, 255, trackbar_callback)
+    cv2.createTrackbar('v_max', 'Tracking window...', 0, 255, trackbar_callback)
 
-    cv2.setTrackbarPos('h_min', 'test', 32)
-    cv2.setTrackbarPos('h_max', 'test', 46)
-    cv2.setTrackbarPos('s_min', 'test', 55)
-    cv2.setTrackbarPos('s_max', 'test', 175)
-    cv2.setTrackbarPos('v_min', 'test', 180)
-    cv2.setTrackbarPos('v_max', 'test', 255)
-
+    cv2.setTrackbarPos('h_min', 'Tracking window...', g_h_min)
+    cv2.setTrackbarPos('h_max', 'Tracking window...', g_h_max)
+    cv2.setTrackbarPos('s_min', 'Tracking window...', g_s_min)
+    cv2.setTrackbarPos('s_max', 'Tracking window...', g_s_max)
+    cv2.setTrackbarPos('v_min', 'Tracking window...', g_v_min)
+    cv2.setTrackbarPos('v_max', 'Tracking window...', g_v_max)
 
     # some more stuff
 
@@ -64,19 +71,33 @@ class HandTracking:
         self.ts = message_filters.TimeSynchronizer([self.rgb_sub, self.depth_sub], 100)
         self.ts.registerCallback(self.image_cb)
         '''
-        
+
+        # Read ROS params
+        try:
+            self._display = rospy.get_param('~display')
+        except KeyError as e:
+            rospy.loginfo('[HandTracking]: ' + str(e))
+            self._display = False
+            
+    def with_interface(self):
+        return self._display
+            
     # OpenCV window trackbar functions
     def get_min_track_bar_values(self):
-        h = cv2.getTrackbarPos('h_min', 'test')
-        s = cv2.getTrackbarPos('s_min', 'test')
-        v = cv2.getTrackbarPos('v_min', 'test')
-        return np.array([h,s,v], dtype='uint8')
+        if self.with_interface():
+            h = cv2.getTrackbarPos('h_min', 'Tracking window...')
+            s = cv2.getTrackbarPos('s_min', 'Tracking window...')
+            v = cv2.getTrackbarPos('v_min', 'Tracking window...')
+            return np.array([h,s,v], dtype='uint8')
+        return np.array([g_h_min, g_s_min, g_v_min], dtype='uint8')
 
     def get_max_track_bar_values(self):
-        h = cv2.getTrackbarPos('h_max', 'test')
-        s = cv2.getTrackbarPos('s_max', 'test')
-        v = cv2.getTrackbarPos('v_max', 'test')
-        return np.array([h,s,v], dtype='uint8')
+        if self.with_interface():
+            h = cv2.getTrackbarPos('h_max', 'Tracking window...')
+            s = cv2.getTrackbarPos('s_max', 'Tracking window...')
+            v = cv2.getTrackbarPos('v_max', 'Tracking window...')
+            return np.array([h,s,v], dtype='uint8')
+        return np.array([g_h_max, g_s_max, g_v_max], dtype='uint8')
 
     # aspo: I have turned this part into a ROS service
     # Image callback function (main loop)
@@ -175,17 +196,18 @@ class HandTracking:
             
 
     def showImages(self):
-        if self.show_img is not None:
-            cv2.imshow('test', self.show_img)
+        if self.show_img is not None and self.with_interface():
+            cv2.imshow('Tracking window...', self.show_img)
 
 
 # Main fn
 def main(args):
-    createHSVTrackbars()
-    ht = HandTracking()
-
     rospy.init_node('hand_tracking_node', anonymous=True)
 
+    ht = HandTracking()
+    if ht.with_interface():
+        createHSVTrackbars()
+    
     rate = rospy.Rate(30)
     while not rospy.is_shutdown():
         ht.showImages()

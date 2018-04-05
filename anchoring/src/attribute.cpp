@@ -603,7 +603,7 @@ namespace anchoring {
       anchor_msgs::Point2d point;
       this->_point.x = doc.get("point").get<int>("x");
       this->_point.y = doc.get("point").get<int>("y");
-      std::cout << "Point: " << doc.get("point").get<int>("x") << ", " << doc.get("point").get<int>("y") << std::endl;
+      //std::cout << "Point: " << doc.get("point").get<int>("x") << ", " << doc.get("point").get<int>("y") << std::endl;
     }
     catch( const std::exception &e) {
       cout << "[CaffeAttribute::deserialize]" << e.what() << endl;

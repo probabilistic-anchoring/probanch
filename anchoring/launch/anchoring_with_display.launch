@@ -15,28 +15,31 @@
   <!-- Feature extraction node -->
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
 
-  <!-- Anchor Caffe node -->
+  <!-- Anchor Caffe node --> 
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   
-  <!-- Anchoring framework -->  
+  
+  <!-- Anchoring framework -->   
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
     <param name="db_name" type="string" value="anchortmpdb" />
   </node>
+  
 	
   <!-- Inference system  
   <node name="dc_inference_node" pkg="inference" type="dc_inference"
         output="screen" />
 	-->
 	
-  <!-- Display anchors -->  
+  <!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="anchoring" />	
   </node>
   
-  <!-- Include the display interface (including the websocket bridge) --> 
+  
+  <!-- Include the display interface (including the websocket bridge) -->
   <include file="$(find display)/launch/web_interface.launch" />
   
 </launch>

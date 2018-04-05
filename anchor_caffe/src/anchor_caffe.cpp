@@ -53,7 +53,7 @@ class AnchorCaffe {
   string _label_file;
   //string _image_path;
 
-  // TMP
+  // TMP -- don't forget to change 'display_image' to 'true'
   //cv::Mat _result_img;
   
   void triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -133,7 +133,7 @@ class AnchorCaffe {
 	img.copyTo(result(rect));
 	
 	cv::rectangle( result, rect, color, 1);
-
+	
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;
 	int offset = -42;
@@ -144,6 +144,20 @@ class AnchorCaffe {
 	  ss.str("");
 	  offset += 16;
 	}
+	
+	/*
+	// TMP
+	std::stringstream ss;
+	ss << setprecision(2) << fixed;
+	int offset = -6;
+	for( uint j = 0; j < 1; j++) {
+	  ss << output.objects[i].caffe.symbols[j];
+	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
+	  cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	  ss.str("");
+	  offset += 16;
+	}
+	*/
       }
     }
 
@@ -234,8 +248,8 @@ public:
     ros::Rate rate(30);
     while (ros::ok()) {
 
-      // TMP
       /*
+      // TMP
       // OpenCV window for display
       if( !this->_result_img.empty() ) {
 	cv::imshow( "Classified objects...", this->_result_img );
