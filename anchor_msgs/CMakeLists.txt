@@ -20,17 +20,22 @@ add_message_files(
    AnchorArray.msg
    CaffeAttribute.msg
    ClusterArray.msg
-   ColorAttribute.msg  
-   Contour.msg  
-   DescriptorAttribute.msg  
+   ColorAttribute.msg
+   Contour.msg
+   DescriptorAttribute.msg
    Display.msg
    DisplayArray.msg
-   MovementArray.msg  
-   Object.msg 
-   ObjectArray.msg 
+   MovementArray.msg
+   Object.msg
+   ObjectArray.msg
    Point2d.msg
-   PositionAttribute.msg  
-   ShapeAttribute.msg   
+   PositionAttribute.msg
+   ShapeAttribute.msg
+   LogicParticlePlot.msg
+   LogicMeanPosHidden.msg
+   LogicMeanPosHiddenArray.msg
+   LogicAssociation.msg
+   LogicAssociationArray.msg 
 )
 
 ## Generate services in the 'srv' folder

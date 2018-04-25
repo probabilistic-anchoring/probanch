@@ -8,7 +8,7 @@ import rospkg
 import numpy as np
 import cv2
 
-# ROS messages and services 
+# ROS messages and services
 from sensor_msgs.msg import Image
 import message_filters
 from cv_bridge import CvBridge, CvBridgeError
@@ -16,12 +16,22 @@ from hand_tracking.srv import *
 from anchor_msgs.msg import Point2d
 
 # Global (init) params
-g_h_min = 32
+"oerebro"
+# g_h_min = 32
+# g_h_max = 46
+# g_s_min = 55
+# g_s_max = 175
+# g_v_min = 180
+# g_v_max = 255
+
+"leuven"
+g_h_min = 22
 g_h_max = 46
-g_s_min = 55
-g_s_max = 175
-g_v_min = 180
+g_s_min = 156
+g_s_max = 122
+g_v_min = 164
 g_v_max = 255
+
 
 # Global slider functions
 def handleTrackbarChanges(obj):
@@ -33,6 +43,9 @@ def trackbar_callback(x):
 
 def createHSVTrackbars():
     cv2.namedWindow('Tracking window...')
+
+
+
 
     cv2.createTrackbar('h_min', 'Tracking window...', 0, 179, trackbar_callback)
     cv2.createTrackbar('h_max', 'Tracking window...', 0, 179, trackbar_callback)
@@ -78,10 +91,10 @@ class HandTracking:
         except KeyError as e:
             rospy.loginfo('[HandTracking]: ' + str(e))
             self._display = False
-            
+
     def with_interface(self):
         return self._display
-            
+
     # OpenCV window trackbar functions
     def get_min_track_bar_values(self):
         if self.with_interface():
@@ -128,7 +141,7 @@ class HandTracking:
                    color_img[w/2][h/2][1], ':',
                    color_img[w/2][h/2][2] )
             '''
-            
+
             low = self.get_min_track_bar_values()
             high = self.get_max_track_bar_values()
 
@@ -183,7 +196,7 @@ class HandTracking:
             if cut_contours:
                 cv2.drawContours(self.show_img, cut_contours, -1, (0,255,0), 1)
 
-                
+
             # Return the service response
             res = TrackingServiceResponse()
             if cut_contours:
@@ -193,7 +206,7 @@ class HandTracking:
                     p.y = c[0][1]
                     res.contour.append(p)
             return res
-            
+
 
     def showImages(self):
         if self.show_img is not None and self.with_interface():
@@ -207,7 +220,7 @@ def main(args):
     ht = HandTracking()
     if ht.with_interface():
         createHSVTrackbars()
-    
+
     rate = rospy.Rate(30)
     while not rospy.is_shutdown():
         ht.showImages()

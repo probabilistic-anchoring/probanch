@@ -1,0 +1,7 @@
+  <!-- Tracking node -->
+<launch>
+  <node name="hand_tracking_node" pkg="hand_tracking" type="tracker.py" output="screen" >
+    <param name="display" type="bool" value="true" />
+  </node>
+
+</launch>

@@ -10,9 +10,13 @@
 
   <build_depend>roscpp</build_depend>
   <build_depend>roslib</build_depend>
+  <build_depend>anchor_msgs</build_depend>
+
 
   <run_depend>roscpp</run_depend>
   <run_depend>roslib</run_depend>
+  <run_depend>anchor_msgs</run_depend>
+
 
   <export>
     <build_export_depend>libbsoncxx</build_export_depend>

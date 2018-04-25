@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
   anchor_utils
   cv_bridge
-  inference
+  reasoning
   image_geometry
   image_transport
   message_filters

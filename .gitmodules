@@ -4,3 +4,6 @@
 [submodule "anchor_caffe/caffe"]
 	path = anchor_caffe/caffe
 	url = https://github.com/BVLC/caffe.git
+[submodule "anchor_logic/dc_bridge"]
+	path = anchor_logic/dc_bridge
+	url = https://bitbucket.org/dtai_robotics/dc_bridge

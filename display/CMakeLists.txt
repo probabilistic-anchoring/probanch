@@ -19,11 +19,14 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   anchor_msgs
   cv_bridge
-  inference
+  reasoning
   image_geometry
   image_transport
   roscpp
   sensor_msgs
+  anchor_caffe
+  message_generation
+
 )
 
 # Prevent Cude library from giving a linking error

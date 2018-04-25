@@ -166,7 +166,7 @@ float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float
 /* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
-void AnchorManagement::track( const inference::MeanPosHiddenArrayConstPtr &movement_ptr ) {
+void AnchorManagement::track( const anchor_msgs::LogicMeanPosHiddenArrayConstPtr &movement_ptr ) {
 
   // Maintain all incoming object movmements
   ros::Time t = movement_ptr->header.stamp;
@@ -188,7 +188,7 @@ void AnchorManagement::track( const inference::MeanPosHiddenArrayConstPtr &movem
 
 
 // ---[ Track method based on data association ]---
-void AnchorManagement::associate( const inference::AssociationArrayConstPtr &associations_ptr ) {
+void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr ) {
 
   //ROS_INFO("Got associations.");
 

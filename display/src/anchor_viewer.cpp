@@ -15,7 +15,7 @@
 
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
-#include <inference/ParticlePlot.h>
+#include <anchor_msgs/LogicParticlePlot.h>
 
 using namespace std;
 using namespace cv;
@@ -152,7 +152,7 @@ class AnchorViewer {
   }
 
   // Callback function for receiving particles from the data association
-  void particles_cb(const inference::ParticlePlotConstPtr& msg_ptr) {
+  void particles_cb(const anchor_msgs::LogicParticlePlotConstPtr& msg_ptr) {
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->color.size(); i++) {
       this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
