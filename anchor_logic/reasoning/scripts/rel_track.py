@@ -13,13 +13,8 @@ from anchor_msgs.msg import AnchorArray
 
 class RelTrack():
 
-    def __init__(self,  path, model_file, n_samples):
-        model_file = os.path.join(path, model_file)
-        with open(model_file, 'r') as dc_file:
-            model = dc_file.read()
-
-        self.util = DCUtil()
-        self.util.consult(model, n_samples)
+    def __init__(self, model_file, n_samples):
+        self.util = DCUtil(model_file, n_samples)
         # self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, self.process_anchors)
         # self.pub = rospy.Publisher('chatter', String, queue_size=10)
 
@@ -54,8 +49,11 @@ class RelTrack():
 
 if __name__ == "__main__":
     rospy.init_node("rel_track_node")
-    path = rospkg.RosPack().get_path('inference')
-    rel_track = RelTrack(path, 'models/dc_model.pl', 200)
+    path = rospkg.RosPack().get_path('reasoning')
+    model_file = os.path.join(path, 'models/dc_model.pl')
+    N_SAMPLES = 200
+
+    rel_track = RelTrack(model_file, N_SAMPLES)
     # q1=rel_track.util.query("(current(p(o(1)))~=1)")
     # print(q1)
     # print(q1)
