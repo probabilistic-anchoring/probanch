@@ -26,9 +26,9 @@ from anchor_msgs.msg import Point2d
 
 "leuven"
 g_h_min = 22
-g_h_max = 46
-g_s_min = 156
-g_s_max = 122
+g_h_max = 51
+g_s_min = 127
+g_s_max = 255
 g_v_min = 164
 g_v_max = 255
 
