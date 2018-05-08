@@ -73,29 +73,29 @@ visionfield(z,(0.0,0.5)).
 
 
 
-asso(A_ID):t+1 ~ val(A_ID) := %first time step
+asso(A_ID):t+1 ~ val(A_ID) <- %first time step
 	\+asso(_):t~=_,
 	observation(anchor_r(A_ID))~=_.
-asso(A_ID):t+1 ~ val(T_ID) := %associate anchor with one from previous timestep (often itself) or noise
+asso(A_ID):t+1 ~ val(T_ID) <- %associate anchor with one from previous timestep (often itself) or noise
 	asso(_):t~=_,
 	observation(anchor_r(A_ID))~=_,
 	asso(A_ID):t ~=T_ID.
-asso(A_ID):t+1 ~ val(T_ID) :=
+asso(A_ID):t+1 ~ val(T_ID) <-
 	asso(_):t~=_,
 	observation(anchor_r(A_ID))~=_,
 	\+asso(A_ID):t ~=_,
 	T_ID = A_ID.
-asso(A_ID):t+1 ~ val(T_ID) :=
+asso(A_ID):t+1 ~ val(T_ID) <-
 	asso(_):t~=_,
 	\+hidden(A_ID,_):t,
 	asso(A_ID):t ~= T_ID,
 	\+observation(anchor_r(A_ID)) ~=_,
 	pick_occluder(A_ID):t ~=_. %this checks whether there is an occluder present
-asso(A_ID):t+1 ~ val(T_ID) :=
+asso(A_ID):t+1 ~ val(T_ID) <-
 	asso(_):t ~=_,
 	hidden(A_ID,_):t,
 	asso(A_ID):t~=T_ID.
-asso(A_ID):t+1 ~ val(T_ID) :=
+asso(A_ID):t+1 ~ val(T_ID) <-
 	asso(_):t ~=_,
 	asso(A_ID):t ~= T_ID,
 	hidden(A_ID, _):t,
@@ -105,47 +105,47 @@ asso(A_ID):t+1 ~ val(T_ID) :=
 
 
 %observation position
-observation(anchor_r(A_ID)):t+1 ~ val(_) := %first time step
+observation(anchor_r(A_ID)):t+1 ~ val(_) <- %first time step
 	\+asso(_):t ~=_.
-observation(anchor_r(A_ID)):t+1 ~ val(_) := %associate anchor with itself or noise (no previous target for this anchor)
+observation(anchor_r(A_ID)):t+1 ~ val(_) <- %associate anchor with itself or noise (no previous target for this anchor)
 	asso(_):t ~=_,
 	asso(A_ID):t+1 ~= T_ID,
 	\+asso(_):t ~= T_ID.
-observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) := %associate anchor with one from previous timestep (is itself, no data asso done) (previous target for this anchor)
+observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <- %associate anchor with one from previous timestep (is itself, no data asso done) (previous target for this anchor)
 	asso(_):t ~=_,
 	asso(A_ID):t+1 ~= T_ID,
 	asso(_):t ~= T_ID,
 	\+hidden(A_ID):t,
 	rvProposal(A_ID):t+1 ~= [_|W].
-/*observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) := %associate anchor with noise (previous target for this anchor) not sure about this rule// think harder
+/*observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <- %associate anchor with noise (previous target for this anchor) not sure about this rule// think harder
 	asso(_):t ~=_,
 	asso(A_ID):t ~= T_ID,
 	T_ID \= noise,
 	asso(A_ID):t+1 ~= noise,
 	rvProposal(A_ID):t+1 ~= [_|W].*/
-% observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) :=
+% observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 % 	asso(_):t ~=_,
 % 	asso(A_ID):t ~= T_ID,
 % 	hidden(A_ID, _):t,
 % 	asso(A_ID):t+1 ~= T_ID,
 % 	rvProposal(A_ID):t+1 ~= [_|W].
 
-observation(anchor_r(A_ID)):t+1 ~ val(_) := %not good
+observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
 	writeln('fuck leak'),
 	true.
 
 %observation color
-observation(anchor_c(_)):t+1 ~ val(_):=
+observation(anchor_c(_)):t+1 ~ val(_)<-
 	true.
 %observation bb
-observation(anchor_bb(_)):t+1 ~ val(_):=
+observation(anchor_bb(_)):t+1 ~ val(_)<-
 	true.
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
 %position transition
-rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) :=
+rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
 	asso(A_ID):t+1 ~= T_ID,
 	\+asso(_):t ~= T_ID,
 	\+hidden(A_ID,_):t,
@@ -158,20 +158,20 @@ rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) :=
 
 
 
-rv(A_ID):t+1 ~  val(RV) :=
+rv(A_ID):t+1 ~  val(RV) <-
 	asso(A_ID):t+1 ~= T_ID,
 	hidden(A_ID,_):t,
 	T_ID\=noise,
 	rv(A_ID):t ~= RV.
 
 
-rv(A_ID):t+1 ~ val(V) :=
+rv(A_ID):t+1 ~ val(V) <-
 	rvProposal(A_ID):t+1 ~= [V|_].
 
 rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) :=
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
 	asso(A_ID):t+1~=T_ID,
 	asso(A_ID):t~=T_ID,
 	\+hidden(A_ID,_):t,
@@ -193,7 +193,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x_new]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) :=
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
 	asso(A_ID):t+1~=T_ID,
 	asso(A_ID):t~=T_ID,
 	\+hidden(A_ID,_):t,
@@ -217,7 +217,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 /*rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x_new]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) :=
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
 	asso(A_ID):t+1~=T_ID,
 	asso(A_ID):t~=T_ID,
 	hidden(A_ID,A_ID_occ):t,
@@ -242,7 +242,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 /*rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x_new]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) :=
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
 	asso(A_ID):t+1~=T_ID,
 	asso(A_ID):t~=T_ID,
 	hidden(A_ID,A_ID_occ):t,
@@ -264,7 +264,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) :=
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
 	asso(A_ID):t+1~=T_ID,
 	asso(A_ID):t~=T_ID,
 	hidden(A_ID,_):t,
@@ -289,7 +289,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 
 
 %behind
-/*rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)]):=
+/*rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)])<-
 	asso(_):t~=_,
 	\+hidden(A_ID,_):t,
 	asso(A_ID):t ~= T_ID,
@@ -313,7 +313,7 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 
 /*
 %behind
-rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)]):=
+rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)])<-
 	asso(_):t~=_,
 	\+hidden(A_ID,_):t,
 	asso(A_ID):t ~= T_ID,
@@ -332,7 +332,7 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2
 
 %behind
 /*
-rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)]):=
+rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)])<-
 	hidden(A_ID,A_ID_occ):t,
 	rv(A_ID):t~=(X1,_,Y1,_,Z1,_),
 	rv(A_ID_occ):t~=(X2,XV2,Y2,YV2,Z2,ZV2),
@@ -346,7 +346,7 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)]):=
 
 /*
 %under
-rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)]):=
+rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)])<-
 	asso(_):t~=_,
 	\+hidden(A_ID,_):t,
 	asso(A_ID):t ~= T_ID,
@@ -363,7 +363,7 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2
 	Z4 is Z2-ZBB/2.
 
 %under
-rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)]):=
+rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)])<-
 	asso(_):t~=_,
 	\+hidden(A_ID,_):t,
 	asso(A_ID):t ~= T_ID,
@@ -381,7 +381,7 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(0,0),(Y3,Y4),(0,0),(Z3,Z4),(0,0)]):=
 
 
 %under
-rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)]):=
+rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2)])<-
 	hidden(A_ID,A_ID_occ):t,
 	rv(A_ID):t~=(X1,_,Y1,_,Z1,_),
 	rv(A_ID_occ):t~=(X2,XV2,Y2,YV2,Z2,ZV2),
@@ -396,18 +396,18 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2
 */
 
 
-color(A_ID):t+1 ~ val(C) :=
+color(A_ID):t+1 ~ val(C) <-
 	asso(A_ID):t+1~=_,
 	observation(anchor_c(A_ID)) ~= C.
-color(A_ID):t+1 ~ val(C) :=
+color(A_ID):t+1 ~ val(C) <-
 	asso(A_ID):t+1 ~= T_ID,
 	\+observation(anchor_c(A_ID))~= _,
 	color(A_ID):t ~=C.
 
-bb(A_ID):t+1 ~ val(BB) :=
+bb(A_ID):t+1 ~ val(BB) <-
 	asso(A_ID):t+1~=_,
 	observation(anchor_bb(A_ID)) ~= BB.
-bb(A_ID):t+1 ~ val(BB) :=
+bb(A_ID):t+1 ~ val(BB) <-
 	asso(A_ID):t+1 ~= T_ID,
 	\+observation(anchor_bb(A_ID))~= _,
 	bb(A_ID):t ~=BB.
