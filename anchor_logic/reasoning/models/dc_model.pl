@@ -157,18 +157,12 @@ observation(anchor_bb(_)):t+1 ~ val(_) <-
 
 %position transition
 rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
-	writeln(2),
 	\+asso(A_ID,_):t ,
 	asso(A_ID,_):t+1,
-	writeln(4),
 	observation(anchor_r(A_ID)) ~=(X,Y,Z),
-	writeln(5),
 	varQ(VarQ),
-	writeln(6),
 	VarQ1 is VarQ/5,
-	writeln(7),
-	cov(1,Cov,VarQ1),
-	writeln(3).
+	cov(1,Cov,VarQ1).
 
 % rv(A_ID):t+1 ~  val(RV) <-
 % 	asso(A_ID):t+1 ~= T_ID,
@@ -430,35 +424,6 @@ bb(A_ID,BB):t+1 <-
 
 
 
-
-%get plot data
-% search_query(I,Q) :-
-% 	abolish_all_tables,
-% 	eraseall(tempparticle),
-% 	distributionalclause:proof_query_backward_lazy(I,tempparticle,Q).
-%
-% get_plotdata(N, List) :-
-% 	dcpf:bb_get(offset,Offset),
-% 	(
-% 		between(1,N,Pos),
-% 		I is Offset+Pos,
-% 		findall(plot(X,Y,Z,C), search_query(I,(current(rv(A_ID)) ~= (X,_,Y,_,Z,_),current(color(A_ID)) ~= C, current(asso(A_ID))~=T_ID)),List),
-% 		(
-% 			bb_get(plotdata, List_old) ->
-% 				(
-% 					append(List_old, List, List_new),
-% 					length(List_new, Len),
-% 					bb_put(plotdata, List_new)
-% 				)
-% 			;
-% 			bb_put(plotdata, [])
-% 		),
-% 		fail
-% 		;
-% 		true
-% 	),
-% 	bb_delete(plotdata, List),
-% 	!.
 
 
 o:-
