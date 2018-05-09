@@ -1,4 +1,5 @@
 %%% -*- Mode: Prolog; -*-
+:- use_module(library(distributionalclause)).
 :- use_module(library(dcpf)).
 
 
@@ -15,11 +16,11 @@
 % builtin(optimalproposal(_,_,_,_,_,_,_)).
 % builtin(logIndepOptimalProposals(_,_,_)).
 
-
-
-
-
 %
+% checkvalue(true,1.0).
+% checkvalue(false,0.0).
+
+
 %
 builtin(visionfield(_,_)).
 builtin(rgbcolor(_,_)).
@@ -110,7 +111,17 @@ asso(A_ID,A_ID):t+1 <-
 	observation(anchor_r(A_ID))~=_.
 
 
+%hidden
+% hidden(A_ID,_):t <-
+% 	asso(A_ID,_):t,
+% 	true,
+% 	writeln(true).
 
+hidden(A_ID):t <-
+	asso(A_ID,_):t,
+	writeln(1),
+	true,
+	writeln(2).
 
 
 
