@@ -31,11 +31,8 @@ add_message_files(
    Point2d.msg
    PositionAttribute.msg
    ShapeAttribute.msg
-   LogicParticlePlot.msg
-   LogicMeanPosHidden.msg
-   LogicMeanPosHiddenArray.msg
-   LogicAssociation.msg
-   LogicAssociationArray.msg 
+   LogicAnchor.msg
+   LogicAnchorArray.msg
 )
 
 ## Generate services in the 'srv' folder

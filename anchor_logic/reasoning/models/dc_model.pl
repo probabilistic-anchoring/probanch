@@ -19,19 +19,18 @@
 
 
 
-
-
+%
+%
 builtin(visionfield(_,_)).
 builtin(rgbcolor(_,_)).
 builtin(deltaT(_)).
 builtin(varQ(_)).
 builtin(cov(_,_,_)).
-builtin(write(_)).
-builtin(writeln(_)).
-builtin(append(_,_,_)).
+
+% builtin(append(_,_,_)).
 
 
-builtin(list_to_ord_set(_,_)).
+% builtin(list_to_ord_set(_,_)).
 
 
 deltaT(0.2).
@@ -73,50 +72,63 @@ visionfield(z,(0.0,0.5)).
 
 
 
-asso(A_ID):t+1 ~ val(A_ID) <- %first time step
-	\+asso(_):t~=_,
+% asso(A_ID):t+1 ~ val(A_ID) <- %first time step
+% 	\+asso(_):t~=_,
+% 	observation(anchor_r(A_ID))~=_.
+% asso(A_ID):t+1 ~ val(T_ID) <- %associate anchor with one from previous timestep (often itself) or noise
+% 	asso(_):t~=_,
+% 	observation(anchor_r(A_ID))~=_,
+% 	asso(A_ID):t ~=T_ID.
+% asso(A_ID):t+1 ~ val(T_ID) <-
+% 	asso(_):t~=_,
+% 	observation(anchor_r(A_ID))~=_,
+% 	\+asso(A_ID):t ~=_,
+% 	T_ID = A_ID.
+% asso(A_ID):t+1 ~ val(T_ID) <-
+% 	asso(_):t~=_,
+% 	\+hidden(A_ID,_):t,
+% 	asso(A_ID):t ~= T_ID,
+% 	\+observation(anchor_r(A_ID)) ~=_,
+% 	pick_occluder(A_ID):t ~=_. %this checks whether there is an occluder present
+% asso(A_ID):t+1 ~ val(T_ID) <-
+% 	asso(_):t ~=_,
+% 	hidden(A_ID,_):t,
+% 	asso(A_ID):t~=T_ID.
+% asso(A_ID):t+1 ~ val(T_ID) <-
+% 	asso(_):t ~=_,
+% 	asso(A_ID):t ~= T_ID,
+% 	hidden(A_ID, _):t,
+% 	observation(anchor_r(A_ID)) ~=_.
+
+%first time step anchor association
+asso(A_ID,A_ID):t+1 <-
+	\+asso(_,_):t,
 	observation(anchor_r(A_ID))~=_.
-asso(A_ID):t+1 ~ val(T_ID) <- %associate anchor with one from previous timestep (often itself) or noise
-	asso(_):t~=_,
-	observation(anchor_r(A_ID))~=_,
-	asso(A_ID):t ~=T_ID.
-asso(A_ID):t+1 ~ val(T_ID) <-
-	asso(_):t~=_,
-	observation(anchor_r(A_ID))~=_,
-	\+asso(A_ID):t ~=_,
-	T_ID = A_ID.
-asso(A_ID):t+1 ~ val(T_ID) <-
-	asso(_):t~=_,
-	\+hidden(A_ID,_):t,
-	asso(A_ID):t ~= T_ID,
-	\+observation(anchor_r(A_ID)) ~=_,
-	pick_occluder(A_ID):t ~=_. %this checks whether there is an occluder present
-asso(A_ID):t+1 ~ val(T_ID) <-
-	asso(_):t ~=_,
-	hidden(A_ID,_):t,
-	asso(A_ID):t~=T_ID.
-asso(A_ID):t+1 ~ val(T_ID) <-
-	asso(_):t ~=_,
-	asso(A_ID):t ~= T_ID,
-	hidden(A_ID, _):t,
-	observation(anchor_r(A_ID)) ~=_.
+	%associate anchor with one from previous timestep (often itself)
+asso(A_ID,A_ID):t+1 <-
+	asso(_,_):t,
+	observation(anchor_r(A_ID))~=_.
+
+
 
 
 
 
 %observation position
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %first time step
-	\+asso(_):t ~=_.
-observation(anchor_r(A_ID)):t+1 ~ val(_) <- %associate anchor with itself or noise (no previous target for this anchor)
-	asso(_):t ~=_,
-	asso(A_ID):t+1 ~= T_ID,
-	\+asso(_):t ~= T_ID.
-observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <- %associate anchor with one from previous timestep (is itself, no data asso done) (previous target for this anchor)
-	asso(_):t ~=_,
-	asso(A_ID):t+1 ~= T_ID,
-	asso(_):t ~= T_ID,
-	\+hidden(A_ID):t,
-	rvProposal(A_ID):t+1 ~= [_|W].
+	\+asso(_,_):t.
+%associate anchor with itself or noise (no previous target for this anchor)
+observation(anchor_r(A_ID)):t+1 ~ val(_) <-
+	asso(_,_):t,
+	asso(A_ID,A_ID):t+1.
+
+
+% observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <- %associate anchor with one from previous timestep (is itself, no data asso done) (previous target for this anchor)
+% 	asso(_):t ~=_,
+% 	asso(A_ID):t+1 ~= T_ID,
+% 	asso(_):t ~= T_ID,
+% 	\+hidden(A_ID):t,
+% 	rvProposal(A_ID):t+1 ~= [_|W].
 /*observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <- %associate anchor with noise (previous target for this anchor) not sure about this rule// think harder
 	asso(_):t ~=_,
 	asso(A_ID):t ~= T_ID,
@@ -135,36 +147,36 @@ observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
 	true.
 
 %observation color
-observation(anchor_c(_)):t+1 ~ val(_)<-
+observation(anchor_c(_)):t+1 ~ val(_) <-
 	true.
 %observation bb
-observation(anchor_bb(_)):t+1 ~ val(_)<-
+observation(anchor_bb(_)):t+1 ~ val(_) <-
 	true.
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
 %position transition
 rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
-	asso(A_ID):t+1 ~= T_ID,
-	\+asso(_):t ~= T_ID,
-	\+hidden(A_ID,_):t,
-	T_ID\=noise,
+	writeln(2),
+	\+asso(A_ID,_):t ,
+	asso(A_ID,_):t+1,
+	writeln(4),
 	observation(anchor_r(A_ID)) ~=(X,Y,Z),
+	writeln(5),
 	varQ(VarQ),
+	writeln(6),
 	VarQ1 is VarQ/5,
-	cov(1,Cov,VarQ1).
+	writeln(7),
+	cov(1,Cov,VarQ1),
+	writeln(3).
 
-
-
-
-rv(A_ID):t+1 ~  val(RV) <-
-	asso(A_ID):t+1 ~= T_ID,
-	hidden(A_ID,_):t,
-	T_ID\=noise,
-	rv(A_ID):t ~= RV.
-
-
+% rv(A_ID):t+1 ~  val(RV) <-
+% 	asso(A_ID):t+1 ~= T_ID,
+% 	hidden(A_ID,_):t,
+% 	T_ID\=noise,
+% 	rv(A_ID):t ~= RV.
+%
+%
 rv(A_ID):t+1 ~ val(V) <-
 	rvProposal(A_ID):t+1 ~= [V|_].
 
@@ -172,46 +184,44 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	asso(A_ID):t+1~=T_ID,
-	asso(A_ID):t~=T_ID,
-	\+hidden(A_ID,_):t,
-	T_ID\=noise,
-	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+	asso(A_ID,_):t,
+	asso(A_ID,_):t+1,
 	observation(anchor_r(A_ID)) ~=(O_x,O_y,O_z),
-	varQ(VarQ),
-	cov(2,Cov,VarQ),
-	deltaT(DeltaT),
-	V_x_new is V_x,
-	V_y_new is V_y,
-	V_z_new is V_z,
-	R_x_new is R_x+DeltaT*V_x,
-	R_y_new is R_y+DeltaT*V_y,
-	R_z_new is R_z+DeltaT*V_z.
-
-
-%getting behind
-rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
-			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x_new]),
-			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	asso(A_ID):t+1~=T_ID,
-	asso(A_ID):t~=T_ID,
-	\+hidden(A_ID,_):t,
-	T_ID\=noise,
 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
-	\+observation(anchor_r(A_ID)) ~=_,
-	pick_occluder(A_ID):t ~= A_ID_occ,
-	observation(anchor_r(A_ID_occ)) ~=(O_x,O_y,O_z),
 	varQ(VarQ),
 	cov(2,Cov,VarQ),
 	deltaT(DeltaT),
-	O_x_new is O_x-0.05,
 	V_x_new is V_x,
 	V_y_new is V_y,
 	V_z_new is V_z,
 	R_x_new is R_x+DeltaT*V_x,
 	R_y_new is R_y+DeltaT*V_y,
 	R_z_new is R_z+DeltaT*V_z.
+%
+%
+% %getting behind
+% rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
+% 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x_new]),
+% 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
+% 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
+% 	asso(A_ID):t+1~=T_ID,
+% 	asso(A_ID):t~=T_ID,
+% 	\+hidden(A_ID,_):t,
+% 	T_ID\=noise,
+% 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+% 	\+observation(anchor_r(A_ID)) ~=_,
+% 	pick_occluder(A_ID):t ~= A_ID_occ,
+% 	observation(anchor_r(A_ID_occ)) ~=(O_x,O_y,O_z),
+% 	varQ(VarQ),
+% 	cov(2,Cov,VarQ),
+% 	deltaT(DeltaT),
+% 	O_x_new is O_x-0.05,
+% 	V_x_new is V_x,
+% 	V_y_new is V_y,
+% 	V_z_new is V_z,
+% 	R_x_new is R_x+DeltaT*V_x,
+% 	R_y_new is R_y+DeltaT*V_y,
+% 	R_z_new is R_z+DeltaT*V_z.
 
 %staying behind
 /*rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
@@ -261,29 +271,29 @@ rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
 	R_y_new is R_y+DeltaT*V_y,
 	R_z_new is R_z+DeltaT*V_z.*/
 
-rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
-			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
-			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	asso(A_ID):t+1~=T_ID,
-	asso(A_ID):t~=T_ID,
-	hidden(A_ID,_):t,
-	T_ID\=noise,
-	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
-	observation(anchor_r(A_ID)) ~=(O_x,O_y,O_z),
-	varQ(VarQ),
-	cov(2,Cov,VarQ),
-	deltaT(DeltaT),
-	V_x_new is V_x,
-	V_y_new is V_y,
-	V_z_new is V_z,
-	R_x_new is R_x+DeltaT*V_x,
-	R_y_new is R_y+DeltaT*V_y,
-	R_z_new is R_z+DeltaT*V_z.
-
-
-
-
+% rvProposal(A_ID):t+1 ~ logIndepOptimalProposals([
+% 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
+% 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
+% 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
+% 	asso(A_ID):t+1~=T_ID,
+% 	asso(A_ID):t~=T_ID,
+% 	hidden(A_ID,_):t,
+% 	T_ID\=noise,
+% 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+% 	observation(anchor_r(A_ID)) ~=(O_x,O_y,O_z),
+% 	varQ(VarQ),
+% 	cov(2,Cov,VarQ),
+% 	deltaT(DeltaT),
+% 	V_x_new is V_x,
+% 	V_y_new is V_y,
+% 	V_z_new is V_z,
+% 	R_x_new is R_x+DeltaT*V_x,
+% 	R_y_new is R_y+DeltaT*V_y,
+% 	R_z_new is R_z+DeltaT*V_z.
+%
+%
+%
+%
 
 
 
@@ -395,22 +405,26 @@ rv(A_ID):t+1 ~ contUniform([(X3,X4),(XV2,XV2),(Y3,Y4),(YV2,YV2),(Z3,Z4),(ZV2,ZV2
 
 */
 
-
-color(A_ID):t+1 ~ val(C) <-
-	asso(A_ID):t+1~=_,
+%if observed
+color(A_ID,C):t+1 <-
+	asso(A_ID,_):t+1,
 	observation(anchor_c(A_ID)) ~= C.
-color(A_ID):t+1 ~ val(C) <-
-	asso(A_ID):t+1 ~= T_ID,
+%if not observed
+color(A_ID,C):t+1 <-
+	asso(A_ID,_):t+1,
 	\+observation(anchor_c(A_ID))~= _,
-	color(A_ID):t ~=C.
+	color(A_ID,C):t.
 
-bb(A_ID):t+1 ~ val(BB) <-
-	asso(A_ID):t+1~=_,
+
+%if observed
+bb(A_ID,BB):t+1 ~ val(BB) <-
+	asso(A_ID,_):t+1,
 	observation(anchor_bb(A_ID)) ~= BB.
-bb(A_ID):t+1 ~ val(BB) <-
-	asso(A_ID):t+1 ~= T_ID,
+%if not observed
+bb(A_ID,BB):t+1 <-
+	asso(A_ID,_):t+1,
 	\+observation(anchor_bb(A_ID))~= _,
-	bb(A_ID):t ~=BB.
+	bb(A_ID,BB):t.
 
 
 
@@ -418,30 +432,42 @@ bb(A_ID):t+1 ~ val(BB) <-
 
 
 %get plot data
-search_query(I,Q) :-
-	abolish_all_tables,
-	eraseall(tempparticle),
-	distributionalclause:proof_query_backward_lazy(I,tempparticle,Q).
+% search_query(I,Q) :-
+% 	abolish_all_tables,
+% 	eraseall(tempparticle),
+% 	distributionalclause:proof_query_backward_lazy(I,tempparticle,Q).
+%
+% get_plotdata(N, List) :-
+% 	dcpf:bb_get(offset,Offset),
+% 	(
+% 		between(1,N,Pos),
+% 		I is Offset+Pos,
+% 		findall(plot(X,Y,Z,C), search_query(I,(current(rv(A_ID)) ~= (X,_,Y,_,Z,_),current(color(A_ID)) ~= C, current(asso(A_ID))~=T_ID)),List),
+% 		(
+% 			bb_get(plotdata, List_old) ->
+% 				(
+% 					append(List_old, List, List_new),
+% 					length(List_new, Len),
+% 					bb_put(plotdata, List_new)
+% 				)
+% 			;
+% 			bb_put(plotdata, [])
+% 		),
+% 		fail
+% 		;
+% 		true
+% 	),
+% 	bb_delete(plotdata, List),
+% 	!.
 
-get_plotdata(N, List) :-
-	dcpf:bb_get(offset,Offset),
-	(
-		between(1,N,Pos),
-		I is Offset+Pos,
-		findall(plot(X,Y,Z,C), search_query(I,(current(rv(A_ID)) ~= (X,_,Y,_,Z,_),current(color(A_ID)) ~= C, current(asso(A_ID))~=T_ID)),List),
-		(
-			bb_get(plotdata, List_old) ->
-				(
-					append(List_old, List, List_new),
-					length(List_new, Len),
-					bb_put(plotdata, List_new)
-				)
-			;
-			bb_put(plotdata, [])
-		),
-		fail
-		;
-		true
-	),
-	bb_delete(plotdata, List),
-	!.
+
+o:-
+	N=5,
+	init_particle(N),
+	step_particle([],[], N, 1.0),
+	eval_query_particle((current(color(1,yellow))),N,P0),
+	writeln(P0),
+	step_particle([],[observation(anchor_c(1))~=yellow,observation(anchor_c(2))~=red, observation(anchor_r(1))~=(0.0,-0.1,0.0), observation(anchor_r(2))~=(0.0,-0.1,0.0)], N, 1.0),
+	eval_query_particle((current(color(1,yellow))),N,P1),
+	writeln(P1),
+	writeln(done).
