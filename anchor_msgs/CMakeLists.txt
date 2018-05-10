@@ -33,7 +33,6 @@ add_message_files(
    ShapeAttribute.msg
    LogicAnchor.msg
    LogicAnchorArray.msg
-   LogicHiddenAnchorsID.msg
 )
 
 ## Generate services in the 'srv' folder

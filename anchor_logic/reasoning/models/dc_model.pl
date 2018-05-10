@@ -111,18 +111,19 @@ asso(A_ID,A_ID):t+1 <-
 	observation(anchor_r(A_ID))~=_.
 
 
+
+observed(A_ID):t+1 <-
+	observation(anchor_r(A_ID))~=_.
+
 %hidden
 % hidden(A_ID,_):t <-
 % 	asso(A_ID,_):t,
 % 	true,
 % 	writeln(true).
 
-hidden(A_ID):t <-
-	asso(A_ID,_):t,
-	writeln(1),
-	true,
-	writeln(2).
-
+% hidden(A_ID):t <-
+% 	asso(A_ID,_):t,
+% 	true.
 
 
 %observation position
