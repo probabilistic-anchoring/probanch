@@ -15,7 +15,7 @@
 
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
-#include <anchor_msgs/LogicParticlePlot.h>
+#include <anchor_msgs/LogicAnchorArray.h>
 
 using namespace std;
 using namespace cv;
@@ -152,10 +152,13 @@ class AnchorViewer {
   }
 
   // Callback function for receiving particles from the data association
-  void particles_cb(const anchor_msgs::LogicParticlePlotConstPtr& msg_ptr) {
+  void particles_cb(const anchor_msgs::LogicAnchorArrayPtr& msg_ptr) {
     this->_particles.clear();
-    for( uint i = 0; i < msg_ptr->color.size(); i++) {
-      this->_particles.push_back( Particle( msg_ptr->x[i], msg_ptr->y[i], msg_ptr->z[i], msg_ptr->color[i]) );
+    for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
+      auto p = msg_ptr->anchors[i].particle_positions.begin();
+      for( ; p != msg_ptr->anchors[i].particle_positions.begin(); ++p ) {	
+	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.x, p->data.pose.position.x, msg_ptr->anchors[i].color.symbols.front()) );
+      }
     }
     if( _max_particles >= 0 ) {
       while( this->_particles.size() > _max_particles ) {
@@ -337,7 +340,7 @@ public:
 
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
-    _particle_sub = nh.subscribe("/particles", 10, &AnchorViewer::particles_cb, this);
+    _particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
     _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 

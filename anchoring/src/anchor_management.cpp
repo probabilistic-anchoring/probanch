@@ -21,13 +21,13 @@ using namespace anchoring;
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
 
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
-  _track_sub = _nh.subscribe("/meanposhidden", 10, &AnchorManagement::track, this);
+  _track_sub = _nh.subscribe("/logic_anchors", 10, &AnchorManagement::track, this);
   //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
 
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
   _spatial_srv = _nh.advertiseService("/anchoring/spatial_request", &AnchorManagement::spatialRequest, this);
 
-  // Publisher used for collecting bag files
+  // Publisher used for further broadcasting anchor information
   _anchor_pub = _nh.advertise<anchor_msgs::AnchorArray>("/anchors", 1);
 
   // Publischer used for displaying the anchors
@@ -166,27 +166,38 @@ float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float
 /* -----------------------------------------
    Main track function(s)
    --------------------------------------- */
-void AnchorManagement::track( const anchor_msgs::LogicMeanPosHiddenArrayConstPtr &movement_ptr ) {
+void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr ) {
 
-  // Maintain all incoming object movmements
-  ros::Time t = movement_ptr->header.stamp;
-  for( uint i = 0; i < movement_ptr->mphs.size(); i++) {
+  // Maintain all incoming tracked objects
+  ros::Time t = track_ptr->header.stamp;
+  for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
-    // Transform the coordinates to a geometry message
-    geometry_msgs::PoseStamped msg;
-    msg.header = movement_ptr->header;
-    msg.pose.position.x = movement_ptr->mphs[i].x;
-    msg.pose.position.y = movement_ptr->mphs[i].y;
-    msg.pose.position.z = movement_ptr->mphs[i].z;
+    // IF tracked hidden object, add the position of hte object
+    if( !track_ptr->anchors[i].observed ) {
+      
+      // Transform the coordinates to a geometry message
+      geometry_msgs::PoseStamped msg;
+      msg.header = track_ptr->header;
+      auto p = track_ptr->anchors[i].particle_positions.begin();
+      for( ; p != track_ptr->anchors[i].particle_positions.begin(); ++p ) {  
+	msg.pose.position.x += p->data.pose.position.x;
+	msg.pose.position.y += p->data.pose.position.y;
+	msg.pose.position.z += p->data.pose.position.z;
+      }
+      msg.pose.position.x /= track_ptr->anchors[i].particle_positions.size();
+      msg.pose.position.y /= track_ptr->anchors[i].particle_positions.size();
+      msg.pose.position.z /= track_ptr->anchors[i].particle_positions.size();
 
-    // Track the anchor
-    anchoring::AttributeMap attributes;
-    attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );
-    this->_anchors->track( movement_ptr->mphs[i].a_id, attributes, t); // TRACK
+      // Track the anchor
+      anchoring::AttributeMap attributes;
+      attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );
+      this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
+    }
   }
 }
 
 
+/*
 // ---[ Track method based on data association ]---
 void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr ) {
 
@@ -233,6 +244,8 @@ void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstP
     ROS_ERROR("[AnchorManagement::track]%s", e.what() );
   }
 }
+*/
+
 
 /* -----------------------------------------
    Process function

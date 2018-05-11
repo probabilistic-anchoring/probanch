@@ -203,6 +203,20 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     return;
   }
 
+  // TEST
+  // --------------------------------------
+  // Downsample the orignal point cloud 
+  int scale = 2;
+  pcl::PointCloud<segmentation::Point> downsampled_cloud; 
+  downsampled_cloud.width = original_cloud_ptr->width / scale;
+  downsampled_cloud.height = original_cloud_ptr->height / scale;
+  for( uint i = 0; i < original_cloud_ptr->height; i += scale ){
+    for( uint j = 0; j < original_cloud_ptr->width; j += scale ){
+      downsampled_cloud.push_back( original_cloud_ptr->at(i,j) );      
+    }
+  }
+  // -----------
+  
   // Convert to grayscale and back (for display purposes)
   if( display_image_ ) {
     cv::cvtColor( img, this->result_img_, CV_BGR2GRAY); 
@@ -231,7 +245,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     // Filter the indices of all 3D points within the hand contour
     if ( !hand_contour.empty() ) {
       uint idx = 0;
-      BOOST_FOREACH  ( const segmentation::Point pt, original_cloud_ptr->points ) {
+      // TEST - Use downsampled cloud instead
+      // ---------------------------------------------
+      BOOST_FOREACH  ( const segmentation::Point pt, downsampled_cloud.points ) {
+      //BOOST_FOREACH  ( const segmentation::Point pt, original_cloud_ptr->points ) {
 	cv::Point3d pt_3d( pt.x, pt.y, pt.z);
 	cv::Point2f pt_2d = cam_model.project3dToPixel(pt_3d);
 	if( cv::pointPolygonTest( hand_contour, pt_2d, false ) > 0.0 ) { 
@@ -246,8 +263,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // Cluster cloud into objects 
   // ----------------------------------------
   std::vector<pcl::PointIndices> cluster_indices;
-  this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
+  //this->seg_.clusterOrganized(transformed_cloud_ptr, cluster_indices);
   //this->seg_.clusterOrganized(raw_cloud_ptr, cluster_indices);
+
+  // TEST - Use downsampled cloud instead
+  // -----------------------------------------
+  this->seg_.clusterOrganized( downsampled_cloud.makeShared(), cluster_indices);
 
   // Pre-process the segmented clusters (filter out the 'hand' points)
   if( !hand_indices.indices.empty() ) {
@@ -298,7 +319,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
       // Get the cluster
       pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl::copyPointCloud( *original_cloud_ptr, cluster_indices[i], *cluster_ptr);
+      //pcl::copyPointCloud( *original_cloud_ptr, cluster_indices[i], *cluster_ptr);
+
+      // TEST - Use downsampled cloud instead
+      // -----------------------------------------
+      pcl::copyPointCloud( downsampled_cloud, cluster_indices[i], *cluster_ptr);
+      
       if( cluster_ptr->points.empty() )
 	continue;
 
