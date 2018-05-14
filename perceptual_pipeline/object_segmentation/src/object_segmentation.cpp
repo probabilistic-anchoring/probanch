@@ -207,12 +207,13 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // --------------------------------------
   // Downsample the orignal point cloud 
   int scale = 2;
-  pcl::PointCloud<segmentation::Point> downsampled_cloud; 
-  downsampled_cloud.width = original_cloud_ptr->width / scale;
-  downsampled_cloud.height = original_cloud_ptr->height / scale;
-  for( uint i = 0; i < original_cloud_ptr->height; i += scale ){
-    for( uint j = 0; j < original_cloud_ptr->width; j += scale ){
-      downsampled_cloud.push_back( original_cloud_ptr->at(i,j) );      
+  pcl::PointCloud<segmentation::Point>::Ptr downsampled_cloud_ptr( new pcl::PointCloud<segmentation::Point> );					   
+  downsampled_cloud_ptr->width = original_cloud_ptr->width / scale;
+  downsampled_cloud_ptr->height = original_cloud_ptr->height / scale;
+  downsampled_cloud_ptr->resize( downsampled_cloud_ptr->width * downsampled_cloud_ptr->height );
+  for( uint i = 0, k = 0; i < original_cloud_ptr->width; i += scale, k++ ) {
+    for( uint j = 0, l = 0; j < original_cloud_ptr->height; j += scale, l++ ) {
+      downsampled_cloud_ptr->at(k,l) = original_cloud_ptr->at(i,j);
     }
   }
   // -----------
@@ -247,7 +248,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       uint idx = 0;
       // TEST - Use downsampled cloud instead
       // ---------------------------------------------
-      BOOST_FOREACH  ( const segmentation::Point pt, downsampled_cloud.points ) {
+      BOOST_FOREACH  ( const segmentation::Point pt, downsampled_cloud_ptr->points ) {
       //BOOST_FOREACH  ( const segmentation::Point pt, original_cloud_ptr->points ) {
 	cv::Point3d pt_3d( pt.x, pt.y, pt.z);
 	cv::Point2f pt_2d = cam_model.project3dToPixel(pt_3d);
@@ -268,7 +269,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // TEST - Use downsampled cloud instead
   // -----------------------------------------
-  this->seg_.clusterOrganized( downsampled_cloud.makeShared(), cluster_indices);
+  this->seg_.clusterOrganized( downsampled_cloud_ptr, cluster_indices);
 
   // Pre-process the segmented clusters (filter out the 'hand' points)
   if( !hand_indices.indices.empty() ) {
@@ -323,7 +324,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
       // TEST - Use downsampled cloud instead
       // -----------------------------------------
-      pcl::copyPointCloud( downsampled_cloud, cluster_indices[i], *cluster_ptr);
+      pcl::copyPointCloud( *downsampled_cloud_ptr, cluster_indices[i], *cluster_ptr);
       
       if( cluster_ptr->points.empty() )
 	continue;
