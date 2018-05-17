@@ -13,7 +13,7 @@
 
 #include <feature_extraction/feature_extraction.hpp>
 
-//#define USE_KEYPOINT_FEATURES 1
+#define USE_KEYPOINT_FEATURES 0
 
 FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
   : nh_(nh)
@@ -37,6 +37,9 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
   this->_cf.load(path + "/models/colors.yml");
   std::cout << "Loaded fine..." << std::endl;
 
+  // Set scale scale factor for the number of bins used in the calcualtion of the color histogram
+  this->_cf.setScaleFactor(0.5);
+
 } 
 
 void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -57,11 +60,13 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   output.info = objects_msg->info;
   output.transform = objects_msg->transform;
 
-  #ifdef USE_KEYPOINT_FEATURES
+  #if USE_KEYPOINT_FEATURES == 1
   // Instaniate main feature processor
   int numKeyPoints = objects_msg->objects.size() * 2000;
   KeypointFeatures kf(numKeyPoints);
   #endif
+
+  int64 t; // Used for timing
   
   // Try to recive the image
   cv_bridge::CvImagePtr cv_ptr;
@@ -88,7 +93,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   //img = ColorFeatures::equalizeIntensity(img);
   //std::cout << "This part works.. " << std::endl;
 
-  #ifdef USE_KEYPOINT_FEATURES
+  #if USE_KEYPOINT_FEATURES == 1
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
   cv::cvtColor( img, gray, CV_BGR2GRAY); // <-- Gray scale
@@ -114,7 +119,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 
     // 1. Get keypoint features (from keypoints within the contour)
     // ---------------------------
-    #ifdef USE_KEYPOINT_FEATURES
+    #if USE_KEYPOINT_FEATURES == 1
+    ROS_WANR("Keypoint features used.");
     std::vector<int> idxs;
     std::vector<cv::KeyPoint> sub_keypoints;
     for (uint j = 0; j < keypoints.size(); j++) {
@@ -160,7 +166,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     
     // 3. Extract color attribute
     // --------------------------- 
-
     // Draw the contour image mask 
     cv::Mat mask( img.size(), CV_8U, cv::Scalar(0) );
     std::vector<std::vector<cv::Point> > contours;

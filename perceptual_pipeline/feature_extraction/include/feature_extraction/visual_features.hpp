@@ -135,6 +135,10 @@ public:
   // Static helper functions
   static cv::Mat equalizeIntensity(const cv::Mat& img);
 
+  // Setter/getter functions
+  void setScaleFactor(float val) { if( val >= 0.0 && val <= 1.0 ) this->_scale = val; }
+  float getScaleFactor() { return this->_scale; }
+  
 // Private space
 private:
 
@@ -144,6 +148,9 @@ private:
   int _hbins;
   int _sbins;
   int _vbins;
+
+  // Scale factor (in range: [0.0, 1.0])
+  float _scale;
 
   // Private helper function
   void buildTrainingData( const Color index[], 

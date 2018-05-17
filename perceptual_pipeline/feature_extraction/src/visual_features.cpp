@@ -253,7 +253,7 @@ ColorFeatures::ColorFeatures(const std::string &filename) {
 
 ColorFeatures::ColorFeatures(int hbins,
 			     int sbins,
-			     int vbins ) : _hbins(hbins), _sbins(sbins), _vbins(vbins) {
+			     int vbins ) : _hbins(hbins), _sbins(sbins), _vbins(vbins), _scale(1.0) {
   /*
   // Classifier training data
   Mat labelsMat(0, 1, CV_32FC1);
@@ -346,7 +346,7 @@ void ColorFeatures::calculate( const Mat &img,
     cvtColor( img, hsv, CV_BGR2HSV);    
 
     // Quantize value levels and ranges
-    int histSize[] = { _hbins, _sbins, _vbins};
+    int histSize[] = {  (int)(_hbins * _scale), (int)(_sbins * _scale), (int)(_vbins * _scale)};
     float hranges[] = { 0, (float)_hbins };
     float sranges[] = { 0, (float)_sbins };
     float vranges[] = { 0, (float)_vbins };
@@ -377,19 +377,26 @@ void ColorFeatures::predict( const Mat &hist,
   preds = vector<float>( COLOR_SHADES_MAX, 0.0);
 
   // Calculate the total sum of all histogram bins
-  float totVal = this->totalValue(hist);
+  //float totVal = this->totalValue(hist);
+  float totVal = 0.0;
 
   // Predict the color distribution
-  for( int h = 0; h < this->_hbins; h++ )
-    for( int s = 0; s < this->_sbins; s++ ) 
-      for( int v = 0; v < this->_vbins; v++ ) 
+  for( int h = 0; h < this->_hbins * _scale; h++ )
+    for( int s = 0; s < this->_sbins * _scale; s++ ) 
+      for( int v = 0; v < this->_vbins * _scale; v++ ) 
 	if( hist.at<float>(h, s, v) > 0.0 ) {
-	  Mat sampleMat = (Mat_<float>(1,3) << h,s,v);
+	  Mat sampleMat = (Mat_<float>(1,3) << (h / _scale), (s / _scale), (v / _scale));
 	  float response = this->_svm->predict(sampleMat);
-	  preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
+	  //preds[(int)response] += hist.at<float>(h, s, v) / (float)totVal;
+	  float val = hist.at<float>( h, s, v);
+	  preds[(int)response] += val;
+	  totVal += val;
 	}
   preds[SHADES_OF_RED_LOW] += preds[SHADES_OF_RED_HIGH];
   preds[SHADES_OF_RED_HIGH] = 0.0;
+  for( uint i = 0; i < preds.size(); i++) {
+    preds[i] = preds[i] / totVal;   
+  }
 }	
 
 
