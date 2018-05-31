@@ -145,6 +145,7 @@ machine::MachinePtr machine::create(string type) {
   shared_ptr<CvStatModel> model;
   if ( type == "svm" ) {
 
+    /*
     // SVM parameters
     CvSVMParams params = CvSVMParams();
     params.svm_type = CvSVM::NU_SVC;
@@ -161,7 +162,20 @@ machine::MachinePtr machine::create(string type) {
     params.term_crit.type = CV_TERMCRIT_ITER + CV_TERMCRIT_EPS;
     params.term_crit.max_iter = 1000;
     params.term_crit.epsilon = 1e-6;
+    */
 
+    // SVM parameters
+    CvSVMParams params = CvSVMParams();
+    params.svm_type = CvSVM::NU_SVC;
+    params.nu = 0.1;
+    params.kernel_type = CvSVM::RBF; //CvSVM::RBF, CvSVM::LINEAR ...
+    //params.degree = 0; // for poly
+    params.gamma = 20; // for poly/rbf/sigmoid
+    //params.coef0 = 0; // for poly/sigmoid
+    params.term_crit.type = CV_TERMCRIT_ITER + CV_TERMCRIT_EPS;
+    params.term_crit.max_iter = 10000;
+    params.term_crit.epsilon = 1e-6;
+    
     // Create the SVM classifier
     model = std::shared_ptr<CvStatModel>(new CvSVM());
     ptr = machine::MachinePtr(new ML( type, model, params));

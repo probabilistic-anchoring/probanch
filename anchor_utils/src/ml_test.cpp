@@ -26,7 +26,8 @@ int main(int argc, char* argv[]) {
   
   // Split the data into traning and test data
   cv::Mat trainData, trainLabels, testData, testLabels;
-  machine::split( distData, distLabels, trainData, trainLabels, testData, testLabels, 0.7);
+  //machine::split( distData, distLabels, trainData, trainLabels, testData, testLabels, 0.7);
+  machine::split( data, labels, trainData, trainLabels, testData, testLabels, 0.7);
   std::cout<< "Traning samples: " << trainLabels.rows << std::endl;
   std::cout<< "Test samples: " << testData.rows << std::endl;
   std::cout<< "---" << std::endl;
@@ -257,8 +258,9 @@ int main(int argc, char* argv[]) {
     */
     
     // Randomly make new split of training/test data...
-    machine::distribute( data, labels, distData, distLabels);
-    machine::split( distData, distLabels, trainData, trainLabels, testData, testLabels, 0.7);    
+    //machine::distribute( data, labels, distData, distLabels);
+    //machine::split( distData, distLabels, trainData, trainLabels, testData, testLabels, 0.7);
+    machine::split( data, labels, trainData, trainLabels, testData, testLabels, 0.7);
   }
   
   std::cout << "--------" << std::endl;

@@ -118,12 +118,14 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     objects.push_back(std::move(object));
   }
 
+  /*
   // Globally process all the matches
   for( uint i = 0; i < objects.size() - 1; i++) {
     for( uint j = i + 1; j < objects.size(); j++) {
       objects[i].filter(objects[j]);
     }
   }
+  */
 
 
   // Manage the anchors
