@@ -1,4 +1,5 @@
 *.png
+*.avi
 bin/
 log/
 data/

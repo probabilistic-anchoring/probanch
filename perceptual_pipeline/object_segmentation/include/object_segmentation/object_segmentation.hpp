@@ -65,7 +65,7 @@ class ObjectSegmentation {
   message_filters::Synchronizer<ApproximateSyncPolicy> *syncApproximate_;
 
   // Display 
-  bool display_image_;
+  bool display_image_, display_window_;
   ros::Subscriber display_trigger_sub_;
   image_transport::Publisher display_image_pub_;
   cv::Mat result_img_;

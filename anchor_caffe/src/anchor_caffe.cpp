@@ -38,7 +38,7 @@ class AnchorCaffe {
   ros::Subscriber obj_sub_;
   ros::Publisher obj_pub_;
 
-  bool display_image_;
+  bool display_image_, display_window_;
   ros::Subscriber display_trigger_sub_;
   image_transport::Publisher display_image_pub_;
 
@@ -53,8 +53,8 @@ class AnchorCaffe {
   string _label_file;
   //string _image_path;
 
-  // TMP -- don't forget to change 'display_image' to 'true'
-  //cv::Mat _result_img;
+  // For displaying a streaming result image
+  cv::Mat result_img_;
   
   void triggerCb( const std_msgs::String::ConstPtr &msg) {
     this->display_image_ = (msg->data == "classification") ? true : false;
@@ -72,17 +72,17 @@ class AnchorCaffe {
     
     // Red the raw image
     cv_bridge::CvImagePtr cv_ptr;
-    cv::Mat img, result;
-    if( this->display_image_ ) {
+    cv::Mat img;
+    if( this->display_image_ || display_window_) {
       try {
 	cv_ptr = cv_bridge::toCvCopy( objects_msg->image, 
 				      sensor_msgs::image_encodings::BGR8 );
 	cv_ptr->image.copyTo(img);
 
-	// Convert to gray (and back to BGR again) 
-	cv::cvtColor( img, result, CV_BGR2GRAY); 
-	cv::cvtColor( result, result, CV_GRAY2BGR);
-	result.convertTo( result, -1, 1.0, 50); 
+	// Convert to gray (and back to BGR again)
+	cv::cvtColor( img, result_img_, CV_BGR2GRAY); 
+	cv::cvtColor( result_img_, result_img_, CV_GRAY2BGR);
+	result_img_.convertTo( result_img_, -1, 1.0, 50); 
 	
       } catch (cv_bridge::Exception& e) {
 	ROS_ERROR("[AnchorCaffe::process] receiving image: %s", e.what());
@@ -116,12 +116,11 @@ class AnchorCaffe {
 	  output.objects[i].caffe.symbols.push_back(str.substr(pos));
 	  output.objects[i].caffe.predictions.push_back(ite->second);
 	}
-	ROS_INFO("[Caffe] object: %s (%.2f)", output.objects[i].caffe.symbols.front().c_str(),
-		 output.objects[i].caffe.predictions.front());
+	//ROS_INFO("[Caffe] object: %s (%.2f)", output.objects[i].caffe.symbols.front().c_str(), output.objects[i].caffe.predictions.front());
       }
 
       // Draw the result
-      if( this->display_image_ && img.data ) {
+      if( (this->display_image_ || this->display_window_ ) && img.data ) {
 
 	cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
 	//cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
@@ -130,9 +129,9 @@ class AnchorCaffe {
 	int x = objects_msg->objects[i].caffe.point.x;
 	int y = objects_msg->objects[i].caffe.point.y;
 	cv::Rect rect( cv::Point(x,y), img.size());
-	img.copyTo(result(rect));
+	img.copyTo(result_img_(rect));
 	
-	cv::rectangle( result, rect, color, 1);
+	cv::rectangle( result_img_, rect, color, 1);
 	
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;
@@ -140,7 +139,7 @@ class AnchorCaffe {
 	for( uint j = 0; j < 3; j++) {
 	  ss << "#" << (j+1) << ": " << output.objects[i].caffe.symbols[j];
 	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
-	  cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	  ss.str("");
 	  offset += 16;
 	}
@@ -153,7 +152,7 @@ class AnchorCaffe {
 	for( uint j = 0; j < 1; j++) {
 	  ss << output.objects[i].caffe.symbols[j];
 	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
-	  cv::putText( result, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	  ss.str("");
 	  offset += 16;
 	}
@@ -161,15 +160,12 @@ class AnchorCaffe {
       }
     }
 
-    // TMP
-    //result.copyTo(_result_img);
-    
     // Publish the new object array
     obj_pub_.publish(output);
 
     // Publish the resulting feature image
     if( display_image_ ) {
-      cv_ptr->image = result;
+      cv_ptr->image = this->result_img_;
       cv_ptr->encoding = "bgr8";
       display_image_pub_.publish(cv_ptr->toImageMsg());
     }
@@ -204,14 +200,14 @@ class AnchorCaffe {
 	res.symbols.push_back(str.substr(pos));
 	res.predictions.push_back(ite->second);
       }
-      ROS_WARN("[Caffe] object: %s (%.2f)", res.symbols.front().c_str(), res.predictions.front());
+      //ROS_WARN("[Caffe] object: %s (%.2f)", res.symbols.front().c_str(), res.predictions.front());
       return true;
     }
     return false;
   }
 
 public:
-  AnchorCaffe(ros::NodeHandle nh, int n) : _nh(nh), _N(n), _it(nh), display_image_(false) {
+  AnchorCaffe(ros::NodeHandle nh, int n, bool display) : _nh(nh), _N(n), _it(nh), display_window_(display), display_image_(false) {
 
     // Get base dir through ros path
     const string ROOT_PATH = ros::package::getPath("anchor_caffe");
@@ -229,8 +225,8 @@ public:
 
     // ROS setup
     this->_caffe_srv  = _nh.advertiseService("/caffe_classifier", &AnchorCaffe::classify, this);
-    obj_sub_ = nh.subscribe("/objects/processed", 1, &AnchorCaffe::processCb, this);
-    obj_pub_ = nh.advertise<anchor_msgs::ObjectArray>("/objects/classified", 1);
+    obj_sub_ = nh.subscribe("/objects/processed", 10, &AnchorCaffe::processCb, this);
+    obj_pub_ = nh.advertise<anchor_msgs::ObjectArray>("/objects/classified", 10);
 
     // Used for the web interface
     display_trigger_sub_ = _nh.subscribe("/display/trigger", 1, &AnchorCaffe::triggerCb, this);
@@ -248,19 +244,17 @@ public:
     ros::Rate rate(30);
     while (ros::ok()) {
 
-      /*
-      // TMP
-      // OpenCV window for display
-      if( !this->_result_img.empty() ) {
-	cv::imshow( "Classified objects...", this->_result_img );
-      }
       
-      // Wait for a keystroke in the window
-      char key = cv::waitKey(1);            
-      if( key == 27 || key == 'Q' || key == 'q' ) {
-	break;
+      // OpenCV window for display
+      if( this->display_window_ && !this->result_img_.empty() ) {
+	cv::imshow( "Classified objects...", this->result_img_ );
+      
+	// Wait for a keystroke in the window
+	char key = cv::waitKey(1);            
+	if( key == 27 || key == 'Q' || key == 'q' ) {
+	  break;
+	}
       }
-      */
       
       ros::spinOnce();
       rate.sleep();
@@ -280,8 +274,14 @@ int main(int argc, char** argv) {
     n = 5;  // Defualt: 5
   }
 
+  // Read toggle for diplaying a result window
+  bool display;
+  if( !ros::param::get("~display_window", display) ) {
+    display = false;  // Defualt: false
+  }  
+
   ros::NodeHandle nh;
-  AnchorCaffe node(nh, n);
+  AnchorCaffe node(nh, n, display);
   node.spin();
   return 0;
 }

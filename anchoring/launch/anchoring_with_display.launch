@@ -18,7 +18,6 @@
   <!-- Anchor Caffe node --> 
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
   
-  
   <!-- Anchoring framework -->   
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">

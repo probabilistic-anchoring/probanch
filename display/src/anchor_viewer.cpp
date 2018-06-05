@@ -3,12 +3,13 @@
 #include <sstream>
 
 #include <ros/ros.h>
+#include <ros/package.h>
+
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <pcl_ros/transforms.h>
-//#include <pcl/common/transforms.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -16,6 +17,8 @@
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
 #include <anchor_msgs/LogicAnchorArray.h>
+
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 using namespace std;
 using namespace cv;
@@ -366,12 +369,28 @@ public:
   ~AnchorViewer() {}
 
   void spin() {
-    ros::Rate rate(100);
+
+    // Video recording varaibles
+    bool recording = false;
+    cv::VideoWriter video;
+    string path = ros::package::getPath("display") + "/videos/";
+    
+    // Main ROS loop
+    ros::Rate rate(30);
+    cv::Size size(0,0); 
     while(ros::ok()) {
 
       // OpenCV window for display
       if( !this->_img.empty() ) {
 	cv::imshow( "Anchors with information...", this->anchor_img() );
+	if( video.isOpened() ) {
+	  video.write(this->anchor_img());
+	}
+
+	// Get the image size (once)
+	if( size.width == 0 || size.height == 0 ) {
+	  size = this->_img.size();
+	}
       }
 
       // Wait for a keystroke in the window
@@ -385,10 +404,35 @@ public:
       else if( key == 'R' || key == 'r' ) {
 	this->_highlight = "";
       }
+      else if( key == 'S' || key == 's' ) {
+	recording = !recording;
+	if( recording ) {
 
+	  // Get time now as a string
+	  boost::posix_time::ptime t = ros::Time::now().toBoost();
+	  std::string t_str = boost::posix_time::to_simple_string(t);
+
+	  // Use the tim to create a uiquefile name
+	  std::replace( t_str.begin(), t_str.end(), ' ', '_');
+	  std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
+
+	  // Start therecording
+	  std::cout<< "[Start recording] File name: " << name << std::endl;
+	  //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
+	  video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	}
+	else {
+	  std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
+	  video.release();
+	}
+      }
+      
       ros::spinOnce();
       rate.sleep();
     }
+
+    // Closes all the windows
+    cv::destroyAllWindows();
   }
 };
 

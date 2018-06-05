@@ -34,7 +34,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   , it_(nh)
   , priv_nh_("~")
   , queueSize_(5)
-  , display_image_(true) {
+  , display_image_(false) {
 
   // Subscribers / publishers
   //image_transport::TransportHints hints(useCompressed ? "compressed" : "raw");
@@ -107,6 +107,8 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
   this->priv_nh_.param<double>( "min_z", this->min_z_, 0.0);
   this->priv_nh_.param<double>( "max_z", this->max_z_, -1.0);
 
+  // Read toggle paramter for displayig the result (OpenCV window view)
+  this->priv_nh_.param<bool>( "display_window", display_window_, false);
 }
   
 ObjectSegmentation::~ObjectSegmentation() {
@@ -127,24 +129,20 @@ void ObjectSegmentation::spin() {
   while(ros::ok()) {
 
     // OpenCV window for display
-    if( !this->result_img_.empty() ) {
-      cv::imshow( "Segmented clusters...", this->result_img_ );
-    }
+    if( this->display_window_ ) {
+       if( !this->result_img_.empty() ) {
+	 cv::imshow( "Segmented clusters...", this->result_img_ );
+       }
 
-    // Wait for a keystroke in the window
-    char key = cv::waitKey(1);            
-    if( key == 27 || key == 'Q' || key == 'q' ) {
-      break;
+       // Wait for a keystroke in the window
+       char key = cv::waitKey(1);            
+       if( key == 27 || key == 'Q' || key == 'q' ) {
+	 break;
+       }
     }
-
     ros::spinOnce();
     rate.sleep();
-  }
-  /*
-  while (ros::ok()) {
-    ros::spin();
-  } 
-  */   
+  }   
 }
 
 void ObjectSegmentation::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -219,7 +217,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   // -----------
   
   // Convert to grayscale and back (for display purposes)
-  if( display_image_ ) {
+  if( display_image_ || display_window_) {
     cv::cvtColor( img, this->result_img_, CV_BGR2GRAY); 
     cv::cvtColor( this->result_img_, this->result_img_, CV_GRAY2BGR);
     this->result_img_.convertTo( this->result_img_, -1, 1.0, 50); 
