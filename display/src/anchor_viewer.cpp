@@ -343,7 +343,8 @@ public:
 
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
-    _particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
+    _particle_sub = nh.subscribe("/ logic_anchors_in_logic", 10, &AnchorViewer::particles_cb, this);    
+    //_particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
     _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 

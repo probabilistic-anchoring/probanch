@@ -11,6 +11,12 @@ from anchor_msgs.msg import LogicAnchorArray
 
 from geometry_msgs.msg import Point
 
+'''
+# aspo: I think that this messge should be used instead (?): 
+from anchor_msgs.msg import PositionAttribute
+
+# ...also, se lines 86-90 below. 
+'''
 
 
 
@@ -75,6 +81,15 @@ class RelTrack():
                     point.y = float(y)
                     point.z = float(z)
 
+                    '''
+                    # aspo: how about this instead?
+                    point = PositionAttribute()
+                    x,y,z = p.split(",")
+                    data.pose.position.x = float(x)
+                    data.pose.position.y = float(y)
+                    data.pose.position.z = float(z)
+                    '''
+                    
                     la.particle_positions.append(point)
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
