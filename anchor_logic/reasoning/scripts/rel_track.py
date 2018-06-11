@@ -20,8 +20,8 @@ class RelTrack():
 
     def __init__(self, model_file, n_samples):
         self.util = DCUtil(model_file, n_samples)
-        self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, self.process_anchors)
-        self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
+        self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback = self.process_anchors)
+        self.logic_anchors_publisher = rospy.Publisher('logic_anchors_in_logic', LogicAnchorArray, queue_size=10)
 
 
 
@@ -58,12 +58,12 @@ class RelTrack():
 
 
     def make_LogicAnchorArray(self, anchors):
-        la_array =LogicAnchorArray()
-        point = Point()
+        la_array = LogicAnchorArray()
         for a in anchors:
             if self.filter(a):
 
                 la = LogicAnchor()
+
                 la.id = a.id
 
                 particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
@@ -79,7 +79,6 @@ class RelTrack():
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
                 la.observed = bool(observed.probability)
-                print(la.observed)
                 la.color.symbols = a.color.symbols
                 la.color.predictions = a.color.predictions
 
