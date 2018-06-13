@@ -46,12 +46,16 @@ class RelTrack():
         print("\n")
         for a in anchors:
             obs = []
-
+            print(a.caffe.symbols)
             if self.filter(a):
                 print("anchor IDs: {}".format(a.id))
                 position = a.position.data.pose.position
                 bbox = a.shape.data
-                color = a.color.symbols[0]
+                if self.is_hand(a):
+                    color = "yellow"
+                else:
+                    color = a.color.symbols[0]
+
                 obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
@@ -87,7 +91,6 @@ class RelTrack():
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
                 la.observed = bool(observed.probability)
                 la.color.symbols = a.color.symbols
-                print(a.color.symbols)
                 la.color.predictions = a.color.predictions
 
                 la_array.anchors.append(la)
@@ -101,6 +104,9 @@ class RelTrack():
         else:
             return 1
 
+
+    def is_hand(self, anchor):
+        return False
 
 
 if __name__ == "__main__":
