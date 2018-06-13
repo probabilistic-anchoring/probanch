@@ -1,7 +1,7 @@
 <launch>
 
   <!-- Object segmentation node (including the Kinect) -->
-  <include file="$(find ar_transform)/launch/object_segmentation.launch" />	
+  <include file="$(find ar_transform)/launch/object_segmentation.launch" />
 
   <!-- Run object tracking node
   <node name="object_tracking_node" pkg="object_tracking" type="object_tracking" output="screen">
@@ -19,8 +19,7 @@
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
 
   <!-- Anchoring framework -->
-  <node name="anchor_management_node" pkg="anchoring" type="anchoring"
-        output="screen">
+  <node name="anchor_management_node" pkg="anchoring" type="anchoring" output="screen">
     <param name="db_name" type="string" value="anchortmpdb" />
   </node>
 
@@ -30,13 +29,13 @@
 	-->
 
   <!-- Display anchors -->
-  <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
+  <!--node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="anchoring" />
-  </node>
+  </node-->
 
   <!-- Include the display interface (including the websocket bridge) -->
-  <include file="$(find display)/launch/web_interface.launch" />
+  <!--include file="$(find display)/launch/web_interface.launch" /-->
 
 </launch>

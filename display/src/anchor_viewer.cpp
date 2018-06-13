@@ -159,7 +159,7 @@ class AnchorViewer {
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
       auto p = msg_ptr->anchors[i].particle_positions.begin();
-      for( ; p != msg_ptr->anchors[i].particle_positions.begin(); ++p ) {	
+      for( ; p != msg_ptr->anchors[i].particle_positions.begin(); ++p ) {
 	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.x, p->data.pose.position.x, msg_ptr->anchors[i].color.symbols.front()) );
       }
     }
@@ -343,8 +343,7 @@ public:
 
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
-    _particle_sub = nh.subscribe("/ logic_anchors_in_logic", 10, &AnchorViewer::particles_cb, this);    
-    //_particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
+    _particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
     _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
@@ -375,10 +374,10 @@ public:
     bool recording = false;
     cv::VideoWriter video;
     string path = ros::package::getPath("display") + "/videos/";
-    
+
     // Main ROS loop
     ros::Rate rate(30);
-    cv::Size size(0,0); 
+    cv::Size size(0,0);
     while(ros::ok()) {
 
       // OpenCV window for display
@@ -427,7 +426,7 @@ public:
 	  video.release();
 	}
       }
-      
+
       ros::spinOnce();
       rate.sleep();
     }

@@ -8,14 +8,13 @@ from dc_pybridge import DCUtil
 from anchor_msgs.msg import AnchorArray
 from anchor_msgs.msg import LogicAnchor
 from anchor_msgs.msg import LogicAnchorArray
-
-from geometry_msgs.msg import Point
-
-'''
-# aspo: I think that this messge should be used instead (?): 
 from anchor_msgs.msg import PositionAttribute
 
-# ...also, se lines 86-90 below. 
+'''
+# aspo: I think that this messge should be used instead (?):
+from anchor_msgs.msg import PositionAttribute
+
+# ...also, se lines 86-90 below.
 '''
 
 
@@ -27,7 +26,7 @@ class RelTrack():
     def __init__(self, model_file, n_samples):
         self.util = DCUtil(model_file, n_samples)
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback = self.process_anchors)
-        self.logic_anchors_publisher = rospy.Publisher('logic_anchors_in_logic', LogicAnchorArray, queue_size=10)
+        self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
 
 
@@ -75,26 +74,20 @@ class RelTrack():
                 particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
                 particle_positions = particle_positions.args_ground
                 for p in particle_positions:
-                    point = Point()
                     x,y,z = p.split(",")
-                    point.x = float(x)
-                    point.y = float(y)
-                    point.z = float(z)
+                    position = PositionAttribute()
 
-                    '''
-                    # aspo: how about this instead?
-                    point = PositionAttribute()
-                    x,y,z = p.split(",")
-                    data.pose.position.x = float(x)
-                    data.pose.position.y = float(y)
-                    data.pose.position.z = float(z)
-                    '''
-                    
-                    la.particle_positions.append(point)
+                    position.data.pose.position.x = float(x)
+                    position.data.pose.position.y = float(y)
+                    position.data.pose.position.z = float(z)
+
+
+                    la.particle_positions.append(position)
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
                 la.observed = bool(observed.probability)
                 la.color.symbols = a.color.symbols
+                print(a.color.symbols)
                 la.color.predictions = a.color.predictions
 
                 la_array.anchors.append(la)
