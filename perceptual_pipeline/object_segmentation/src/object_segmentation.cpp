@@ -378,10 +378,12 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours( cluster_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
+	
 	// Get the contour of the convex hull
 	std::vector<cv::Point> hull_points;
-	if( !hand_indices.indices.empty() && i ==  cluster_indices.size() - 1 ) {
-	  hull_points = this->contoursConvexHull(contours);
+	if( !hand_contour.empty() && i ==  cluster_indices.size() - 1 ) {
+	  hull_points = hand_contour;
+	  //hull_points = this->contoursConvexHull(contours);
 	}
 	else {
 	  hull_points = contours[0];
