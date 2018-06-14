@@ -8,9 +8,8 @@
   </include>
 
   <!--  Dynamic transform publisher -->
-	<include file="$(find ar_transform)/launch/alvar.launch" />
+	<include file="$(find ar_transform)/launch/ar_transform.launch" />
   <node name="table_tf" pkg="ar_transform" type="transformer.py" cwd="node" output="screen" />
-  <!--node pkg="tf" type="static_transform_publisher" name="table_tf" args="0.0 0.0 0 0.0 0 0 alvar_link base_link 100" /-->
 
   <!-- Run object segmentation (recognition) node -->
   <node name="object_segmentation_node" pkg="object_segmentation" type="object_segmentation" output="screen">

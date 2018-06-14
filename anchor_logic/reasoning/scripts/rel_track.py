@@ -8,9 +8,14 @@ from dc_pybridge import DCUtil
 from anchor_msgs.msg import AnchorArray
 from anchor_msgs.msg import LogicAnchor
 from anchor_msgs.msg import LogicAnchorArray
+from anchor_msgs.msg import PositionAttribute
 
-from geometry_msgs.msg import Point
+'''
+# aspo: I think that this messge should be used instead (?):
+from anchor_msgs.msg import PositionAttribute
 
+# ...also, se lines 86-90 below.
+'''
 
 
 
@@ -20,7 +25,7 @@ class RelTrack():
 
     def __init__(self, model_file, n_samples):
         self.util = DCUtil(model_file, n_samples)
-        self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, self.process_anchors)
+        self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback = self.process_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
 
@@ -41,12 +46,16 @@ class RelTrack():
         print("\n")
         for a in anchors:
             obs = []
-
+            print(a.caffe.symbols)
             if self.filter(a):
                 print("anchor IDs: {}".format(a.id))
                 position = a.position.data.pose.position
                 bbox = a.shape.data
-                color = a.color.symbols[0]
+                if self.is_hand(a):
+                    color = "yellow"
+                else:
+                    color = a.color.symbols[0]
+
                 obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
@@ -58,28 +67,29 @@ class RelTrack():
 
 
     def make_LogicAnchorArray(self, anchors):
-        la_array =LogicAnchorArray()
-        point = Point()
+        la_array = LogicAnchorArray()
         for a in anchors:
             if self.filter(a):
 
                 la = LogicAnchor()
+
                 la.id = a.id
 
                 particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
                 particle_positions = particle_positions.args_ground
                 for p in particle_positions:
-                    point = Point()
                     x,y,z = p.split(",")
-                    point.x = float(x)
-                    point.y = float(y)
-                    point.z = float(z)
+                    position = PositionAttribute()
 
-                    la.particle_positions.append(point)
+                    position.data.pose.position.x = float(x)
+                    position.data.pose.position.y = float(y)
+                    position.data.pose.position.z = float(z)
+
+
+                    la.particle_positions.append(position)
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
                 la.observed = bool(observed.probability)
-                print(la.observed)
                 la.color.symbols = a.color.symbols
                 la.color.predictions = a.color.predictions
 
@@ -94,6 +104,9 @@ class RelTrack():
         else:
             return 1
 
+
+    def is_hand(self, anchor):
+        return False
 
 
 if __name__ == "__main__":

@@ -1,0 +1,52 @@
+<launch>
+
+  <!-- Object segmentation node (including the Kinect) -->
+  <include file="$(find object_segmentation)/launch/object_segmentation_tf_dynamic.launch" />
+
+  <!-- Feature extraction node -->
+  <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
+
+<<<<<<< HEAD:anchoring/launch/anchoring_with_display.launch
+  <!-- Anchor Caffe node --> 
+  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" >
+
+    <!-- Used for displaying a result image view -->
+    <param name="display_window" type="bool" value="false" />
+
+  </node>
+  
+  <!-- Anchoring framework -->   
+  <node name="anchor_management_node" pkg="anchoring" type="anchoring"
+        output="screen">
+=======
+  <!-- Anchor Caffe node -->
+  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
+
+  <!-- Anchoring framework -->
+  <node name="anchor_management_node" pkg="anchoring" type="anchoring" output="screen">
+>>>>>>> 28e458e9994955d6451990ec130be0adc467add6:anchoring/launch/anchoring_display_dynamic_tf.launch
+    <param name="db_name" type="string" value="anchortmpdb" />
+  </node>
+
+  <!-- DC Bridge -->
+  <node name="dc_bride_node" pkg="dc_bridge" type="dc_bridge" output="screen">
+  </node>
+
+  <!-- Reasoning system
+  <node name="reasoning_node" pkg="reasoning" type="rel_track"
+        output="screen" />
+	-->
+
+
+
+  <!-- Display anchors -->
+  <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
+        output="screen" >
+    <param name="max_particles" type="int" value="200" />
+    <param name="display_mode" type="string" value="anchoring" />
+  </node>
+
+  <!-- Include the display interface (including the websocket bridge) -->
+  <include file="$(find display)/launch/web_interface.launch" />
+
+</launch>
