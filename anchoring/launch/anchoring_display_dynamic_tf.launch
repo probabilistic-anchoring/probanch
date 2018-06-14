@@ -1,7 +1,7 @@
 <launch>
 
   <!-- Object segmentation node (including the Kinect) -->
-  <include file="$(find ar_transform)/launch/object_segmentation.launch" />
+  <include file="$(find object_segmentation)/launch/object_segmentation_tf_dynamic.launch" />
 
   <!-- Feature extraction node -->
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
@@ -17,7 +17,7 @@
   <!-- DC Bridge -->
   <node name="dc_bride_node" pkg="dc_bridge" type="dc_bridge" output="screen">
   </node>
-  
+
   <!-- Reasoning system
   <node name="reasoning_node" pkg="reasoning" type="rel_track"
         output="screen" />
