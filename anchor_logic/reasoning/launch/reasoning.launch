@@ -1,7 +1,9 @@
 <launch>
 
   <!-- DC Bridge -->
-  <node name="dc_bride_node" pkg="dc_bridge" type="dc_bridge" output="screen">
-  <node name="reasoning_node" pkg="reasoning" type="rel_track" output="screen" />
-  
+  <node name="dc_bride_node" pkg="dc_bridge" type="dc_bridge" output="screen" >
+  </node>
+  <node name="reasoning_node" pkg="reasoning" type="rel_track.py" output="screen" >
+  </node>
+
 </launch>
