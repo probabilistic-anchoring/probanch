@@ -283,12 +283,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     }
     cluster_indices.push_back(hand_indices);
     std::cout << "Clusters: " << cluster_indices.size() << " (include a 'hand' cluster)" << std::endl;
-
   }
   else {
     std::cout << "Clusters: " << cluster_indices.size() << std::endl;
   }
-  
 
   // Process all segmented clusters (including the 'hand' cluster)
   if( !cluster_indices.empty() ) {
@@ -323,6 +321,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       // TEST - Use downsampled cloud instead
       // -----------------------------------------
       pcl::copyPointCloud( *downsampled_cloud_ptr, cluster_indices[i], *cluster_ptr);
+      //std::cout << cluster_ptr->points.size() << std::endl;
       
       if( cluster_ptr->points.empty() )
 	continue;
@@ -378,18 +377,36 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours( cluster_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
+	// Get the contour of the convex hull
+	std::vector<cv::Point> hull_points;
+	if( !hand_indices.indices.empty() && i ==  cluster_indices.size() - 1 ) {
+	  hull_points = this->contoursConvexHull(contours);
+	}
+	else {
+	  hull_points = contours[0];
+	}
 	
 	// Create and add the object output message
-	if( contours.size() > 0 ) {
+	if( hull_points.size() > 0 ) {
 
 	  anchor_msgs::Object obj;
-	  
+
+	  /*
 	  for( size_t j = 0; j < contours[0].size(); j++) {  
 	    anchor_msgs::Point2d p;
 	    p.x = contours[0][j].x;
 	    p.y = contours[0][j].y;
 	    obj.caffe.border.contour.push_back(p);
 	  }
+	  */
+	  for( size_t j = 0; j < hull_points.size(); j++) {  
+	    anchor_msgs::Point2d p;
+	    p.x = hull_points[j].x;
+	    p.y = hull_points[j].y;
+	    obj.caffe.border.contour.push_back(p);
+	  }
+
 
 	  // Add segmented object to display image
 	  img.copyTo( this->result_img_, cluster_img);
@@ -501,7 +518,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	ROS_ERROR("[object_recognition] CV processing error: %s", exc.what() );
       }
     }
-
+    //std::cout << "---" << std::endl;
+  
     // Publish the "segmented" image
     if( display_image_ ) {
       cv_ptr->image = this->result_img_;
@@ -511,7 +529,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     
     // Publish the object array
     if( !objects.objects.empty() || !clusters.clusters.empty() ) {
-      //ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
+      ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
       obj_pub_.publish(objects);
       cluster_pub_.publish(clusters);
       move_pub_.publish(movements);      
@@ -554,6 +572,15 @@ void ObjectSegmentation::filter( pcl::PointCloud<segmentation::Point>::Ptr &clou
   }
 }
 
+std::vector<cv::Point> ObjectSegmentation::contoursConvexHull( std::vector<std::vector<cv::Point> > contours ) {
+  std::vector<cv::Point> result;
+  std::vector<cv::Point> pts;
+  for ( size_t i = 0; i< contours.size(); i++)
+    for ( size_t j = 0; j< contours[i].size(); j++)
+      pts.push_back(contours[i][j]);
+  cv::convexHull( pts, result );
+  return result;
+}
 
 // ----------------------
 // Main function
