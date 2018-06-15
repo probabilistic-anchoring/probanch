@@ -165,6 +165,10 @@ observation(anchor_c(_)):t+1 ~ val(_) <-
 observation(anchor_bb(_)):t+1 ~ val(_) <-
 	true.
 
+%observation hand
+observation(anchor_hand(_)):t+1 ~ val(_) <-
+	true.
+
 
 
 %position transition
@@ -432,7 +436,8 @@ bb(A_ID,BB):t+1 <-
 	\+observation(anchor_bb(A_ID))~= _,
 	bb(A_ID,BB):t.
 
-
+is_hand(A_ID):t+1 <-
+	observation(anchor_hand(A_ID)) ~= true.
 
 
 

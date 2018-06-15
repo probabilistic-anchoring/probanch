@@ -43,22 +43,23 @@ class RelTrack():
 
     def make_observations(self, anchors):
         observations = []
-        print("\n")
         for a in anchors:
             obs = []
-            print(a.caffe.symbols)
+            # print(a.caffe.symbols)
             if self.filter(a):
-                print("anchor IDs: {}".format(a.id))
+                # print("anchor IDs: {}".format(a.id))
                 position = a.position.data.pose.position
                 bbox = a.shape.data
-                if self.is_hand(a):
-                    color = "yellow"
-                else:
-                    color = a.color.symbols[0]
+
+                color = a.color.symbols[0]
 
                 obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
+                if self.is_hand(a):
+                    print(a.id,33333333)
+                    obs.append("observation(anchor_hand('{A_ID}'))~=true".format(A_ID=a.id))
+
                 obs = ','.join(obs)
                 observations.append(obs)
         observations = ','.join(observations)
@@ -89,24 +90,32 @@ class RelTrack():
                     la.particle_positions.append(position)
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
+
                 la.observed = bool(observed.probability)
                 la.color.symbols = a.color.symbols
                 la.color.predictions = a.color.predictions
 
                 la_array.anchors.append(la)
+        is_hand = self.util.querylist("A_ID","current(is_hand(A_ID))")
+        print(is_hand)
 
         return la_array
 
 
     def filter(self, anchor):
         if "glasses" in anchor.caffe.symbols[0:4]:
-            return 0
+            return False
+        elif not anchor.caffe.symbols:
+            return False
         else:
-            return 1
+            return True
 
 
     def is_hand(self, anchor):
-        return False
+        if "glove" in anchor.caffe.symbols[0:4]:
+            return True
+        else:
+            return False
 
 
 if __name__ == "__main__":
