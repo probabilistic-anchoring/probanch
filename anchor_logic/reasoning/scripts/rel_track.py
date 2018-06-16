@@ -119,7 +119,7 @@ if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
     model_file = os.path.join(path, 'models/dc_model.pl')
-    N_SAMPLES = 10
+    N_SAMPLES = 100
 
     rel_track = RelTrack(model_file, N_SAMPLES)
 
