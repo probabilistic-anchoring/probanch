@@ -40,8 +40,8 @@ class RelTrack():
 
             if self.filter(a):
 
-                print("anchor IDs: {}".format(a.id))
-                print(a.caffe.symbols)
+                # print("anchor IDs: {}".format(a.id))
+                # print(a.caffe.symbols)
                 position = a.position.data.pose.position
                 bbox = a.shape.data
 
@@ -71,7 +71,7 @@ class RelTrack():
 
                 particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
                 particle_positions = particle_positions.args_ground
-                asso = self.util.query("current(asso('{A_ID}',_))".format(A_ID=a.id))
+                anchor = self.util.query("current(anchor('{A_ID}'))".format(A_ID=a.id))
                 rv = self.util.query("current(rv('{A_ID}'))~=_".format(A_ID=a.id))
 
 
@@ -87,6 +87,10 @@ class RelTrack():
                     la.particle_positions.append(position)
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
+
+                # print(particle_positions)
+                # print(anchor.probability)
+                # print(observed.probability)
                 print("")
 
                 la.observed = bool(observed.probability)
@@ -119,7 +123,7 @@ if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
     model_file = os.path.join(path, 'models/dc_model.pl')
-    N_SAMPLES = 100
+    N_SAMPLES = 2
 
     rel_track = RelTrack(model_file, N_SAMPLES)
 

@@ -54,32 +54,26 @@ rgbcolor(pink,(1.0,0.0,0.8)).
 observed(A_ID):t+1 <-
 	observation(anchor_r(A_ID))~=_.
 
-% first time step anchor association
-asso(A_ID,A_ID):t+1 <-
-	\+asso(_,_):t,
+anchor(A_ID):t+1 <-
+	\+anchor(_):t,
 	observed(A_ID):t+1.
-% associate anchor with one from previous timestep (often itself)
-asso(A_ID,A_ID):t+1 <-
-	asso(_,_):t,
+anchor(A_ID):t+1 <-
+	anchor(_):t,
 	observed(A_ID):t+1.
-% when hidden
-asso(A_ID,T_ID):t+1 <-
-	asso(_):t~=_,
-	asso(A_ID):t~=T_ID,
+anchor(A_ID):t+1 <-
+	anchor(_):t,
+	anchor(A_ID):t,
    hidden(A_ID,_):t+1.
-asso(A_ID,T_ID):t+1 <-
-	asso(_):t~=_,
-	asso(A_ID):t~=T_ID,
-	hidden(A_ID,_):t.
+
 
 hidden(A_ID,A_ID_occ):t+1 <-
    \+hidden(A_ID,_):t,
    \+observed(A_ID):t+1,
-   pick_occluder(A_ID):t+1 ~= A_ID_occ.
+   occluded_by(A_ID,A_ID_occ):t+1.
 hidden(A_ID,A_ID_occ):t+1 <-
    \+observed(A_ID):t+1,
    hidden(A_ID,A_ID_occ):t.
-   asso(A_ID_occ,_):t+1.
+   anchor(A_ID_occ):t+1.
 
 occluded_by(A_ID,A_ID_hand):t+1 <-
    in_hand(A_ID,A_ID_hand):t+1.
@@ -88,22 +82,19 @@ occluded_by(A_ID,A_ID_hand):t+1 <-
 
 % observation position
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %first time step
-	\+asso(_,_):t.
-% associate anchor with itself when no previous target for this anchor)
+	\+anchor(_):t.
 observation(anchor_r(A_ID)):t+1 ~ val(_) <-
-	asso(_,_):t,
-   \+asso(A_ID,_):t,
-	asso(A_ID,A_ID):t+1.
-% associate anchor with one from previous timestep
+	anchor(_):t,
+   \+anchor(A_ID):t,
+	anchor(A_ID):t+1.
 observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
-	asso(_,_):t ~=_,
-	asso(A_ID,T_ID):t+1,
-	rvProposal(A_ID):t+1 ~= [_|W].
-
+	anchor(_):t,
+   anchor(A_ID):t,
+	anchor(A_ID):t+1,
+	rvProposal(_,A_ID):t+1 ~= [_|W].
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
-   asso(_,_):t,
-   % writeln(A_ID),
-	% writeln('fuck leak'),
+   anchor(_):t,
+	writeln('fuck leak'),
 	true.
 
 %observation color
@@ -121,31 +112,31 @@ observation(anchor_hand(_)):t+1 ~ val(_) <-
 %position transition
 rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
 	\+rv(A_ID,_):t,
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	observation(anchor_r(A_ID)) ~=(X,Y,Z),
 	varQ(VarQ),
 	VarQ1 is VarQ/5,
 	cov(1,Cov,VarQ1).
 
 rv(A_ID):t+1 ~ val(V) <-
-	asso(A_ID,_):t,
+	anchor(A_ID):t,
    observed(A_ID):t+1,
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	rvProposal('observed',A_ID):t+1 ~= [V|_].
 
 rv(A_ID):t+1 ~ val(V) <-
 	observed(A_ID):t,
-   asso(A_ID,_):t,
+   anchor(A_ID):t,
    \+observed(A_ID):t+1,
-   asso(A_ID,_):t+1,
+   anchor(A_ID):t+1,
    in_hand(A_ID,_):t+1,
 	rvProposal('to_hand',A_ID):t+1 ~= [V|_].
 
 rv(A_ID):t+1 ~ val(V) <-
 	\+observed(A_ID):t,
-   asso(A_ID,_):t,
+   anchor(A_ID):t,
    \+observed(A_ID):t+1,
-   asso(A_ID,_):t+1,
+   anchor(A_ID):t+1,
    in_hand(A_ID,_):t+1,
 	rvProposal('in_hand',A_ID):t+1 ~= [V|_].
 
@@ -156,7 +147,7 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	observation(anchor_r(A_ID)) ~=(O_x,O_y,O_z),
+	observation(anchor_r(A_ID)) ~= (O_x,O_y,O_z),
 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
 	varQ(VarQ),
 	cov(2,Cov,VarQ),
@@ -168,11 +159,9 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_y_new is R_y+DeltaT*V_y,
 	R_z_new is R_z+DeltaT*V_z.
 
-
 % getting in hand
 rvProposal('to_hand',A_ID):t+1 ~ val(RVP) <-
    rvProposal('in_hand',A_ID):t+1 ~= RVP.
-
 % staying in hand
 rvProposal('in_hand',A_ID):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
@@ -194,22 +183,22 @@ rvProposal('in_hand',A_ID):t+1 ~ logIndepOptimalProposals([
 
 %if observed
 color(A_ID,C):t+1 <-
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	observation(anchor_c(A_ID)) ~= C.
 %if not observed
 color(A_ID,C):t+1 <-
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	\+observed(A_ID):t+1,
 	color(A_ID,C):t.
 
 
 %if observed
 bb(A_ID,BB):t+1 ~ val(BB) <-
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	observation(anchor_bb(A_ID)) ~= BB.
 %if not observed
 bb(A_ID,BB):t+1 <-
-	asso(A_ID,_):t+1,
+	anchor(A_ID):t+1,
 	\+observed(A_ID):t+1,
 	bb(A_ID,BB):t.
 
