@@ -45,11 +45,15 @@ class RelTrack():
                 position = a.position.data.pose.position
                 bbox = a.shape.data
 
-                color = a.color.symbols[0]
 
+                color = a.color.symbols[0]
+                #TODO make probabilistic with prediciont socres
+                caffe = a.caffe.symbols[0]
+                # print(caffe)
                 obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
+                obs.append("observation(anchor_caffe('{A_ID}'))~={Caffe}".format(A_ID=a.id, Caffe=caffe))
                 if self.is_hand(a):
                     obs.append("observation(anchor_hand('{A_ID}'))~=true".format(A_ID=a.id))
 
@@ -88,10 +92,14 @@ class RelTrack():
 
                 observed = self.util.query("current(observed('{A_ID}'))".format(A_ID=la.id))
 
+                # in_hand = self.util.querylist("A_ID","current(in_hand(A_ID,_))")
+                # caffe = self.util.querylist("Caffe","current(caffe('{A_ID}',Caffe))".format(A_ID=la.id))
+                # print(caffe)
+                # print(in_hand)
                 # print(particle_positions)
                 # print(anchor.probability)
                 # print(observed.probability)
-                print("")
+                # print("")
 
                 la.observed = bool(observed.probability)
                 la.color.symbols = a.color.symbols
@@ -105,6 +113,8 @@ class RelTrack():
 
     def filter(self, anchor):
         if "glasses" in anchor.caffe.symbols[0:4]:
+            return False
+        elif "banana" in anchor.caffe.symbols[0:1]:
             return False
         elif not anchor.caffe.symbols:
             return False

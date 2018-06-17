@@ -17,7 +17,6 @@ builtin(cov(_,_,_)).
 
 
 
-
 deltaT(0.2).
 varQ(0.01).
 
@@ -79,6 +78,32 @@ occluded_by(A_ID,A_ID_hand):t+1 <-
    in_hand(A_ID,A_ID_hand):t+1.
 
 
+in_hand(A_ID,A_ID_hand):t+1 <-
+   observed(A_ID):t,
+   \+observed(A_ID):t+1,
+   pick_hand(A_ID):t+1 ~= A_ID_hand.
+in_hand(A_ID,A_ID_hand):t+1 <-
+   \+observed(A_ID):t+1,
+   in_hand(A_ID,A_ID_hand):t,
+   anchor(A_ID):t+1,
+   anchor(A_ID_hand):t+1.
+
+pick_hand(A_ID):t+1 ~ uniform(Hands) <-
+   anchor(A_ID):t,
+
+   observed(A_ID):t,
+   \+observed(A_ID):t+1,
+   \+is_hand(A_ID):t,
+   caffe(A_ID):t ~= Caffe,
+   % Caffe=='pear',
+
+   \+hidden(A_ID,_):t,
+
+   rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
+   findall_forward((H,D), (is_hand(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.1, Z1<ZH), Hands),
+   \+Hands=[],
+   writeln(Caffe),
+   writeln(Hands).
 
 % observation position
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %first time step
@@ -98,14 +123,17 @@ observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
 	true.
 
 %observation color
-observation(anchor_c(_)):t+1 ~ val(_) <-
-	true.
+observation(anchor_c(A_ID)):t+1 ~ val(_) <-
+	anchor(A_ID):t+1.
+%observation caffe
+observation(anchor_caffe(A_ID)):t+1 ~ val(_) <-
+	anchor(A_ID):t+1.
 %observation bb
-observation(anchor_bb(_)):t+1 ~ val(_) <-
-	true.
+observation(anchor_bb(A_ID)):t+1 ~ val(_) <-
+	anchor(A_ID):t+1.
 %observation hand
-observation(anchor_hand(_)):t+1 ~ val(_) <-
-	true.
+observation(anchor_hand(A_ID)):t+1 ~ val(_) <-
+	anchor(A_ID):t+1.
 
 
 
@@ -129,7 +157,11 @@ rv(A_ID):t+1 ~ val(V) <-
    anchor(A_ID):t,
    \+observed(A_ID):t+1,
    anchor(A_ID):t+1,
+   \+is_hand(A_ID):t+1,
+   writeln(A_ID),
    in_hand(A_ID,_):t+1,
+   writeln(0),
+   writeln(A_ID),
 	rvProposal('to_hand',A_ID):t+1 ~= [V|_].
 
 rv(A_ID):t+1 ~ val(V) <-
@@ -182,25 +214,33 @@ rvProposal('in_hand',A_ID):t+1 ~ logIndepOptimalProposals([
 
 
 %if observed
-color(A_ID,C):t+1 <-
+color(A_ID):t+1 ~ val(C) <-
 	anchor(A_ID):t+1,
 	observation(anchor_c(A_ID)) ~= C.
 %if not observed
-color(A_ID,C):t+1 <-
+color(A_ID):t+1 ~ val(C) <-
 	anchor(A_ID):t+1,
 	\+observed(A_ID):t+1,
-	color(A_ID,C):t.
+	color(A_ID):t ~= C.
 
+caffe(A_ID):t+1 ~ val(Caffe) <-
+	anchor(A_ID):t+1,
+	observation(anchor_caffe(A_ID)) ~= Caffe.
+%if not observed
+caffe(A_ID):t+1 ~ val(Caffe) <-
+	anchor(A_ID):t+1,
+	\+observed(A_ID):t+1,
+	caffe(A_ID):t ~= Caffe.
 
 %if observed
-bb(A_ID,BB):t+1 ~ val(BB) <-
+bb(A_ID):t+1 ~ val(BB) <-
 	anchor(A_ID):t+1,
 	observation(anchor_bb(A_ID)) ~= BB.
 %if not observed
-bb(A_ID,BB):t+1 <-
+bb(A_ID):t+1 ~ val(BB) <-
 	anchor(A_ID):t+1,
 	\+observed(A_ID):t+1,
-	bb(A_ID,BB):t.
+	bb(A_ID):t ~= BB.
 
 is_hand(A_ID):t+1 <-
 	observation(anchor_hand(A_ID)) ~= true.
