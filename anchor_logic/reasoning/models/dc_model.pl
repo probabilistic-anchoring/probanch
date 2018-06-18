@@ -1,11 +1,11 @@
 %%% -*- Mode: Prolog; -*-
 :- use_module(library(distributionalclause)).
 :- use_module(library(dcpf)).
-
-
-:- use_module(library(lists)).
 :- set_options(default).
 :- set_inference(backward(lazy)).
+
+:- use_module(library(lists)).
+
 
 
 builtin(deltaT(_)).
@@ -47,19 +47,9 @@ anchor(A_ID):t+1 <-
 	anchor(A_ID):t,
    hidden(A_ID,_):t+1.
 
-hidden(A_ID,A_ID_occ):t+1 <-
-   observed(A_ID):t,
-   \+observed(A_ID):t+1,
-   occluded_by(A_ID,A_ID_occ):t+1.
-hidden(A_ID,A_ID_occ):t+1 <-
-   hidden(A_ID,A_ID_occ):t,
-   anchor(A_ID):t,
-   \+observed(A_ID):t+1,
-   anchor(A_ID_occ):t+1.
 
-
-occluded_by(A_ID,A_ID_hand):t+1 <-
-   in_hand(A_ID,A_ID_hand):t+1.
+hidden(A_ID,A_ID_Hider):t+1 <-
+   in_hand(A_ID,A_ID_Hider):t+1.
 
 
 in_hand(A_ID,A_ID_hand):t+1 <-
@@ -67,14 +57,11 @@ in_hand(A_ID,A_ID_hand):t+1 <-
    \+observed(A_ID):t+1,
    pick_hand(A_ID):t+1 ~= A_ID_hand.
 in_hand(A_ID,A_ID_hand):t+1 <-
+   anchor(A_ID):t,
+   anchor(A_ID_hand):t,
    in_hand(A_ID,A_ID_hand):t,
-   \+observed(A_ID):t,
    \+observed(A_ID):t+1,
-   anchor(A_ID):t+1,
    anchor(A_ID_hand):t+1.
-
-
-
 pick_hand(A_ID):t+1 ~ uniform(Hands) <-
    anchor(A_ID):t,
    observed(A_ID):t,
@@ -83,7 +70,6 @@ pick_hand(A_ID):t+1 ~ uniform(Hands) <-
    \+hidden(A_ID,_):t,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    findall_forward(H, (is_hand(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, Z1<ZH), Hands),
-   caffe(A_ID):t ~= Caffe,
    \+Hands=[].
 
 
@@ -99,7 +85,7 @@ observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 	rvProposal(_,A_ID):t+1 ~= [_|W].
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
    anchor(_):t,
-	% writeln('fuck leak'),
+	writeln('fuck leak'),
 	true.
 
 %observation color
@@ -131,32 +117,13 @@ rv(A_ID):t+1 ~ val(V) <-
 	anchor(A_ID):t+1,
 	rvProposal('observed',A_ID):t+1 ~= [V|_].
 
+rv(A_ID):t+1 ~ val(V) <-
+   anchor(A_ID):t,
+   anchor(A_ID):t+1,
+   hidden(A_ID,A_ID_hidden):t+1,
+	rvProposal('hidden_by',A_ID_hidden):t+1 ~= [V|_].
 
 
-
-% rv(A_ID):t+1 ~ val(V) <-
-%    anchor(A_ID):t,
-%    anchor(A_ID):t+1,
-%    hidden(A_ID,A_ID_hidden):t+1,
-% 	rvProposal('hidden_by',A_ID_hidden):t+1 ~= [V|_].
-
-
-% rv(A_ID):t+1 ~ val(V) <-
-% 	observed(A_ID):t,
-%    anchor(A_ID):t,
-%    \+observed(A_ID):t+1,
-%    anchor(A_ID):t+1,
-%    \+is_hand(A_ID):t+1,
-%    in_hand(A_ID,_):t+1,
-% 	rvProposal('to_hand',A_ID):t+1 ~= [V|_].
-%
-% rv(A_ID):t+1 ~ val(V) <-
-% 	\+observed(A_ID):t,
-%    anchor(A_ID):t,
-%    \+observed(A_ID):t+1,
-%    anchor(A_ID):t+1,
-%    in_hand(A_ID,_):t+1,
-% 	rvProposal('in_hand',A_ID):t+1 ~= [V|_].
 
 
 
@@ -178,42 +145,23 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_z_new is R_z+DeltaT*V_z.
 
 % regenarte samples for observed anchor for the hidden anchor
-% rvProposal('hidden_by',A_ID):t+1 ~ logIndepOptimalProposals([
-% 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
-% 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-% 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-% 	observation(anchor_r(A_ID)) ~= (O_x,O_y,O_z),
-% 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
-% 	varQ(VarQ),
-% 	cov(2,Cov,VarQ),
-% 	deltaT(DeltaT),
-% 	V_x_new is V_x,
-% 	V_y_new is V_y,
-% 	V_z_new is V_z,
-% 	R_x_new is R_x+DeltaT*V_x,
-% 	R_y_new is R_y+DeltaT*V_y,
-% 	R_z_new is R_z+DeltaT*V_z.
+rvProposal('hidden_by',A_ID):t+1 ~ logIndepOptimalProposals([
+			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
+			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
+			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
+	observation(anchor_r(A_ID)) ~= (O_x,O_y,O_z),
+	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+	varQ(VarQ),
+	cov(2,Cov,VarQ),
+	deltaT(DeltaT),
+	V_x_new is V_x,
+	V_y_new is V_y,
+	V_z_new is V_z,
+	R_x_new is R_x+DeltaT*V_x,
+	R_y_new is R_y+DeltaT*V_y,
+	R_z_new is R_z+DeltaT*V_z.
 
-% % getting in hand
-% rvProposal('to_hand',A_ID):t+1 ~ val(RVP) <-
-%    rvProposal('in_hand',A_ID):t+1 ~= RVP.
-% % staying in hand
-% rvProposal('in_hand',A_ID):t+1 ~ logIndepOptimalProposals([
-% 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
-% 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-% 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-% 	rv(A_ID):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
-% 	in_hand(A_ID,A_ID_hand):t+1,
-% 	observation(anchor_r(A_ID_hand)) ~=(O_x,O_y,O_z),
-% 	varQ(VarQ),
-% 	cov(2,Cov,VarQ),
-% 	deltaT(DeltaT),
-% 	V_x_new is V_x,
-% 	V_y_new is V_y,
-% 	V_z_new is V_z,
-% 	R_x_new is R_x+DeltaT*V_x,
-% 	R_y_new is R_y+DeltaT*V_y,
-% 	R_z_new is R_z+DeltaT*V_z.
+
 
 
 color(A_ID):t+1 ~ val(C) <-

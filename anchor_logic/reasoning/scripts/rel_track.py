@@ -65,10 +65,13 @@ class RelTrack():
 
             la.id = a.id
 
+            la.observed = True
+            
+            la.color.symbols = a.color.symbols
+            la.color.predictions = a.color.predictions
 
             particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
             particle_positions = particle_positions.args_ground
-
             for p in particle_positions:
                 x,y,z = p.split(",")
                 position = PositionAttribute()
@@ -79,9 +82,7 @@ class RelTrack():
 
                 la.particle_positions.append(position)
 
-            la.color.symbols = a.color.symbols
-            la.color.predictions = a.color.predictions
-            la.observed = True
+
             la_array.anchors.append(la)
 
 
@@ -90,48 +91,35 @@ class RelTrack():
         anchor_ids = anchor_ids.args_ground
 
 
-        anchor_ids_hidden = self.util.querylist("(A_ID,A_ID_hidden)", "current(hidden(A_ID,A_ID_hidden))")
-        anchor_ids_hidden = anchor_ids_hidden.args_ground
-        if anchor_ids_hidden:
-            print(anchor_ids_hidden)
-
         for a_id in anchor_ids:
             if a_id not in anchor_ids_observed:
                 la.id = a_id
 
-                particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-                particle_positions = particle_positions.args_ground
+                la.observed = False
+
                 color = self.util.querylist("Color", "current(color('{A_ID}'))~=Color".format(A_ID=la.id))
                 color = color.args_ground
+                la.color.symbols = color
 
-
+                particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+                particle_positions = particle_positions.args_ground
                 for p in particle_positions:
                     x,y,z = p.split(",")
                     position = PositionAttribute()
-
                     position.data.pose.position.x = float(x)
                     position.data.pose.position.y = float(y)
                     position.data.pose.position.z = float(z)
-
                     la.particle_positions.append(position)
 
-
-
-                la.observed = False
-                la.color.symbols = color
-                # la.color.predictions = a.color.predictions
 
                 la_array.anchors.append(la)
 
 
-                caffe = self.util.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
-                caffe = caffe.args_ground
-                print(la.id)
-                print(caffe)
-
-                hidden = self.util.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
-                print(hidden.probability)
-
+                # caffe = self.util.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
+                # caffe = caffe.args_ground
+                # print(caffe)
+                #
+                # hidden = self.util.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
 
         return la_array
 
@@ -158,7 +146,7 @@ if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
     model_file = os.path.join(path, 'models/dc_model.pl')
-    N_SAMPLES = 5
+    N_SAMPLES = 200
 
     rel_track = RelTrack(model_file, N_SAMPLES)
 
