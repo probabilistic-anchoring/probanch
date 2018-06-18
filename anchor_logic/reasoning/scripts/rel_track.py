@@ -66,12 +66,18 @@ class RelTrack():
             la.id = a.id
 
 
-            position = PositionAttribute()
+            particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+            particle_positions = particle_positions.args_ground
 
-            position.data.pose.position.x = float(a.position.data.pose.position.x)
-            position.data.pose.position.y = float(a.position.data.pose.position.y)
-            position.data.pose.position.z = float(a.position.data.pose.position.z)
-            la.particle_positions.append(position)
+            for p in particle_positions:
+                x,y,z = p.split(",")
+                position = PositionAttribute()
+
+                position.data.pose.position.x = float(x)
+                position.data.pose.position.y = float(y)
+                position.data.pose.position.z = float(z)
+
+                la.particle_positions.append(position)
 
             la.color.symbols = a.color.symbols
             la.color.predictions = a.color.predictions
@@ -82,6 +88,12 @@ class RelTrack():
 
         anchor_ids = self.util.querylist("A_ID", "current(anchor(A_ID))")
         anchor_ids = anchor_ids.args_ground
+
+
+        anchor_ids_hidden = self.util.querylist("(A_ID,A_ID_hidden)", "current(hidden(A_ID,A_ID_hidden))")
+        anchor_ids_hidden = anchor_ids_hidden.args_ground
+        if anchor_ids_hidden:
+            print(anchor_ids_hidden)
 
         for a_id in anchor_ids:
             if a_id not in anchor_ids_observed:
@@ -100,7 +112,6 @@ class RelTrack():
                     position.data.pose.position.x = float(x)
                     position.data.pose.position.y = float(y)
                     position.data.pose.position.z = float(z)
-                    # mean += float(x)
 
                     la.particle_positions.append(position)
 
@@ -122,7 +133,6 @@ class RelTrack():
                 print(hidden.probability)
 
 
-                print("")
         return la_array
 
 
@@ -148,7 +158,7 @@ if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
     model_file = os.path.join(path, 'models/dc_model.pl')
-    N_SAMPLES = 200
+    N_SAMPLES = 5
 
     rel_track = RelTrack(model_file, N_SAMPLES)
 
