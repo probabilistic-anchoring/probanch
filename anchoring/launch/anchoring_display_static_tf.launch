@@ -26,13 +26,13 @@
 
 
   <!-- Reasoning system -->
-  <!-- include file="$(find reasoning)/launch/reasoning.launch" / -->
+  <include file="$(find reasoning)/launch/reasoning.launch" />
 
   <!-- Display anchors -->
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" >
     <param name="max_particles" type="int" value="200" />
-    <param name="display_mode" type="string" value="anchoring" />
+    <param name="display_mode" type="string" value="both" />
   </node>
 
 

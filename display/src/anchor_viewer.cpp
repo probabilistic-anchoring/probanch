@@ -156,11 +156,14 @@ class AnchorViewer {
 
   // Callback function for receiving particles from the data association
   void particles_cb(const anchor_msgs::LogicAnchorArrayPtr& msg_ptr) {
+    //ROS_WARN("Got particles!");    
+    
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
       auto p = msg_ptr->anchors[i].particle_positions.begin();
-      for( ; p != msg_ptr->anchors[i].particle_positions.begin(); ++p ) {
-	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.x, p->data.pose.position.x, msg_ptr->anchors[i].color.symbols.front()) );
+      //ROS_WARN("Number of particles: %d", (int)msg_ptr->anchors[i].particle_positions.size());
+      for( ; p != msg_ptr->anchors[i].particle_positions.end(); ++p ) {
+	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.y, p->data.pose.position.z, msg_ptr->anchors[i].color.symbols.front()) );
       }
     }
     if( _max_particles >= 0 ) {
@@ -269,8 +272,8 @@ class AnchorViewer {
       // Draw particles
       if( this->_display_trigger == "association" || this->_display_trigger == "both" ) {
 	for( uint i = 0; i < this->_particles.size(); i++) {
-	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 1, this->_particles[i].getColor(), -1);
-	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 1, this->_particles[i].getColor(), -1);
+	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
+	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
 	}
 
       }
@@ -358,6 +361,8 @@ public:
     if( !_priv_nh.getParam("display_mode", this->_display_trigger) ) {
       this->_display_trigger = "anchoring";
     }
+    ROS_WARN("[AnchorViewer] Display mode: '%s'", this->_display_trigger.c_str());    
+    ROS_WARN("[AnchorViewer] Number of particles: '%d'", this->_max_particles);    
 
     // Create the display window
     const char *window = "Anchors with information...";
