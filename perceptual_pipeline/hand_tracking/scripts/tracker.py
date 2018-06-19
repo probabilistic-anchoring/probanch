@@ -25,11 +25,11 @@ from anchor_msgs.msg import Point2d
 # g_v_max = 255
 
 "leuven"
-g_h_min = 22
-g_h_max = 51
-g_s_min = 127
+g_h_min = 14
+g_h_max = 65
+g_s_min = 182
 g_s_max = 255
-g_v_min = 164
+g_v_min = 141
 g_v_max = 255
 
 
