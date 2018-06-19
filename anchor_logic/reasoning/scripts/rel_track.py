@@ -66,21 +66,21 @@ class RelTrack():
             la.id = a.id
 
             la.observed = True
-            
+
             la.color.symbols = a.color.symbols
             la.color.predictions = a.color.predictions
 
-            particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-            particle_positions = particle_positions.args_ground
-            for p in particle_positions:
-                x,y,z = p.split(",")
-                position = PositionAttribute()
-
-                position.data.pose.position.x = float(x)
-                position.data.pose.position.y = float(y)
-                position.data.pose.position.z = float(z)
-
-                la.particle_positions.append(position)
+            # particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+            # particle_positions = particle_positions.args_ground
+            # for p in particle_positions:
+            #     x,y,z = p.split(",")
+            #     position = PositionAttribute()
+            #
+            #     position.data.pose.position.x = float(x)
+            #     position.data.pose.position.y = float(y)
+            #     position.data.pose.position.z = float(z)
+            #
+            #     la.particle_positions.append(position)
 
 
             la_array.anchors.append(la)
