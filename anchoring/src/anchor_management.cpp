@@ -181,7 +181,7 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
       geometry_msgs::PoseStamped msg;
       msg.header = track_ptr->header;
       auto p = track_ptr->anchors[i].particle_positions.begin();
-      for( ; p != track_ptr->anchors[i].particle_positions.begin(); ++p ) {  
+      for( ; p != track_ptr->anchors[i].particle_positions.end(); ++p ) {  
 	msg.pose.position.x += p->data.pose.position.x;
 	msg.pose.position.y += p->data.pose.position.y;
 	msg.pose.position.z += p->data.pose.position.z;
