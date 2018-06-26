@@ -228,36 +228,55 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
   cam_model.fromCameraInfo(camera_info_msg);
 
   // Make a remote call to get the 'hand' (or glove)
-  pcl::PointIndices hand_indices;
-  std::vector<cv::Point> hand_contour;
+  //double t = this->timerStart();
+  std::map< int, pcl::PointIndices > hand_indices;
+  std::vector< std::vector<cv::Point> > hand_contours; 
+ 
   hand_tracking::TrackingService srv;
   srv.request.image = *image_msg;
   if( this->_tracking_client.call(srv)) {
 
     // Get the hand mask contour
-    for( uint i = 0; i < srv.response.contour.size(); i++) {
-      cv::Point p( srv.response.contour[i].x, srv.response.contour[i].y );
-      hand_contour.push_back(p);
+    for( int i = 0; i < srv.response.contours.size(); i++) {
+      std::vector<cv::Point> contour;
+      for( uint j = 0; j < srv.response.contours[i].contour.size(); j++) {
+	cv::Point p( srv.response.contours[i].contour[j].x, srv.response.contours[i].contour[j].y );
+	contour.push_back(p);
+      }
+      hand_contours.push_back(contour);
     }
-    //std::cout << "Contour size: " << srv.response.contour.size() << std::endl;
 
     // Filter the indices of all 3D points within the hand contour
-    if ( !hand_contour.empty() ) {
+    int key = 0;
+    for ( int i = 0; i < hand_contours.size(); i++) {
+      cv::Mat mask( img.size(), CV_8U, cv::Scalar(0));
+      cv::drawContours( mask, hand_contours, i, cv::Scalar(255), -1);
+
       uint idx = 0;
-      // TEST - Use downsampled cloud instead
-      // ---------------------------------------------
+      pcl::PointIndices point_idx;
       BOOST_FOREACH  ( const segmentation::Point pt, downsampled_cloud_ptr->points ) {
-      //BOOST_FOREACH  ( const segmentation::Point pt, original_cloud_ptr->points ) {
-	cv::Point3d pt_3d( pt.x, pt.y, pt.z);
-	cv::Point2f pt_2d = cam_model.project3dToPixel(pt_3d);
-	if( cv::pointPolygonTest( hand_contour, pt_2d, false ) > 0.0 ) { 
-	  hand_indices.indices.push_back(idx);
+	tf::Vector3 trans_pt( pt.x, pt.y, pt.z);
+	trans_pt = transform * trans_pt;  
+	if( ( trans_pt.x() > this->min_x_ && trans_pt.x() < this->max_x_ ) &&
+	    ( trans_pt.y() > this->min_y_ && trans_pt.y() < this->max_y_ ) &&
+	    ( trans_pt.z() > this->min_z_ && trans_pt.z() < this->max_z_ ) ) {
+	  cv::Point3d pt_3d( pt.x, pt.y, pt.z);
+	  cv::Point pt_2d = cam_model.project3dToPixel(pt_3d);
+	  if ( pt_2d.y >= 0 && pt_2d.y < mask.rows && pt_2d.x >= 0 && pt_2d.x < mask.cols ) { 
+	    if( mask.at<uchar>( pt_2d.y, pt_2d.x) != 0 ) { 
+	      point_idx.indices.push_back(idx);
+	    }
+	  }
 	}
-	idx++;
+	idx++;	
       }
+      //ROS_WARN("[TEST] Points: %d", (int)point_idx.indices.size());      
+      if( point_idx.indices.size() >= this->seg_.getClusterMinSize() )
+	hand_indices.insert( std::pair< int, pcl::PointIndices>( key, point_idx) );
+      key++;
     }
   }
-  
+  //this->timerEnd( t, "Hand detection");  
 
   // Cluster cloud into objects 
   // ----------------------------------------
@@ -267,27 +286,48 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
   // TEST - Use downsampled cloud instead
   // -----------------------------------------
+  //t = this->timerStart();
   this->seg_.clusterOrganized( downsampled_cloud_ptr, cluster_indices);
+  //this->timerEnd( t, "Clustering");
 
-  // Pre-process the segmented clusters (filter out the 'hand' points)
-  if( !hand_indices.indices.empty() ) {
-    for (size_t i = 0; i < cluster_indices.size (); i++) {
-      for( auto &idx: hand_indices.indices) {
-	auto ite = std::find (cluster_indices[i].indices.begin(), cluster_indices[i].indices.end(), idx);
-	if( ite != cluster_indices[i].indices.end() ) {
-	  cluster_indices[i].indices.erase(ite);
+  // Post-process the segmented clusters (filter out the 'hand' points)
+  //t = this->timerStart();  
+  if( !hand_indices.empty() ) {
+    for( uint i = 0; i < hand_indices.size(); i++ ) {
+      for ( uint j = 0; j < cluster_indices.size (); j++) {
+	for( auto &idx : hand_indices[i].indices) {
+	  auto ite = std::find (cluster_indices[j].indices.begin(), cluster_indices[j].indices.end(), idx);
+	  if( ite != cluster_indices[j].indices.end() ) {
+	    cluster_indices[j].indices.erase(ite);
+	  }
 	}
+	if( cluster_indices[j].indices.size() < this->seg_.getClusterMinSize() )
+	  cluster_indices.erase( cluster_indices.begin() + j );
       }
-      if( cluster_indices[i].indices.size() < this->seg_.getClusterMinSize() )
-	cluster_indices.erase( cluster_indices.begin() + i );
     }
-    cluster_indices.push_back(hand_indices);
-    std::cout << "Clusters: " << cluster_indices.size() << " (include a 'hand' cluster)" << std::endl;
+
+    // Add the 'hand' indecies to the reaming cluster indices
+    for( auto &ite : hand_indices ) {
+      cluster_indices.insert( cluster_indices.begin() + ite.first,  ite.second );
+    }
+    ROS_INFO("Clusters: %d (include a 'hand' cluster)", (int)cluster_indices.size());
   }
   else {
-    std::cout << "Clusters: " << cluster_indices.size() << std::endl;
+    ROS_INFO("Clusters: %d", (int)cluster_indices.size());
   }
+  //this->timerEnd( t, "Post-processing");
 
+  /*
+  ROS_INFO("Clusters: \n");
+  for (size_t i = 0; i < cluster_indices.size (); i++) {
+    if( hand_indices.find(i) != hand_indices.end() )      
+      ROS_INFO("Hand size: %d", (int)cluster_indices[i].indices.size());
+    else
+      ROS_INFO("Object size: %d", (int)cluster_indices[i].indices.size());
+  }
+  ROS_INFO("-----------");
+  */  
+  
   // Process all segmented clusters (including the 'hand' cluster)
   if( !cluster_indices.empty() ) {
   
@@ -312,6 +352,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     objects.transform.translation.z = tf_vec.getZ();
  
     // Process the segmented clusters
+    int sz = 5;
+    cv::Mat kernel = cv::getStructuringElement( cv::BORDER_CONSTANT, cv::Size( sz, sz), cv::Point(-1,-1) );
     for (size_t i = 0; i < cluster_indices.size (); i++) {
 
       // Get the cluster
@@ -326,42 +368,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       if( cluster_ptr->points.empty() )
 	continue;
 
-      
-      /*
-      // Get the cluster
-      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
-      if( transformed_cluster_ptr->points.empty() )
-	continue;
-      
-      // Reverser transform to get the contour right
-      pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
-
-      
-      // Create the point cluster from the orignal point cloud
-      pcl::PointCloud<segmentation::Point>::Ptr cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl::copyPointCloud( *raw_cloud_ptr, cluster_indices[i], *cluster_ptr);
-
-      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *cluster_ptr);
-      
-      
-      // Transform the cloud to the world frame
-      pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-      pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);       
-
-      
-      // Filter the transformed point cloud 
-      this->filter (transformed_cluster_ptr);
-      if( transformed_cluster_ptr->points.empty() )
-	continue;
-      
-      
-      // Reverser transform to get the contour right
-      pcl_ros::transformPointCloud( *transformed_cluster_ptr, *cluster_ptr, transform.inverse());       
-      */
-      
+            
       // Post-process the cluster
       try {
 
@@ -370,42 +377,29 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	BOOST_FOREACH  ( const segmentation::Point pt, cluster_ptr->points ) {
 	  cv::Point3d pt_cv( pt.x, pt.y, pt.z);
 	  cv::Point2f p = cam_model.project3dToPixel(pt_cv);
-	  circle( cluster_img, p, 1, cv::Scalar(255), -1, 8, 0 );
+	  circle( cluster_img, p, 2, cv::Scalar(255), -1, 8, 0 );
 	}
+
+	// Apply morphological operations the cluster image 
+	cv::dilate( cluster_img, cluster_img, kernel);
+	cv::erode( cluster_img, cluster_img, kernel);
 
 	// Find the contours of the cluster
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours( cluster_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-	
-	// Get the contour of the convex hull
-	std::vector<cv::Point> hull_points;
-	if( !hand_contour.empty() && i ==  cluster_indices.size() - 1 ) {
-	  hull_points = hand_contour;
-	  //hull_points = this->contoursConvexHull(contours);
-	}
-	else {
-	  hull_points = contours[0];
-	}
+		// Get the contour of the convex hull
+	std::vector<cv::Point> contour = getLargetsContour( contours );
 	
 	// Create and add the object output message
-	if( hull_points.size() > 0 ) {
+	if( contour.size() > 0 ) {
 
 	  anchor_msgs::Object obj;
-
-	  /*
-	  for( size_t j = 0; j < contours[0].size(); j++) {  
+	  for( size_t j = 0; j < contour.size(); j++) {  
 	    anchor_msgs::Point2d p;
-	    p.x = contours[0][j].x;
-	    p.y = contours[0][j].y;
-	    obj.caffe.border.contour.push_back(p);
-	  }
-	  */
-	  for( size_t j = 0; j < hull_points.size(); j++) {  
-	    anchor_msgs::Point2d p;
-	    p.x = hull_points[j].x;
-	    p.y = hull_points[j].y;
+	    p.x = contour[j].x;
+	    p.y = contour[j].y;
 	    obj.caffe.border.contour.push_back(p);
 	  }
 
@@ -417,48 +411,22 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
 	  //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
 	  //cv::Scalar color = cv::Scalar::all(64); // Dark gray
-	  if( !hand_indices.indices.empty() && i ==  cluster_indices.size() - 1 ) {
+
+	  // Check if we have a hand countour
+	  if( hand_indices.find(i) != hand_indices.end() ) {
 	    color = cv::Scalar( 0, 233, 0); // Green
 	  }
 	  cv::drawContours( this->result_img_, contours, -1, color, 1);
 	    
-	  /*
-	  // Transform the cloud to the world frame
-	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-	  pcl_ros::transformPointCloud( *cluster_ptr, *transformed_cluster_ptr, transform);
-	  
-	  // Filter the transformed point cloud 
-	  this->filter (transformed_cluster_ptr);
-	  if( transformed_cluster_ptr->points.empty() )
-	    continue;
-	  */
-
-	  /*
-	  // Create a transformed point cluster 
-	  pcl::PointCloud<segmentation::Point>::Ptr transformed_cluster_ptr (new pcl::PointCloud<segmentation::Point>);
-	  pcl::copyPointCloud( *transformed_cloud_ptr, cluster_indices[i], *transformed_cluster_ptr);
-	  //pcl::PointCloud<segmentation::Point> transformed_cluster;
-	  */
-
 	  // Transfrom the the cloud once again
 	  pcl_ros::transformPointCloud( *cluster_ptr, *cluster_ptr, transform);
 	  
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
 	  pose.header.stamp = cloud_msg->header.stamp;
-	  //obj.position.data.header.stamp = cloud_msg->header.stamp;
-	  //segmentation::getPosition( cluster_ptr, obj.position.data.pose );
-	  //segmentation::getPosition( transformed_cluster.makeShared(), obj.position.data.pose );
-	  
 	  segmentation::getPosition( cluster_ptr, pose.pose);
-	  //segmentation::getPosition( transformed_cluster.makeShared(), pose.pose );
 	  obj.position.data = pose;
 
-	  /*
-	  // --[ Intially filtering of the whole point cloud instead ]--
-	  if( !( obj.position.data.pose.position.x > 0.2  && obj.position.data.pose.position.y > 0.0 && obj.position.data.pose.position.y < 0.62 && obj.position.data.pose.position.z < 0.5 ) )
-	    continue;
-	  */
 
 	  // Add the position to the movement array
 	  movements.movements.push_back(pose);	  
@@ -467,7 +435,6 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 
 	  // 2. Extract the shape
 	  segmentation::getShape( cluster_ptr, obj.shape.data );
-	  //segmentation::getShape( transformed_cluster.makeShared(), obj.shape.data );
 
 	  // Ground shape symbols
 	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
@@ -493,6 +460,13 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	      obj.shape.symbols.push_back("short");
 	    }
 	  }
+
+
+	  // TEST  
+	  // ---------------------------------------
+	  // Attempt to filter out glitchs
+	  if ( obj.shape.data.z < 0.02 )
+	    continue;
 	  
 	  // Add the object to the object array message
 	  objects.objects.push_back(obj);
@@ -521,7 +495,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       }
     }
     //std::cout << "---" << std::endl;
-  
+    
     // Publish the "segmented" image
     if( display_image_ ) {
       cv_ptr->image = this->result_img_;
@@ -531,7 +505,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     
     // Publish the object array
     if( !objects.objects.empty() || !clusters.clusters.empty() ) {
-      ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
+      // ROS_INFO("Publishing: %d objects.", (int)objects.objects.size());
       obj_pub_.publish(objects);
       cluster_pub_.publish(clusters);
       move_pub_.publish(movements);      
@@ -574,6 +548,14 @@ void ObjectSegmentation::filter( pcl::PointCloud<segmentation::Point>::Ptr &clou
   }
 }
 
+std::vector<cv::Point> ObjectSegmentation::getLargetsContour( std::vector<std::vector<cv::Point> > contours ) {
+  std::vector<cv::Point> result = contours.front();
+  for ( size_t i = 1; i< contours.size(); i++)
+    if( contours[i].size() > result.size() )
+      result = contours[i];
+  return result;
+}
+
 std::vector<cv::Point> ObjectSegmentation::contoursConvexHull( std::vector<std::vector<cv::Point> > contours ) {
   std::vector<cv::Point> result;
   std::vector<cv::Point> pts;
@@ -583,6 +565,52 @@ std::vector<cv::Point> ObjectSegmentation::contoursConvexHull( std::vector<std::
   cv::convexHull( pts, result );
   return result;
 }
+
+// Detect a 'hand'/'glove' object based on color segmentation
+std::vector<cv::Point> ObjectSegmentation::handDetection( cv::Mat &img ) {
+  cv::Mat hsv_img;
+  int sz = 5;
+  
+  // Convert to HSV color space
+  cv::cvtColor( img, hsv_img, cv::COLOR_BGR2HSV);
+
+  // Pre-process the image by blur
+  cv::blur( hsv_img, hsv_img, cv::Size( sz, sz));
+
+  // Extrace binary mask
+  cv::Mat mask;   
+  cv::inRange( hsv_img, cv::Scalar( 31, 68, 141), cv::Scalar( 47, 255, 255), mask);
+
+  // Post-process the threshold image  
+  cv::Mat kernel = cv::getStructuringElement( cv::BORDER_CONSTANT, cv::Size( sz, sz), cv::Point(-1,-1) );
+  cv::dilate( mask, mask, kernel);
+  cv::erode( mask, mask, kernel);
+
+  // Find the contours 
+  std::vector<std::vector<cv::Point> > contours;
+  std::vector<cv::Vec4i> hierarchy;
+  cv::findContours( mask, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
+  // Filter the contoruse based on size
+  std::vector<std::vector<cv::Point> > result;
+  for ( int i = 0; i < contours.size(); i++) {
+    if ( cv::contourArea(contours[i]) > 500 ) {
+      result.push_back(contours[i]);
+    }
+  }
+  return result[0];
+}
+
+// Timer functions
+double ObjectSegmentation::timerStart() {
+  return (double)cv::getTickCount();
+}
+void ObjectSegmentation::timerEnd( double t, std::string msg) {
+  t = ((double)cv::getTickCount() - t) / (double)cv::getTickFrequency();
+  ROS_INFO("[Timer] %s: %.4f (s)", msg.c_str(), t);
+}
+
+
 
 // ----------------------
 // Main function

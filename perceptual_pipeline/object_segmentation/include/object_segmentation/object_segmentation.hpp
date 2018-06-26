@@ -75,11 +75,16 @@ class ObjectSegmentation {
   void segmentationCb( const sensor_msgs::Image::ConstPtr image, const sensor_msgs::CameraInfo::ConstPtr camera_info, const sensor_msgs::PointCloud2::ConstPtr cloud);
   void filter( pcl::PointCloud<segmentation::Point>::Ptr &cloud_ptr );
   std::vector<cv::Point> contoursConvexHull( std::vector<std::vector<cv::Point> > contours );
-
+  std::vector<cv::Point> getLargetsContour( std::vector<std::vector<cv::Point> > contours );
+  std::vector<cv::Point> handDetection( cv::Mat &img );
+  
+  // Timing function
+  double timerStart();
+  void timerEnd( double t, std::string msg);
   
   // Segmentation 
   segmentation::Segmentation seg_;
-
+  
 public: 
   ObjectSegmentation(ros::NodeHandle nh, bool useApprox = true);
   ~ObjectSegmentation();

@@ -14,6 +14,7 @@ import message_filters
 from cv_bridge import CvBridge, CvBridgeError
 from hand_tracking.srv import *
 from anchor_msgs.msg import Point2d
+from anchor_msgs.msg import Contour
 
 # Global (init) params
 "oerebro"
@@ -43,9 +44,6 @@ def trackbar_callback(x):
 
 def createHSVTrackbars():
     cv2.namedWindow('Tracking window...')
-
-
-
 
     cv2.createTrackbar('h_min', 'Tracking window...', 0, 179, trackbar_callback)
     cv2.createTrackbar('h_max', 'Tracking window...', 0, 179, trackbar_callback)
@@ -200,11 +198,22 @@ class HandTracking:
             # Return the service response
             res = TrackingServiceResponse()
             if cut_contours:
+                contour = Contour()
+                for cont in cut_contours:
+                    for p in cont:
+                        pt = Point2d()
+                        pt.x = p[0][0]
+                        pt.y = p[0][1]
+                        contour.contour.append(pt)
+                
+                res.contours.append(contour)
+                '''
                 for c in cut_contours[0]:
                     p = Point2d()
                     p.x = c[0][0]
                     p.y = c[0][1]
                     res.contour.append(p)
+                '''
             return res
 
 
