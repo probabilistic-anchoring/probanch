@@ -70,7 +70,6 @@ class RelTrack():
             la.color.symbols = a.color.symbols
             la.color.predictions = a.color.predictions
             particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-            # particle_positions = particle_positions.args_ground
             for p in particle_positions:
                 x,y,z = p.split(",")
                 position = PositionAttribute()
@@ -100,7 +99,6 @@ class RelTrack():
                 color = color.keys()
                 la.color.symbols = color
                 particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-                # particle_positions = particle_positions.args_ground
                 for p in particle_positions:
                     x,y,z = p.split(",")
                     position = PositionAttribute()
@@ -114,7 +112,7 @@ class RelTrack():
 
 
                 # caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
-                # caffe = caffe.args_ground
+                # caffe = caffe.keys()
                 # print(caffe)
                 #
                 # hidden = self.ddc.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
