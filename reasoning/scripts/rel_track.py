@@ -3,7 +3,7 @@ import os
 
 import rospy
 import rospkg
-from dc_pybridge import DCUtil
+from pydc import DDC
 
 from anchor_msgs.msg import AnchorArray
 from anchor_msgs.msg import LogicAnchor
@@ -16,7 +16,7 @@ from anchor_msgs.msg import PositionAttribute
 class RelTrack():
 
     def __init__(self, model_file, n_samples):
-        self.util = DCUtil(model_file, n_samples)
+        self.util = DDC(model_file, n_samples)
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback=self.process_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
