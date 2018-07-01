@@ -16,7 +16,7 @@ from anchor_msgs.msg import PositionAttribute
 class RelTrack():
 
     def __init__(self, model_file, n_samples):
-        self.util = DDC(model_file, n_samples)
+        self.ddc = DDC(model_file, n_samples)
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback=self.process_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
@@ -24,7 +24,7 @@ class RelTrack():
 
     def process_anchors(self, msg):
         observations = self.make_observations(msg.anchors)
-        self.util.step(observations);
+        self.ddc.step(observations);
 
         la_array = self.make_LogicAnchorArray(msg.anchors)
         self.logic_anchors_publisher.publish(la_array)
@@ -69,26 +69,25 @@ class RelTrack():
 
             la.color.symbols = a.color.symbols
             la.color.predictions = a.color.predictions
-
-            # particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+            particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
             # particle_positions = particle_positions.args_ground
-            # for p in particle_positions:
-            #     x,y,z = p.split(",")
-            #     position = PositionAttribute()
-            #
-            #     position.data.pose.position.x = float(x)
-            #     position.data.pose.position.y = float(y)
-            #     position.data.pose.position.z = float(z)
-            #
-            #     la.particle_positions.append(position)
+            for p in particle_positions:
+                x,y,z = p.split(",")
+                position = PositionAttribute()
+
+                position.data.pose.position.x = float(x)
+                position.data.pose.position.y = float(y)
+                position.data.pose.position.z = float(z)
+
+                la.particle_positions.append(position)
 
 
             la_array.anchors.append(la)
 
 
 
-        anchor_ids = self.util.querylist("A_ID", "current(anchor(A_ID))")
-        anchor_ids = anchor_ids.args_ground
+        anchor_ids = self.ddc.querylist("A_ID", "current(anchor(A_ID))")
+        anchor_ids = anchor_ids.keys()
 
 
         for a_id in anchor_ids:
@@ -97,12 +96,11 @@ class RelTrack():
 
                 la.observed = False
 
-                color = self.util.querylist("Color", "current(color('{A_ID}'))~=Color".format(A_ID=la.id))
-                color = color.args_ground
+                color = self.ddc.querylist("Color", "current(color('{A_ID}'))~=Color".format(A_ID=la.id))
+                color = color.keys()
                 la.color.symbols = color
-
-                particle_positions = self.util.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-                particle_positions = particle_positions.args_ground
+                particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+                # particle_positions = particle_positions.args_ground
                 for p in particle_positions:
                     x,y,z = p.split(",")
                     position = PositionAttribute()
@@ -115,11 +113,11 @@ class RelTrack():
                 la_array.anchors.append(la)
 
 
-                # caffe = self.util.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
+                # caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
                 # caffe = caffe.args_ground
                 # print(caffe)
                 #
-                # hidden = self.util.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
+                # hidden = self.ddc.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
 
         return la_array
 
