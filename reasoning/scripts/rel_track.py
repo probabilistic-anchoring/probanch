@@ -52,6 +52,7 @@ class RelTrack():
                 obs = ','.join(obs)
                 observations.append(obs)
         observations = ','.join(observations)
+        # print(observations)
 
         return observations
 
@@ -61,29 +62,29 @@ class RelTrack():
 
         la_array = LogicAnchorArray()
 
-        # for a in anchors_observed:
-        #     la = LogicAnchor()
-        #
-        #     la.id = a.id
-        #
-        #     la.observed = True
-        #
-        #     la.color.symbols = a.color.symbols
-        #     la.color.predictions = a.color.predictions
-        #
-        #     particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-        #     for p in particle_positions:
-        #         x,y,z = p.split(",")
-        #         position = PositionAttribute()
-        #
-        #         position.data.pose.position.x = float(x)
-        #         position.data.pose.position.y = float(y)
-        #         position.data.pose.position.z = float(z)
-        #
-        #         la.particle_positions.append(position)
-        #
-        #
-        #     la_array.anchors.append(la)
+        for a in anchors_observed:
+            la = LogicAnchor()
+
+            la.id = a.id
+
+            la.observed = True
+
+            la.color.symbols = a.color.symbols
+            la.color.predictions = a.color.predictions
+
+            particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
+            for p in particle_positions:
+                x,y,z = p.split(",")
+                position = PositionAttribute()
+
+                position.data.pose.position.x = float(x)
+                position.data.pose.position.y = float(y)
+                position.data.pose.position.z = float(z)
+
+                la.particle_positions.append(position)
+
+
+            la_array.anchors.append(la)
 
 
 
@@ -127,6 +128,10 @@ class RelTrack():
         if "glasses" in anchor.caffe.symbols[0:4]:
             return False
         elif "banana" in anchor.caffe.symbols[0:1]:
+            return False
+        elif "skin" in anchor.caffe.symbols[0:2]:
+            return False
+        elif "squash" in anchor.caffe.symbols[0:2]:
             return False
         elif not anchor.caffe.symbols:
             return False
