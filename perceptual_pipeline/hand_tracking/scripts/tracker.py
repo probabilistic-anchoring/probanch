@@ -27,10 +27,10 @@ from anchor_msgs.msg import Contour
 
 "leuven"
 g_h_min = 14
-g_h_max = 65
-g_s_min = 182
+g_h_max = 32
+g_s_min = 103
 g_s_max = 255
-g_v_min = 141
+g_v_min = 133
 g_v_max = 255
 
 
@@ -205,7 +205,7 @@ class HandTracking:
                         pt.x = p[0][0]
                         pt.y = p[0][1]
                         contour.contour.append(pt)
-                
+
                 res.contours.append(contour)
                 '''
                 for c in cut_contours[0]:
