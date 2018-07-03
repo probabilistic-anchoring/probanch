@@ -120,8 +120,8 @@ rv(A_ID):t+1 ~ val(V) <-
 rv(A_ID):t+1 ~ val(V) <-
    anchor(A_ID):t,
    anchor(A_ID):t+1,
-   hidden(A_ID,A_ID_Hider):t+1,
-	rvProposal('hidden_by',A_ID_Hider):t+1 ~= [V|_].
+   in_hand(A_ID,A_ID_Hand):t+1,
+	rvProposal('in_hand',A_ID_Hand):t+1 ~= [V|_].
 
 
 
@@ -145,12 +145,12 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_z_new is R_z+DeltaT*V_z.
 
 % regenarte samples for observed anchor for the hidden anchor
-rvProposal('hidden_by',A_ID_Hider):t+1 ~ logIndepOptimalProposals([
+rvProposal('in_hand',A_ID_Hand):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	observation(anchor_r(A_ID_Hider)) ~= (O_x,O_y,O_z),
-	rv(A_ID_Hider):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+	observation(anchor_r(A_ID_Hand)) ~= (O_x,O_y,O_z),
+	rv(A_ID_Hand):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
 	varQ(VarQ),
 	cov(2,Cov,VarQ),
 	deltaT(DeltaT),
