@@ -60,7 +60,7 @@ class RelTrack():
         anchor_ids_observed = [a.id for a in anchors_observed]
 
         la_array = LogicAnchorArray()
-        
+
         # for a in anchors_observed:
         #     la = LogicAnchor()
         #
@@ -93,6 +93,7 @@ class RelTrack():
 
         for a_id in anchor_ids:
             if a_id not in anchor_ids_observed:
+                la = LogicAnchor()
                 la.id = a_id
 
                 la.observed = False
