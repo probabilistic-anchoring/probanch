@@ -51,7 +51,6 @@ anchor(A_ID):t+1 <-
 hidden(A_ID,A_ID_Hider):t+1 <-
    in_hand(A_ID,A_ID_Hider):t+1.
 
-
 in_hand(A_ID,A_ID_hand):t+1 <-
    observed(A_ID):t,
    \+observed(A_ID):t+1,
@@ -85,6 +84,7 @@ observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 	rvProposal(_,A_ID):t+1 ~= [_|W].
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
    anchor(_):t,
+   color(A_ID):t ~=C,
 	writeln('fuck leak'),
 	true.
 
@@ -121,7 +121,7 @@ rv(A_ID):t+1 ~ val(V) <-
    anchor(A_ID):t,
    anchor(A_ID):t+1,
    hidden(A_ID,A_ID_Hider):t+1,
-	rvProposal('hidden_by',A_ID,A_ID_Hider):t+1 ~= [V|_].
+	rvProposal('hidden_by',A_ID_Hider):t+1 ~= [V|_].
 
 
 
@@ -145,7 +145,7 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_z_new is R_z+DeltaT*V_z.
 
 % regenarte samples for observed anchor for the hidden anchor
-rvProposal('hidden_by',A_ID,A_ID_Hider):t+1 ~ logIndepOptimalProposals([
+rvProposal('hidden_by',A_ID_Hider):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
