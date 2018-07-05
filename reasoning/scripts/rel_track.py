@@ -114,7 +114,7 @@ class RelTrack():
 
                 la_array.anchors.append(la)
 
-
+                # print(la_array)
                 # caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
                 # caffe = caffe.keys()
                 # print(caffe)
@@ -149,7 +149,7 @@ class RelTrack():
 if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
-    model_file = os.path.join(path, 'models/dc_model.pl')
+    model_file = os.path.join(path, 'models/behind_of.pl')
     N_SAMPLES = 200
 
     rel_track = RelTrack(model_file, N_SAMPLES)
