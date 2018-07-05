@@ -48,52 +48,30 @@ anchor(A_ID):t+1 <-
    hidden(A_ID,_):t+1.
 
 
-hidden(A_ID,A_ID_Hider):t+1 <-
-   in_hand(A_ID,A_ID_Hider):t+1.
-% hidden(A_ID,A_ID_Hider):t+1 <-
-%    behind_of(A_ID,A_ID_Hider):t+1.
 
-in_hand(A_ID,A_ID_hand):t+1 <-
+hidden(A_ID,A_ID_Hider):t+1 <-
+   behind_of(A_ID,A_ID_Hider):t+1.
+
+
+behind_of(A_ID,A_ID_Hider):t+1 <-
    observed(A_ID):t,
    \+observed(A_ID):t+1,
-   pick_hand(A_ID):t+1 ~= A_ID_hand.
-in_hand(A_ID,A_ID_hand):t+1 <-
+   pick_behind_hider(A_ID):t+1 ~= A_ID_Hider.
+behind_of(A_ID,A_ID_Hider):t+1 <-
    anchor(A_ID):t,
-   anchor(A_ID_hand):t,
-   in_hand(A_ID,A_ID_hand):t,
+   anchor(A_ID_Hider):t,
+   behind_of(A_ID,A_ID_Hider):t,
    \+observed(A_ID):t+1,
-   anchor(A_ID_hand):t+1.
-pick_hand(A_ID):t+1 ~ uniform(Hands) <-
+   anchor(A_ID_Hider):t+1.
+pick_behind_hider(A_ID):t+1 ~ uniform(Hiders) <-
    anchor(A_ID):t,
    observed(A_ID):t,
    \+observed(A_ID):t+1,
-   \+is_hand(A_ID):t,
+   \+is_behind_of(A_ID):t,
    \+hidden(A_ID,_):t,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
-   findall_forward(H, (is_hand(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, Z1<ZH), Hands),
-   \+Hands=[].
-
-
-% behind_of(A_ID,A_ID_Hider):t+1 <-
-%    observed(A_ID):t,
-%    \+observed(A_ID):t+1,
-%    pick_behind_hider(A_ID):t+1 ~= A_ID_Hider.
-% behind_of(A_ID,A_ID_Hider):t+1 <-
-%    anchor(A_ID):t,
-%    anchor(A_ID_Hider):t,
-%    behind_of(A_ID,A_ID_Hider):t,
-%    \+observed(A_ID):t+1,
-%    anchor(A_ID_Hider):t+1.
-% pick_behind_hider(A_ID):t+1 ~ uniform(Hiders) <-
-%    anchor(A_ID):t,
-%    observed(A_ID):t,
-%    \+observed(A_ID):t+1,
-%
-%    \+is_behind_of(A_ID):t,
-%    \+hidden(A_ID,_):t,
-%    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
-%    findall_forward(H, (observation(anchor_r(H)):t+1~=_, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, X1<XH+5), Hiders),
-%    \+Hiders=[].
+   findall_forward(H, (observed(H):t, observation(anchor_r(H))~=_, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.1, X1<XH ), Hiders),
+   \+Hiders=[].
 
 
 % observation position
@@ -107,7 +85,7 @@ observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
    anchor(_):t,
    color(A_ID):t ~=C,
-	writeln('fuck leak'),
+	% writeln('fuck leak'),
 	true.
 
 %observation color
@@ -139,17 +117,13 @@ rv(A_ID):t+1 ~ val(V) <-
 	anchor(A_ID):t+1,
 	rvProposal('observed',A_ID):t+1 ~= [V|_].
 
+
+
 rv(A_ID):t+1 ~ val(V) <-
    anchor(A_ID):t,
    anchor(A_ID):t+1,
-   in_hand(A_ID,A_ID_Hand):t+1,
-	rvProposal('in_hand',A_ID_Hand):t+1 ~= [V|_].
-
-% rv(A_ID):t+1 ~ val(V) <-
-%    anchor(A_ID):t,
-%    anchor(A_ID):t+1,
-%    behind_of(A_ID,A_ID_Hider):t+1,
-% 	rvProposal('behind_of',A_ID_Hider):t+1 ~= [V|_].
+   behind_of(A_ID,A_ID_Hider):t+1,
+	rvProposal('behind_of',A_ID_Hider):t+1 ~= [V|_].
 
 
 
@@ -173,12 +147,12 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_z_new is R_z+DeltaT*V_z.
 
 % regenarte samples for observed anchor for the hidden anchor
-rvProposal('in_hand',A_ID_Hand):t+1 ~ logIndepOptimalProposals([
+rvProposal('behind_of',A_ID_Hider):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	observation(anchor_r(A_ID_Hand)) ~= (O_x,O_y,O_z),
-	rv(A_ID_Hand):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+	observation(anchor_r(A_ID_Hider)) ~= (O_x,O_y,O_z),
+	rv(A_ID_Hider):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
 	varQ(VarQ),
 	cov(2,Cov,VarQ),
 	deltaT(DeltaT),
@@ -188,22 +162,6 @@ rvProposal('in_hand',A_ID_Hand):t+1 ~ logIndepOptimalProposals([
 	R_x_new is R_x+DeltaT*V_x,
 	R_y_new is R_y+DeltaT*V_y,
 	R_z_new is R_z+DeltaT*V_z.
-
-% rvProposal('behind_of',A_ID_Hider):t+1 ~ logIndepOptimalProposals([
-% 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
-% 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
-% 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-% 	observation(anchor_r(A_ID_Hider)) ~= (O_x,O_y,O_z),
-% 	rv(A_ID_Hider):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
-% 	varQ(VarQ),
-% 	cov(2,Cov,VarQ),
-% 	deltaT(DeltaT),
-% 	V_x_new is V_x,
-% 	V_y_new is V_y,
-% 	V_z_new is V_z,
-% 	R_x_new is R_x+DeltaT*V_x,
-% 	R_y_new is R_y+DeltaT*V_y,
-% 	R_z_new is R_z+DeltaT*V_z.
 
 
 
