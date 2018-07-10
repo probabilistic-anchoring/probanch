@@ -22,7 +22,7 @@ def argparser():
 if __name__ == "__main__":
     rospy.init_node("rel_track_node")
     path = rospkg.RosPack().get_path('reasoning')
-    N_SAMPLES = 200
+    N_SAMPLES = 100
 
     python_argv = rospy.myargv(argv=sys.argv)
     parser = argparser()

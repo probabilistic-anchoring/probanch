@@ -48,8 +48,7 @@ class Shellgame():
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
                 obs.append("observation(anchor_caffe('{A_ID}'))~={Caffe}".format(A_ID=a.id, Caffe=caffe))
-                if self.is_hand(a):
-                    obs.append("observation(anchor_hand('{A_ID}'))~=true".format(A_ID=a.id))
+
 
                 obs = ','.join(obs)
                 observations.append(obs)
@@ -64,34 +63,36 @@ class Shellgame():
 
         la_array = LogicAnchorArray()
 
-        for a in anchors_observed:
+        # for a in anchors_observed:
+        #     if self.filter(a):
+        #         la = LogicAnchor()
+        #
+        #         la.id = a.id
+        #
+        #         la.observed = True
+        #
+        #         la.color.symbols = a.color.symbols
+        #         la.color.predictions = a.color.predictions
+        #
+        #         particle_positions = self.ddc.querylist("(X,Y,Z)", "(current(rv('{A_ID}'))~=(X,_,Y,_,Z,_))".format(A_ID=la.id))
+        #         for p in particle_positions:
+        #             x,y,z = p.split(",")
+        #             position = PositionAttribute()
+        #
+        #             position.data.pose.position.x = float(x)
+        #             position.data.pose.position.y = float(y)
+        #             position.data.pose.position.z = float(z)
+        #
+        #             la.particle_positions.append(position)
+        #
+        #
+        #         la_array.anchors.append(la)
 
-            la = LogicAnchor()
-
-            la.id = a.id
-
-            la.observed = True
-
-            la.color.symbols = a.color.symbols
-            la.color.predictions = a.color.predictions
-
-            particle_positions = self.ddc.querylist("(X,Y,Z)", "current(rv('{A_ID}'))~=(X,_,Y,_,Z,_)".format(A_ID=la.id))
-            for p in particle_positions:
-                x,y,z = p.split(",")
-                position = PositionAttribute()
-
-                position.data.pose.position.x = float(x)
-                position.data.pose.position.y = float(y)
-                position.data.pose.position.z = float(z)
-
-                la.particle_positions.append(position)
 
 
-            la_array.anchors.append(la)
+        # anchor_ids = self.ddc.querylist("A_ID", "(current(box(A_ID)))")
+        anchor_ids = self.ddc.querylist("A_ID", "(current(hidden(A_ID,_)), current(box(A_ID)))")
 
-
-
-        anchor_ids = self.ddc.querylist("A_ID", "(current(hidden(A_ID,_)), current(anchor(A_ID)))")
         anchor_ids = anchor_ids.keys()
 
 
@@ -102,10 +103,11 @@ class Shellgame():
 
                 la.observed = False
 
-                color = self.ddc.querylist("Color", "(current(hidden(A_ID,_)), current(color('{A_ID}'))~=Color)".format(A_ID=la.id))
+                color = self.ddc.querylist("Color", "(current(color('{A_ID}'))~=Color)".format(A_ID=la.id))
                 color = color.keys()
                 la.color.symbols = color
-                particle_positions = self.ddc.querylist("(X,Y,Z)", "(current(hidden(A_ID,_)),  current(hidden(A_ID,_)), current(rv('{A_ID}'))~=(X,_,Y,_,Z,_))".format(A_ID=la.id))
+                particle_positions = self.ddc.querylist("(X,Y,Z)", "(current(rv('{A_ID}'))~=(X,_,Y,_,Z,_))".format(A_ID=la.id))
+
                 for p in particle_positions:
                     x,y,z = p.split(",")
                     position = PositionAttribute()
@@ -120,31 +122,18 @@ class Shellgame():
                 # print(la_array)
                 # caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
                 # caffe = caffe.keys()
-                # print(caffe)
                 #
                 # hidden = self.ddc.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
 
-        print(len(la_array.anchors))
+
+        # print(len(la_array.anchors))
         return la_array
 
 
     def filter(self, anchor):
-        if "glasses" in anchor.caffe.symbols[0:4]:
+        if "telephone" in anchor.caffe.symbols[0:2]:
             return False
-        elif "banana" in anchor.caffe.symbols[0:1]:
-            return False
-        elif "skin" in anchor.caffe.symbols[0:2]:
-            return False
-        elif "squash" in anchor.caffe.symbols[0:2]:
-            return False
-        elif not anchor.caffe.symbols:
-            return False
-        else:
-            return True
-
-
-    def is_hand(self, anchor):
-        if "glove" in anchor.caffe.symbols[0:4]:
+        if "block" in anchor.caffe.symbols[0:2] or "box" in anchor.caffe.symbols[0:2]:
             return True
         else:
             return False
