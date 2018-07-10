@@ -30,7 +30,29 @@ cov(1,[Cov,0,0,0.000001],VarQ) :-
 	Cov is VarQ*DeltaT^2.
 
 
+box(A_ID):t+1 <-
+   box(A_ID):t,
+   observation(anchor_caffe(A_ID))~=C.
+box(A_ID):t+1 <-
+   observation(anchor_caffe(A_ID))~=box,
+   \+box(A_ID):t.
+box(A_ID):t+1 <-
+   observation(anchor_caffe(A_ID))~=block,
+   \+box(A_ID):t.
 
+small_box(A_ID):t+1 <-
+   small_box(A_ID):t.
+small_box(A_ID):t+1 <-
+   box(A_ID):t+1,
+   observation(anchor_c(A_ID))~=C,
+   C==green.
+
+big_box(A_ID):t+1 <-
+   small_box(A_ID):t.
+big_box(A_ID):t+1 <-
+   box(A_ID):t+1,
+   observation(anchor_c(A_ID))~=C,
+   C==pink.
 
 
 observed_list:t+1 ~ val(A_List) <-
@@ -48,29 +70,33 @@ anchor(A_ID):t+1 <-
    hidden(A_ID,_):t+1.
 
 
-hidden(A_ID,A_ID_Hider):t+1 <-
-   in_hand(A_ID,A_ID_Hider):t+1.
+hidden(A_ID,A_ID_BigBox):t+1 <-
+   under_of(A_ID,A_ID_BigBox):t+1.
 
 
-in_hand(A_ID,A_ID_hand):t+1 <-
+under_of(A_ID,A_ID_BigBox):t+1 <-
+   small_box(A_ID):t+1,
    observed(A_ID):t,
    \+observed(A_ID):t+1,
-   pick_hand(A_ID):t+1 ~= A_ID_hand.
-in_hand(A_ID,A_ID_hand):t+1 <-
-   anchor(A_ID):t,
-   anchor(A_ID_hand):t,
-   in_hand(A_ID,A_ID_hand):t,
-   \+observed(A_ID):t+1,
-   anchor(A_ID_hand):t+1.
-pick_hand(A_ID):t+1 ~ uniform(Hands) <-
-   anchor(A_ID):t,
+   pick_BigBox(A_ID):t+1 ~= A_ID_BigBox.
+% in_hand(A_ID,A_ID_hand):t+1 <-
+%    anchor(A_ID):t,
+%    anchor(A_ID_hand):t,
+%    in_hand(A_ID,A_ID_hand):t,
+%    \+observed(A_ID):t+1,
+%    anchor(A_ID_hand):t+1.
+pick_BigBox(A_ID):t+1 ~ uniform(BigBoxes) <-
+   small_box(A_ID):t+1,
    observed(A_ID):t,
    \+observed(A_ID):t+1,
-   \+is_hand(A_ID):t,
    \+hidden(A_ID,_):t,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
-   findall_forward(H, (is_hand(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, Z1<ZH), Hands),
-   \+Hands=[].
+   % findall_forward(H, (big_box(BB):t+1, rv(BB):t+1~=(XBB,_,YBB,_,ZBB,_), D is sqrt((X1-XBB)^2+(Y1-YBB)^2), D<0.9), BigBoxes),
+   findall_forward(BB, (big_box(BB):t+1, rv(BB):t+1~=(XBB,_,YBB,_,ZBB,_)), BigBoxes),
+
+   writeln(BigBoxes),
+   false,
+   \+BigBoxes=[].
 
 
 
@@ -113,17 +139,31 @@ rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
 	varQ(VarQ),
 	VarQ1 is VarQ/5,
 	cov(1,Cov,VarQ1).
+
+rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
+	observation(anchor_r(A_ID)) ~= (X,Y,Z),
+	big_box(A_ID):t+1,
+	varQ(VarQ),
+	VarQ1 is VarQ/5,
+	cov(1,Cov,VarQ1).
+
 rv(A_ID):t+1 ~ val(V) <-
 	anchor(A_ID):t,
    observation(anchor_r(A_ID))~=_,
 	anchor(A_ID):t+1,
 	rvProposal('observed',A_ID):t+1 ~= [V|_].
 
+rv(A_ID):t+1 ~ val(RV) <-
+   rv(A_ID):t ~= RV,
+   big_box(A_ID):t+1,
+   \+observed(A_ID):t+1.
+
+
 rv(A_ID):t+1 ~ val(V) <-
    anchor(A_ID):t,
    anchor(A_ID):t+1,
-   in_hand(A_ID,A_ID_Hand):t+1,
-	rvProposal('in_hand',A_ID_Hand):t+1 ~= [V|_].
+   under_of(A_ID,A_ID_BigBox):t+1,
+	rvProposal('under_of',A_ID_BigBox):t+1 ~= [V|_].
 
 
 
@@ -149,12 +189,12 @@ rvProposal('observed',A_ID):t+1 ~ logIndepOptimalProposals([
 	R_z_new is R_z+DeltaT*V_z.
 
 % regenarte samples for observed anchor for the hidden anchor
-rvProposal('in_hand',A_ID_Hand):t+1 ~ logIndepOptimalProposals([
+rvProposal('under_of',A_ID_BigBox):t+1 ~ logIndepOptimalProposals([
 			([R_x_new,V_x_new],Cov, [1,0],[0.0001],[O_x]),
 			([R_y_new,V_y_new],Cov, [1,0],[0.0001],[O_y]),
 			([R_z_new,V_z_new],Cov, [1,0],[0.0001],[O_z])]) <-
-	observation(anchor_r(A_ID_Hand)) ~= (O_x,O_y,O_z),
-	rv(A_ID_Hand):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+	observation(anchor_r(A_ID_BigBox)) ~= (O_x,O_y,O_z),
+	rv(A_ID_BigBox):t ~= (R_x,V_x,R_y,V_y,R_z,V_z),
 	varQ(VarQ),
 	cov(2,Cov,VarQ),
 	deltaT(DeltaT),
@@ -191,6 +231,3 @@ bb(A_ID):t+1 ~ val(BB) <-
 bb(A_ID):t+1 ~ val(BB) <-
 	anchor(A_ID):t+1,
 	bb(A_ID):t ~= BB.
-
-is_hand(A_ID):t+1 <-
-	observation(anchor_hand(A_ID)) ~= true.
