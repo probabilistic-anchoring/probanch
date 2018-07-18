@@ -32,6 +32,10 @@ if __name__ == "__main__":
         from class_shellgame import Shellgame
         model_file = os.path.join(path, 'models/shellgame.pl')
         rel_track = Shellgame(model_file, N_SAMPLES)
+    if args['mode']=="shellgame_multimodal":
+        from class_shellgame_multimodal import ShellgameMultimodal
+        model_file = os.path.join(path, 'models/shellgame_multimodal.pl')
+        rel_track = ShellgameMultimodal(model_file, N_SAMPLES)
     elif args['mode']=="behind_of":
         from class_behind_of import BehindOf
         model_file = os.path.join(path, 'models/behind_of.pl')
