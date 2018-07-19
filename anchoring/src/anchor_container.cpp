@@ -160,9 +160,9 @@ namespace anchoring {
   // --------------------------------------------------
 
   // Acquire a new anchor
-  void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t, bool save) {
+  void AnchorContainer::acquire(AttributeMap &attributes, const ros::Time &t, bool create_persistent) {
     AnchorPtr anchor( new Anchor(attributes, t) ); // Generates an unique id for the anchor as well...
-    if( save ) {
+    if( create_persistent ) {
       mongo::Database db(this->_db_name, this->_collection);
       anchor->create(db);
     }

@@ -157,11 +157,11 @@ namespace anchoring {
     if( this->_aging ) { 
       this->create(db);    // ...in order to be saved to the database
     }
-    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Map keys are different
+    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Attributes keys does not match 
       this->append(db, attributes);
     }
-    else { // Update existing attributes
-      this->update(db, attributes);
+    else {
+      this->update(db, attributes);  // Update existing attributes
     }
   }
 

@@ -177,22 +177,16 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
     // IF tracked hidden object, add the position of hte object
     if( !track_ptr->anchors[i].observed ) {
       
-      // Transform the coordinates to a geometry message
-      geometry_msgs::PoseStamped msg;
-      msg.header = track_ptr->header;
+      // Populate a list of position messages
+      std::vector<geometry_msgs::PoseStamped> array;
       auto p = track_ptr->anchors[i].particle_positions.begin();
       for( ; p != track_ptr->anchors[i].particle_positions.end(); ++p ) {  
-	msg.pose.position.x += p->data.pose.position.x;
-	msg.pose.position.y += p->data.pose.position.y;
-	msg.pose.position.z += p->data.pose.position.z;
+	array.push_back(p->data);
       }
-      msg.pose.position.x /= track_ptr->anchors[i].particle_positions.size();
-      msg.pose.position.y /= track_ptr->anchors[i].particle_positions.size();
-      msg.pose.position.z /= track_ptr->anchors[i].particle_positions.size();
 
       // Track the anchor
       anchoring::AttributeMap attributes;
-      attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );
+      attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
       this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
     }
   }

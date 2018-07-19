@@ -118,13 +118,10 @@ namespace anchoring {
     PositionAttribute(AttributeType type = POSITION) : AttributeCommon(type) {}
     PositionAttribute( const anchor_msgs::PositionAttribute &msg,
 		       AttributeType type = POSITION );
-    PositionAttribute( const geometry_msgs::PoseStamped &data, 
+    PositionAttribute( const vector<geometry_msgs::PoseStamped> &array, 
 		       const vector<string> &symbols = vector<string>(),
-		       AttributeType type = POSITION ) : AttributeCommon( symbols, type) {
-      // Add the data (including a timestamp)
-      this->_array.push_back(data);
-    }
-    PositionAttribute( const AttributePtr &other_ptr,
+		       AttributeType type = POSITION );
+    PositionAttribute( const AttributePtr &ptr,
 		       AttributeType type = POSITION);
     
     // Override methods

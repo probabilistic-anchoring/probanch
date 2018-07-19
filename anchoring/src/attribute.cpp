@@ -251,15 +251,28 @@ namespace anchoring {
     this->_array.push_back(msg.data);
   }
 
-  PositionAttribute::PositionAttribute( const AttributePtr &other_ptr,
+
+  PositionAttribute::PositionAttribute( const vector<geometry_msgs::PoseStamped> &array, 
+					const vector<string> &symbols,
+					AttributeType type ) : AttributeCommon( symbols, type) {
+      // Add the data (including a timestamp)
+    for( auto &pos : array ) {
+      this->_array.push_back(pos);
+    }
+  }
+
+  
+  PositionAttribute::PositionAttribute( const AttributePtr &ptr,
 					AttributeType type) : AttributeCommon(type) {
 
     // Typecast the query pointer
-    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(other_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(ptr.get());
     assert( raw_ptr != nullptr );
 
     // Add the data (including a timestamp)
-    this->_array.push_back(raw_ptr->_array.back());
+    for( auto &pos : raw_ptr->_array ) {
+      this->_array.push_back(pos);
+    }
   }
 
   mongo::Database::Document PositionAttribute::serialize() {
@@ -344,12 +357,30 @@ namespace anchoring {
 
   // Overleaded functions for populating ROS messages
   void PositionAttribute::populate(anchor_msgs::Anchor &msg) {
-    anchor_msgs::PositionAttribute pose_msg;
-    pose_msg.data = this->_array.back();
-    msg.position = pose_msg;
+    //anchor_msgs::PositionAttribute poistion;
+    if( !this->_array.empty() ) {
+      for( const auto &pos : this->_array ) {
+	msg.position.data.pose.position.x += pos.pose.position.x;
+	msg.position.data.pose.position.y += pos.pose.position.y;
+	msg.position.data.pose.position.z += pos.pose.position.z;
+      }
+      msg.position.data.pose.position.x /= (int)this->_array.size();
+      msg.position.data.pose.position.y /= (int)this->_array.size();
+      msg.position.data.pose.position.z /= (int)this->_array.size();
+    }
+    //msg.position = poistion;
   }
   void PositionAttribute::populate(anchor_msgs::Display &msg) {
-    msg.pos = this->_array.back();
+    if( !this->_array.empty() ) {
+      for( const auto &pos : this->_array ) {
+	msg.pos.pose.position.x += pos.pose.position.x;
+	msg.pos.pose.position.y += pos.pose.position.y;
+	msg.pos.pose.position.z += pos.pose.position.z;
+      }
+      msg.pos.pose.position.x /= (int)this->_array.size();
+      msg.pos.pose.position.y /= (int)this->_array.size();
+      msg.pos.pose.position.z /= (int)this->_array.size();
+    }
   }
   
   float PositionAttribute::match(const AttributePtr &query_ptr) {
@@ -358,10 +389,7 @@ namespace anchoring {
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
-    // Match aginst the last poistion (only)
-    geometry_msgs::PoseStamped train = this->_array.back();
-    geometry_msgs::PoseStamped query = raw_ptr->_array.back();
-
+    
     /*
     // 1. Check the time
     if( query.header.stamp.toSec() - train.header.stamp.toSec() > 1.0 ) {
@@ -370,12 +398,24 @@ namespace anchoring {
     */
 
     // 2. Check the distance
-    double diff_x = query.pose.position.x - train.pose.position.x;
-    double diff_y = query.pose.position.y - train.pose.position.y;
-    double diff_z = query.pose.position.z - train.pose.position.z;
-    double dist  = sqrt( diff_x*diff_x + diff_y*diff_y + diff_z*diff_z );
-
-    return 1.0 / exp(dist);
+    double _x, _y, _z, _d, _dist = -1.0;
+    for( uint i = 0; i < this->_array.size(); i++ ) {
+      geometry_msgs::PoseStamped train = this->_array[i];
+      for( uint j = 0; j < raw_ptr->_array.size(); j++ ) {      
+	geometry_msgs::PoseStamped query = raw_ptr->_array[j];
+	_x = query.pose.position.x - train.pose.position.x;
+	_y = query.pose.position.y - train.pose.position.y;
+	_z = query.pose.position.z - train.pose.position.z;
+	_d  = sqrt( _x*_x + _y*_y + _z*_z );
+	if( _dist < 0.0 || _d < _dist ) {
+	  _dist = _d;
+	}
+      }
+    }
+    if( _dist >= 0.0 ) {
+      return 1.0 / exp(_dist);
+    }
+    return 0.0;
   }
   
   /*
