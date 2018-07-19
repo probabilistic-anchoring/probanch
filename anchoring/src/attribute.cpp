@@ -388,7 +388,6 @@ namespace anchoring {
     // Typecast the query pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
-
     
     /*
     // 1. Check the time
@@ -442,17 +441,23 @@ namespace anchoring {
     assert( raw_ptr != nullptr );
 
     // Update the location
+    this->_array.clear();
+    for( auto &pos : raw_ptr->_array ) {
+      this->_array.push_back(pos);
+    }
+
+    /*
+    // Update the location
     if( this->match(new_ptr) < 0.01 ) { // ...not moved more than 1cm
       this->_array.back().header.stamp = raw_ptr->_array.back().header.stamp;
-      /*
-	this->_array.back() = raw_ptr->_array.front();
-      */
+      // this->_array.back() = raw_ptr->_array.front();
       }
     else {
       // Append the location (including a timestamp)
       this->_array.push_back(raw_ptr->_array.back());
     }
-  
+    */
+    
     /*
     // Append the symbol (if there exists an symbol)
     if( !raw_ptr->_symbols.empty() ) {
