@@ -18,6 +18,7 @@ from anchor_msgs.msg import PositionAttribute
 class ShellgameMultimodal():
 
     def __init__(self, model_file, n_samples):
+        self.box_anchors = []
         self.ddc = DDC(model_file, n_samples)
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback=self.process_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
@@ -52,6 +53,11 @@ class ShellgameMultimodal():
 
                 obs = ','.join(obs)
                 observations.append(obs)
+
+
+
+
+        print(len(self.box_anchors), self.box_anchors)
         observations = ','.join(observations)
         # print(observations)
 
@@ -98,6 +104,7 @@ class ShellgameMultimodal():
 
         for a_id in anchor_ids:
             if a_id not in anchor_ids_observed:
+
                 la = LogicAnchor()
                 la.id = a_id
 
@@ -107,6 +114,7 @@ class ShellgameMultimodal():
                 color = color.keys()
                 la.color.symbols = color
                 particle_positions = self.ddc.querylist("(X,Y,Z)", "(current(rv('{A_ID}'))~=(X,_,Y,_,Z,_))".format(A_ID=la.id))
+
 
                 for p in particle_positions:
                     x,y,z = p.split(",")
@@ -120,9 +128,13 @@ class ShellgameMultimodal():
                 la_array.anchors.append(la)
 
                 # print(la_array)
-                # caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
-                # caffe = caffe.keys()
+                caffe = self.ddc.querylist("Caffe","(current(caffe('{A_ID}'))~=Caffe)".format(A_ID=la.id))
+                caffe = caffe.keys()
                 #
+
+                print(color, a_id, caffe)
+
+
                 hidden = self.ddc.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
 
 
@@ -136,7 +148,14 @@ class ShellgameMultimodal():
     def filter(self, anchor):
         if "telephone" in anchor.caffe.symbols[0:2]:
             return False
-        if "block" in anchor.caffe.symbols[0:2] or "box" in anchor.caffe.symbols[0:2]:
-            return True
+        elif "block" in anchor.caffe.symbols[0:2] or "box" in anchor.caffe.symbols[0:2]:
+            if len(self.box_anchors)<4 and not anchor.id in self.box_anchors:
+                self.box_anchors.append(anchor.id)
+                return True
+            elif anchor.id in self.box_anchors:
+                return True
+            else:
+                return False
+
         else:
             return False

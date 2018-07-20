@@ -81,7 +81,6 @@ pick_BigBox(A_ID):t+1 ~ uniform(BigBoxes) <-
    \+hidden(A_ID,_):t,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    findall_forward(BB, (big_box(BB):t+1, rv(BB):t+1~=(XBB,_,YBB,_,ZBB,_),  D is sqrt((X1-XBB)^2+(Y1-YBB)^2), D<0.2), BigBoxes),
-   writeln(BigBoxes),
    \+BigBoxes=[].
 
 
