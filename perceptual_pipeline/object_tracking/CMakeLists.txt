@@ -54,7 +54,7 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES object_tracking
-#  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
+  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs anchor_msgs
 #  DEPENDS system_lib
 )
 
@@ -74,6 +74,9 @@ include_directories( include
 ## Declare a C++ executable
 add_executable(object_tracking src/object_tracking.cpp)
 add_executable(object_viewer src/object_viewer.cpp)
+
+add_dependencies(object_viewer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(object_tracking ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(object_tracking 

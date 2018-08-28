@@ -61,9 +61,9 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#   INCLUDE_DIRS include
+   INCLUDE_DIRS include
 #   LIBRARIES anchoring
-#   CATKIN_DEPENDS anchor_msgs cv_bridge image_geometry image_transport pcl_conversions pcl_ros roscpp rostime
+   CATKIN_DEPENDS anchor_msgs cv_bridge image_geometry image_transport pcl_conversions pcl_ros roscpp rostime
  #   DEPENDS MongoClient
 )
 
@@ -93,7 +93,8 @@ add_executable(annotation src/anchor_annotation.cpp src/anchor_container.cpp src
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(anchoring_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(anchoring ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(annotation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( anchoring

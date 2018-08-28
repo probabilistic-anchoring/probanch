@@ -18,6 +18,8 @@ endif()
 ## is used, also find other catkin packages
 find_package( catkin REQUIRED COMPONENTS
   anchor_msgs
+  rospy
+  hand_tracking
   roscpp
   rostime
   std_msgs 
@@ -51,9 +53,9 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES segmentation
-  CATKIN_DEPENDS  anchor_msgs roscpp rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
+  CATKIN_DEPENDS  anchor_msgs roscpp rospy hand_tracking rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
 #  DEPENDS system_lib
 )
 
@@ -72,8 +74,11 @@ include_directories( include
 )
 
 ## Declare a C++ executable
-add_executable( object_segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
-add_executable( object_calibration src/object_calibration.cpp src/pcl_segmentation.cpp)
+add_executable(object_segmentation src/object_segmentation.cpp src/pcl_segmentation.cpp)
+add_executable(object_calibration src/object_calibration.cpp src/pcl_segmentation.cpp)
+
+add_dependencies(object_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(object_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( object_segmentation 
