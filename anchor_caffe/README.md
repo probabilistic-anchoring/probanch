@@ -48,8 +48,8 @@ To fix, create these symlinks
 
 ```bash
 cd /usr/lib/x86_64-linux-gnu
-sudo ln -s libhdf5_serial.so.<version> libhdf5.so
-sudo ln -s libhdf5_serial_hl.so.<version> libhdf5_hl.so
+sudo ln -s libhdf5_serial.so.8.0.2 libhdf5.so
+sudo ln -s libhdf5_serial_hl.so.8.0.2 libhdf5_hl.so
 ```
 
 In return, change this line, as well ([source](https://github.com/NVIDIA/DIGITS/issues/156#issuecomment-219089383))
