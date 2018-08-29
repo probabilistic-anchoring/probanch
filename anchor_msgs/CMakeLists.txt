@@ -38,6 +38,7 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   LanguageGrounding.srv
    SpatialRequest.srv
    TimedRequest.srv
 )

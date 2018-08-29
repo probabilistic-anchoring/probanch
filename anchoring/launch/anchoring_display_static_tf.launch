@@ -16,7 +16,13 @@
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
 
   <!-- Anchor Caffe node -->
-  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
+  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" >
+    <param name="predictions" type="int" value="3" />
+
+    <!-- Used for displaying a result image view -->
+    <param name="display_window" type="bool" value="false" />
+  </node>
+
 
   <!-- Anchoring framework -->
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"

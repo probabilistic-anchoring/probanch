@@ -127,7 +127,6 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   }
   */
 
-
   // Manage the anchors
   for( uint i = 0; i < objects.size(); i++) {
     string id = objects[i].getId();
@@ -139,7 +138,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     }
   }
 
-  // Get a snapshot of all anchors seen in the scene at time t
+  // Get all anchors seen in the scene at this time (t)
   anchor_msgs::AnchorArray msg;
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
@@ -158,12 +157,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   ROS_INFO("------------------------------");
 }
 
-/* -----------------------------------------
-   Predict if
-   --------------------------------------- */
-float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
 
-}
 
 /* -----------------------------------------
    Main track function(s)
@@ -174,7 +168,7 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
   ros::Time t = track_ptr->header.stamp;
   for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
-    // IF tracked hidden object, add the position of hte object
+    // Tracked hidden object, add the position(s) of hte object
     if( !track_ptr->anchors[i].observed ) {
       
       // Populate a list of position messages
@@ -193,6 +187,78 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 }
 
 
+// Handle a request for a snapshot the the anchorspace
+bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
+				     anchor_msgs::TimedRequest::Response &res ) {
+
+  // Get a snapshot of all anchors seen scene at time t
+  this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
+  return true;
+}
+
+// Handle a request for spatial information about one (or more) anchor(s)
+bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req,
+				       anchor_msgs::SpatialRequest::Response &res ) {
+  try {
+
+    // Iterate given ids and collect spatial positions and volumes
+    for( auto &id : req.ids) {
+      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
+    }
+  }
+  catch( const std::exception &e ) {
+    ROS_ERROR("[AnchorManagement::spatialRequest]%s", e.what() );
+    return false;
+  }
+  return true;
+}
+
+
+// For 'ROS loop' access
+void AnchorManagement::spin() {
+  ros::Rate rate(30);
+  while (ros::ok()) {
+
+    // Maintain the anchor list while idle
+    if( !this->_anchors->empty() ) {
+      this->_anchors->maintain();
+    }
+
+    ros::spinOnce();
+    rate.sleep();
+  }
+}
+
+// ------------------------------------------
+// Main function
+// ------------------------------------------
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "anchoring_management");
+  ros::NodeHandle nh;
+
+  // Reading the number of threads used to initilize the anchor space with
+  int threads;
+  if( !ros::param::get("~threads", threads) ) {
+    threads = 8;  // Defualt: 8
+  }
+
+  AnchorManagement node(nh);
+  node.init(threads);
+
+  node.spin();
+  return 0;
+}
+
+
+// ---[ OLD STUFF ]---------
+
+/* -----------------------------------------
+   Predict if
+   ----------------------------------------
+float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
+
+}
+   --------------------------------------- */
 /*
 // ---[ Track method based on data association ]---
 void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr ) {
@@ -257,7 +323,7 @@ void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstP
      -1 - tracked by distance
       0 - no match
      +1 - re-acquried by match
-   -------------------------------------- */
+   -------------------------------------- 
 int AnchorManagement::process( map< string, map<AttributeType, float> > &matches,
 			       string &id,
 			       float dist_th,
@@ -295,65 +361,6 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
 
   return 0;
 }
+----------------------------------*/
 
-// Handle a request for a snapshot the the anchorspace
-bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
-				     anchor_msgs::TimedRequest::Response &res ) {
-
-  // Get a snapshot of all anchors seen scene at time t
-  this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
-  return true;
-}
-
-// Handle a request for spatial information about one (or more) anchor(s)
-bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req,
-				       anchor_msgs::SpatialRequest::Response &res ) {
-  try {
-
-    // Iterate given ids and collect spatial positions and volumes
-    for( auto &id : req.ids) {
-      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
-    }
-  }
-  catch( const std::exception &e ) {
-    ROS_ERROR("[AnchorManagement::spatialRequest]%s", e.what() );
-    return false;
-  }
-  return true;
-}
-
-
-// For 'ROS loop' access
-void AnchorManagement::spin() {
-  ros::Rate rate(30);
-  while (ros::ok()) {
-
-    // Maintain the anchor list while idle
-    if( !this->_anchors->empty() ) {
-      this->_anchors->maintain();
-    }
-
-    ros::spinOnce();
-    rate.sleep();
-  }
-}
-
-// ------------------------------------------
-// Main function
-// ------------------------------------------
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "anchoring_management");
-  ros::NodeHandle nh;
-
-  // Reading the number of threads used to initilize the anchor space with
-  int threads;
-  if( !ros::param::get("~threads", threads) ) {
-    threads = 8;  // Defualt: 8
-  }
-
-  AnchorManagement node(nh);
-  node.init(threads);
-
-  node.spin();
-  return 0;
-}
+// ---[ END ]----

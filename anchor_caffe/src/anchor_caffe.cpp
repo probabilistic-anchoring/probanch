@@ -135,8 +135,8 @@ class AnchorCaffe {
 	
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;
-	int offset = -42;
-	for( uint j = 0; j < 3; j++) {
+	int offset = -10 - (16 * (this->_N - 1));
+	for( uint j = 0; j < this->_N; j++) {
 	  ss << "#" << (j+1) << ": " << output.objects[i].caffe.symbols[j];
 	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
 	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);

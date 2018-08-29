@@ -57,6 +57,20 @@ class AnchorManagement {
     map< string, map<anchoring::AttributeType, float> > _matches;
     map< string, float> _predictions;
 
+    // Match attributes of an unknown object (anchor)
+    void match(ObjectMatching &other) {
+      /*
+      for( auto ite = other._attributes.begin(); ite != other._attributes.end(); ++ite) {
+	if( this->_attributes.find(ite->first) != this->_attributes.end() ) {
+	  std::pair<AttributeType, float> rate;
+	  rate.first = ite->first;	
+	  rate.second = this->_attributes[ite->first]->match(ite->second);
+	  result.insert(rate);
+	}
+      }
+      */
+    }
+    
     // Filter classification predictions
     void filter(ObjectMatching &other) {
       for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
@@ -85,14 +99,9 @@ class AnchorManagement {
     }
   };
 
+  // Main anchoring management fucntions
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
-  float predict(map< string, map<anchoring::AttributeType, float> > &matches);
   void track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr );
-  //void associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr);
-  int process( map< string, map<anchoring::AttributeType, float> > &matches,
-	       string &id,
-	       float dist_th,
-	       float rate_th = 0.75 );
   bool spatialRequest( anchor_msgs::SpatialRequest::Request &req,
 		       anchor_msgs::SpatialRequest::Response &res );
   bool timedRequest( anchor_msgs::TimedRequest::Request &req,
@@ -107,3 +116,13 @@ public:
 };
 
 #endif // __ANCHOR_MANAGEMENT_HPP__
+
+/* ---[ OLD STUFF ] -----------------
+
+  float predict(map< string, map<anchoring::AttributeType, float> > &matches);
+  void associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr);
+  int process( map< string, map<anchoring::AttributeType, float> > &matches,
+	       string &id,
+	       float dist_th,
+	       float rate_th = 0.75 );
+  ---------------------------------- */
