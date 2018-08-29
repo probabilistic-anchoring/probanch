@@ -33,6 +33,7 @@ $ cp Makefile.config.example Makefile.config
 * Set `USE_OPENCV := 1` (for OpenCV support). 
 * Set `BLAS := atlas` to `BLAS := open` for OpenBLAS support.
 * Set `OPENCV_VERSION := 3`, if your're using OpenCV >= 3, see [here](https://github.com/BVLC/caffe/issues/3700#issuecomment-187493856)
+* Change numpy directory in `PYTHON_INCLUDE` to local install `<numpy_location>/core/include`, e.g. `/usr/local/lib/python2.7/dist-packages/numpy/core/include/` 
 * Change line `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include` to `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial/` if an error with hdf5 occurs.
 
 ### Fix hdf5 14.04/16.04 ###
