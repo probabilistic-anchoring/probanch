@@ -27,7 +27,9 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>anchor_msgs</build_depend>
+  <build_depend>hand_tracking</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
   <build_depend>rostime</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
@@ -43,8 +45,10 @@
   <build_depend>image_geometry</build_depend>
 
   <run_depend>anchor_msgs</run_depend>
+  <run_depend>hand_tracking</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
   <run_depend>rostime</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
