@@ -70,6 +70,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(extraction src/feature_extraction.cpp src/visual_features.cpp)
+add_dependencies(extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(extraction

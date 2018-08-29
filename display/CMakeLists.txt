@@ -84,9 +84,8 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES display
-#  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs
+  LIBRARIES display
+  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs anchor_msgs
 #  DEPENDS system_lib
 )
 
@@ -110,7 +109,7 @@ include_directories(
 # )
 
 ## Add cmake target dependencies of the library
-# add_dependencies(display ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(display anchor_msgs_generate_messages_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 add_executable(anchor_viewer src/anchor_viewer.cpp)
@@ -119,7 +118,9 @@ add_executable(anchor_recorder src/anchor_recorder.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(display_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(anchor_viewer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(img2str ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(anchor_recorder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(anchor_viewer
