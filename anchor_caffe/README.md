@@ -29,7 +29,6 @@ $ cp Makefile.config.example Makefile.config
 
 ### Edit `Makefile.config` ###
 
-* Set `CPU_ONLY := 1` (for CPU-only Caffe) and 
 * Set `USE_CUDNN := 1` to enable cudnn accellaration (if available). 
 * Set `USE_OPENCV := 1` (for OpenCV support). 
 * Set `BLAS := atlas` to `BLAS := open` for OpenBLAS support.
@@ -40,22 +39,22 @@ $ cp Makefile.config.example Makefile.config
 According to [this exchange](https://github.com/NVIDIA/DIGITS/issues/156#issuecomment-114776706), we have to add these symlinks, because later hdf5 inclusion will fail with
 
 ```bash
-/usr/bin/ld: cannot find -lhdf5_hl
-/usr/bin/ld: cannot find -lhdf5
+$ /usr/bin/ld: cannot find -lhdf5_hl
+$ /usr/bin/ld: cannot find -lhdf5
 ```
 
 To fix, create these symlinks
 
 ```bash
-cd /usr/lib/x86_64-linux-gnu
-sudo ln -s libhdf5_serial.so.8.0.2 libhdf5.so
-sudo ln -s libhdf5_serial_hl.so.8.0.2 libhdf5_hl.so
+$ cd /usr/lib/x86_64-linux-gnu
+$ sudo ln -s libhdf5_serial.so.8.0.2 libhdf5.so
+$ sudo ln -s libhdf5_serial_hl.so.8.0.2 libhdf5_hl.so
 ```
 
 In return, change this line, as well ([source](https://github.com/NVIDIA/DIGITS/issues/156#issuecomment-219089383))
 
 ```bash
-LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu/hdf5/serial/)
+$ LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu/hdf5/serial/
 ```
 
 **NOTE**: `PYTHON_PATH` should be custom, to accomodate for additional packages of OpenCV, set in `<your_shell>rc`
