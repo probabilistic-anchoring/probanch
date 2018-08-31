@@ -157,11 +157,11 @@ namespace anchoring {
 
   void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::ColorAttribute color_msg;
-    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());;
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
       if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
 	color_msg.symbols.push_back(this->_symbols[i]);
-	color_msg.predictions.push_back((float)this->_predictions[i]);	
+	color_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
       }
     }
     sortAttribute( color_msg.symbols, color_msg.predictions, 5);
