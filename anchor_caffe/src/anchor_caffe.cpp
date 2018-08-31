@@ -106,7 +106,7 @@ class AnchorCaffe {
 
       // Classify image
       if( img.data ) {
-	vector<Prediction> predictions = this->_classifier->Classify(img, this->_N);
+	vector<Prediction> predictions = this->_classifier->Classify(img);
 	vector<Prediction>::iterator ite = predictions.begin();
 	for( ; ite != predictions.end(); ++ite ) {
 	  string str = ite->first;
@@ -137,7 +137,7 @@ class AnchorCaffe {
 	ss << setprecision(2) << fixed;
 	int offset = -10 - (16 * (this->_N - 1));
 	for( uint j = 0; j < this->_N; j++) {
-	  ss << "#" << (j+1) << ": " << output.objects[i].caffe.symbols[j];
+	  ss << (j+1) << ". " << output.objects[i].caffe.symbols[j];
 	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
 	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	  ss.str("");
@@ -190,7 +190,7 @@ class AnchorCaffe {
 
     // Classify image
     if( img.data ) {
-      vector<Prediction> predictions = this->_classifier->Classify(img, this->_N);
+      vector<Prediction> predictions = this->_classifier->Classify(img);
       vector<Prediction>::iterator ite = predictions.begin();
       for( ; ite != predictions.end(); ++ite ) {
 	string str = ite->first;
@@ -268,9 +268,9 @@ public:
 int main(int argc, char** argv) {
   ros::init(argc, argv, "anchor_caffe_node");
 
-  // Read the number of predictions to use
+  // Read the number of top predictions to display
   int n;
-  if( !ros::param::get("~predictions", n) ) {
+  if( !ros::param::get("~top_predictions", n) ) {
     n = 5;  // Defualt: 5
   }
 

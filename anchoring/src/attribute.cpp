@@ -1,4 +1,6 @@
 
+#include <algorithm>
+
 #include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -17,7 +19,29 @@
 
 namespace anchoring {
 
+  // Set a global threashold for max spikes in distributions
+  const int CONST_MAX_TH = 0.65;
+
   using namespace std;
+
+  // --[ Namspace function ]--  
+  void sortAttribute( vector<string>  &symbols,
+		      vector<float> &predictions,
+		      int n ) {
+    for( uint i = 0; i < predictions.size() - 1; i++ ) {
+      for( uint j = i + 1; j < predictions.size(); j++ ) {
+	if( predictions[i] < predictions[j] ) {
+	  swapValues<float>( predictions[i], predictions[j]);
+	  swapValues<std::string>( symbols[i], symbols[j]);
+	}
+      }
+    }
+    if( n >= 0 && n < (int)symbols.size() ) {
+      symbols.erase( symbols.begin() + n, symbols.end());
+      predictions.erase( predictions.begin() + n, predictions.end());
+    }
+  }
+
 
   // ---------------------------------------
   // Common attribute base struct methods
@@ -133,20 +157,30 @@ namespace anchoring {
 
   void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::ColorAttribute color_msg;
-    color_msg.symbols = this->_symbols;
-    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
-      color_msg.predictions.push_back((float)*ite);
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+	color_msg.symbols.push_back(this->_symbols[i]);
+	color_msg.predictions.push_back((float)this->_predictions[i]);	
+      }
     }
+    sortAttribute( color_msg.symbols, color_msg.predictions, 5);
     msg.color = color_msg;
   }
   void ColorAttribute::populate(anchor_msgs::Display &msg) {
-    msg.colors = this->_symbols;
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+	msg.colors.push_back(this->_symbols[i]);
+      }
+    }
+    // msg.colors = this->_symbols;
   }
 
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -157,7 +191,7 @@ namespace anchoring {
 
   bool ColorAttribute::update(const AttributePtr &new_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -166,6 +200,11 @@ namespace anchoring {
     
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
+
+    // Summarize the predisctions
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      this->_predictions[i] += raw_ptr->_predictions[i];
+    }
 
     return true;
   }
@@ -385,7 +424,7 @@ namespace anchoring {
   
   float PositionAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
     
@@ -436,7 +475,7 @@ namespace anchoring {
 
   bool PositionAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -537,7 +576,7 @@ namespace anchoring {
 
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ShapeAttribute *raw_ptr = dynamic_cast<ShapeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -554,7 +593,16 @@ namespace anchoring {
     }
     return 0.0;
   }
+  
+  bool ShapeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
 
+    // Typecast the new atribute pointer
+    ShapeAttribute* raw_ptr = dynamic_cast<ShapeAttribute*>(new_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    this->_data = raw_ptr->_data;
+  }
+  
   string ShapeAttribute::toString() {
     return _symbols[0];
   }
@@ -577,7 +625,7 @@ namespace anchoring {
     this->_border = msg.border;
     this->_point = msg.point;
     this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
-    this->_N = vector<double>( this->_predictions.size(), 1.0);
+    this->_n = 1.0;   // ...counter
   }
 
   mongo::Database::Document CaffeAttribute::serialize() {
@@ -599,7 +647,7 @@ namespace anchoring {
 
       // Save (caffe) predictions
       doc.add<double>( "predictions", this->_predictions);
-      doc.add<double>( "N", this->_N);  // ..including the frequencies
+      doc.add<double>( "n", this->_n);  // ..including the frequency 
       
       // Save the contour
       for( auto &point : _border.contour ) {
@@ -634,7 +682,7 @@ namespace anchoring {
 
       // Load (caffe) predictions
       doc.get<double>( "predictions", this->_predictions);
-      doc.get<double>( "N", this->_N);
+      this->_n = (float)doc.get<double>("n");  // ...including the frequency 
 
       // Load the contour
       for( mongo::document_iterator ite = doc.begin("border"); ite != doc.end("border"); ++ite) {
@@ -660,11 +708,21 @@ namespace anchoring {
 
   void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::CaffeAttribute caffe_msg;
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value
+	caffe_msg.symbols.push_back(this->_symbols[i]);
+	caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
+      }
+    }
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, 5);
+    /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
     for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
       caffe_msg.predictions.push_back((float)*ite / *n);
     }
+    */
     msg.caffe = caffe_msg;
   }
 
@@ -673,7 +731,7 @@ namespace anchoring {
     float best = 0.0;
     int index = -1;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_N[i]; 
+      float prob = this->_predictions[i] / this->_n; 
       if( prob > best ) {
 	best = prob;
 	index = i;
@@ -681,14 +739,14 @@ namespace anchoring {
     }
     if( index >= 0 ) {
       msg.category = this->_symbols[index];
-      msg.prediction = this->_predictions[index] / this->_N[index];
+      msg.prediction = this->_predictions[index] / this->_n;
     }
     
   }
 
   float CaffeAttribute::match(const AttributePtr &query_ptr) { 
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -697,8 +755,8 @@ namespace anchoring {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
 	  float diff = 1.0 / 
-	    exp( abs( (this->_predictions[i] / this->_N[i]) - raw_ptr->_predictions[j] ) /
-		 ( (this->_predictions[i] / this->_N[i]) * raw_ptr->_predictions[j] ) );
+	    exp( abs( (this->_predictions[i] / this->_n) - raw_ptr->_predictions[j] ) /
+		 ( (this->_predictions[i] / this->_n) * raw_ptr->_predictions[j] ) );
 	  if (diff > result ) {
 	    result = diff;
 	  }
@@ -710,7 +768,7 @@ namespace anchoring {
 
   bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -719,6 +777,15 @@ namespace anchoring {
     this->_border = raw_ptr->_border;
     this->_point = raw_ptr->_point;
 
+    // Increment the counter
+    this->_n = this->_n + raw_ptr->_n;
+    
+    // Summarize the predisctions
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      this->_predictions[i] += raw_ptr->_predictions[i];
+    }
+    
+    /*
     // Add non-exisitng symbols
     for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {
       if( find( this->_symbols.begin(), this->_symbols.end(), raw_ptr->_symbols[i]) == this->_symbols.end() ) {
@@ -737,6 +804,7 @@ namespace anchoring {
 	} 
       }
     }
+    */
     return true;
   }
 
@@ -745,7 +813,7 @@ namespace anchoring {
     int index = -1;
     std::stringstream ss;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_N[i];
+      float prob = this->_predictions[i] / this->_n;
       if( prob > best ) {
 	best = prob;
 	index = i;

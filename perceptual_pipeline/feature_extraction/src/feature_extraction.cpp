@@ -166,6 +166,7 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     
     // 3. Extract color attribute
     // --------------------------- 
+
     // Draw the contour image mask 
     cv::Mat mask( img.size(), CV_8U, cv::Scalar(0) );
     std::vector<std::vector<cv::Point> > contours;
@@ -217,13 +218,10 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       }  
     }
 
-    // Ground color symbols
-    double max = *std::max_element( preds.begin(), preds.end());
+    // Ground color symbols (and add the result to the output message)
     for( uint j = 0; j < preds.size(); j++) {
-      if( preds[j] / max > 0.75 ) {  // Looking for color spikes above 75 % of the max value
-	output.objects[i].color.symbols.push_back(this->_cf.colorSymbol(j));
-	output.objects[i].color.predictions.push_back(preds[j]);
-      }
+      output.objects[i].color.symbols.push_back(this->_cf.colorSymbol(j));
+      output.objects[i].color.predictions.push_back(preds[j]);
     }
 
     // Create the output "image"

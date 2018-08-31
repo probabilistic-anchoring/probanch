@@ -17,7 +17,7 @@
 
   <!-- Anchor Caffe node -->
   <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" >
-    <param name="predictions" type="int" value="3" />
+    <param name="top_predictions" type="int" value="3" />
 
     <!-- Used for displaying a result image view -->
     <param name="display_window" type="bool" value="false" />
