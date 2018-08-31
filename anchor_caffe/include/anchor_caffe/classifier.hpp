@@ -23,7 +23,7 @@ class Classifier {
                    const string& label_file,
 		   const string& mean_file = "");
 
-        std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
+        std::vector<Prediction> Classify(const cv::Mat& img, int N = -1);
 
     private:
         void SetMean(const string& mean_file);
@@ -98,7 +98,12 @@ static std::vector<int> Argmax(const std::vector<float>& v, int N) {
 /* Return the top N predictions. */
 std::vector<Prediction> Classifier::Classify(const cv::Mat& img, int N) {
     std::vector<float> output = Predict(img);
-
+    
+    /* Default (N = -1), use all labels */
+    if( N < 0 ) {
+      N = (int)labels_.size();
+    }
+    
     std::vector<int> maxN = Argmax(output, N);
     std::vector<Prediction> predictions;
     for (int i = 0; i < N; ++i) {
