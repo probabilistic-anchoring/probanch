@@ -3,5 +3,4 @@ anchor_msgs/Anchor[] anchors
 anchor_msgs/AnchorLabelConfiguration[] anchor_label_configurations
 ---
 string instruction
-bool status
 anchor_msgs/AnchorLabelConfigurationProbs[] anchor_label_configurations_prob
