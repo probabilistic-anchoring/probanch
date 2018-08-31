@@ -1,1 +1,1 @@
-string[] anchor_label_configuration
+string[] label_configuration
