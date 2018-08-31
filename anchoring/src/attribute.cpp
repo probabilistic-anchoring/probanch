@@ -1,4 +1,6 @@
 
+#include <algorithm>
+
 #include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -146,7 +148,7 @@ namespace anchoring {
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -157,7 +159,7 @@ namespace anchoring {
 
   bool ColorAttribute::update(const AttributePtr &new_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -385,7 +387,7 @@ namespace anchoring {
   
   float PositionAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
     
@@ -436,7 +438,7 @@ namespace anchoring {
 
   bool PositionAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -537,7 +539,7 @@ namespace anchoring {
 
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ShapeAttribute *raw_ptr = dynamic_cast<ShapeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -554,7 +556,16 @@ namespace anchoring {
     }
     return 0.0;
   }
+  
+  bool ShapeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
 
+    // Typecast the new atribute pointer
+    ShapeAttribute *raw_ptr = dynamic_cast<ShapeAttribute*>(query_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    this->_data = raw_ptr->data;
+  }
+  
   string ShapeAttribute::toString() {
     return _symbols[0];
   }
@@ -577,7 +588,7 @@ namespace anchoring {
     this->_border = msg.border;
     this->_point = msg.point;
     this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
-    this->_N = vector<double>( this->_predictions.size(), 1.0);
+    this->_N = 1.0;
   }
 
   mongo::Database::Document CaffeAttribute::serialize() {
@@ -688,7 +699,7 @@ namespace anchoring {
 
   float CaffeAttribute::match(const AttributePtr &query_ptr) { 
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -710,7 +721,7 @@ namespace anchoring {
 
   bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 

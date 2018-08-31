@@ -138,7 +138,7 @@ namespace anchoring {
   // ---[ Shape attribute struct ]---
   //-----------------------------------------------
   struct ShapeAttribute : public AttributeCommon {
-    geometry_msgs::Point _data;
+    geometry_msgs::Vector3 _data;
 
     // Constructors
     ShapeAttribute(AttributeType type = SHAPE) : AttributeCommon(type) {}
@@ -151,6 +151,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &new_ptr);
     string toString();
   }; 
 
@@ -160,7 +161,7 @@ namespace anchoring {
   struct CaffeAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
-    vector<double> _N;
+    double _N;
     
     anchor_msgs::Contour _border;
     anchor_msgs::Point2d _point;
