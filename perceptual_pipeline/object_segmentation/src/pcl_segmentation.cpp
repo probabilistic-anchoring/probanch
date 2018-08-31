@@ -520,7 +520,7 @@ void segmentation::getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud
 }
 
 void segmentation::getShape( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-			     geometry_msgs::Point &dim ) {
+			     geometry_msgs::Vector3 &shape ) {
   // Get the 3D bounding box
   Point proj_min;
   Point proj_max;
@@ -530,8 +530,8 @@ void segmentation::getShape( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
   double height = fabs(proj_max.y - proj_min.y);
   double depth = fabs(proj_max.z - proj_min.z); 
 
-  dim.x = width;
-  dim.y = height;
-  dim.z = depth;
+  shape.x = width;
+  shape.y = height;
+  shape.z = depth;
   //std::cout << "Shape: [" << width << ", " << height << ", " << depth << "]" << std::endl;
 }

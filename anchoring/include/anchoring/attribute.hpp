@@ -21,7 +21,7 @@
 
 // --[ anchoring namespace... 
 namespace anchoring {
-
+  
   using namespace std;
 
   // ---[ Different attribute types ]---
@@ -58,7 +58,6 @@ namespace anchoring {
     virtual string toString() { return ""; }
 
     string getTypeStr();
-
   }; // ...base attribute struct ]---
   
 
@@ -161,7 +160,7 @@ namespace anchoring {
   struct CaffeAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
-    double _N;
+    float _n;
     
     anchor_msgs::Contour _border;
     anchor_msgs::Point2d _point;
@@ -181,6 +180,19 @@ namespace anchoring {
     string toString();
   }; 
 
+
+  // --[ Namspace function headers (and template functions) ]--
+  template <typename T>
+  void swapValues(T &x, T &y) {
+    T temp = x;
+    x = y;
+    y = temp;
+  }
+  void sortAttribute( vector<string>  &symbols,
+		      vector<float> &predictions,
+		      int n = -1 );
+  
+  
 } // namespace anchoring ]---
   
 #endif // __ATTRIBUTE_HPP__ 
