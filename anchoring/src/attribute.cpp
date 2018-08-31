@@ -20,7 +20,7 @@
 namespace anchoring {
 
   // Set a global threashold for max spikes in distributions
-  const int CONST_MAX_TH = 0.65;
+  const double CONST_MAX_TH = 0.65;
 
   using namespace std;
 
@@ -157,9 +157,9 @@ namespace anchoring {
 
   void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::ColorAttribute color_msg;
-    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());;
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+      if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
 	color_msg.symbols.push_back(this->_symbols[i]);
 	color_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
       }
@@ -170,7 +170,7 @@ namespace anchoring {
   void ColorAttribute::populate(anchor_msgs::Display &msg) {
     double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+      if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
 	msg.colors.push_back(this->_symbols[i]);
       }
     }
@@ -710,7 +710,7 @@ namespace anchoring {
     anchor_msgs::CaffeAttribute caffe_msg;
     double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      if( this->_predictions[i] / max > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value
+      if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value
 	caffe_msg.symbols.push_back(this->_symbols[i]);
 	caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
       }
