@@ -13,8 +13,8 @@
   <node pkg="tf" type="static_transform_publisher" name="table_tf" args="1.2 0.36 0 3.1415 0 0 base_link kinect_base_link 100" />
   <node pkg="tf" type="static_transform_publisher" name="kinect_base_tf" args="0 0 0.5 0 0.4363 0 kinect_base_link kinect_tilt_link 100" />
   <node pkg="tf" type="static_transform_publisher" name="kinect_tilt_tf" args="0 0 0.08 0 0 0 kinect_tilt_link kinect_rotate_link 100" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_lense_link 100" />
-  <node pkg="tf" type="static_transform_publisher" name="kinect2_lens_tf" args="0.095 0 0 0 0 0 kinect2_lense_link kinect2_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_link 100" />
+  <!--<node pkg="tf" type="static_transform_publisher" name="kinect2_lens_tf" args="0.095 0 0 0 0 0 kinect2_lense_link kinect2_link 100" />-->
 
   <!-- Run object segmentation (recognition) node -->
   <node name="object_segmentation_node" pkg="object_segmentation" type="object_segmentation" output="screen">
@@ -44,10 +44,10 @@
 
   </node>
 
-  <!-- Tracking node --> 
+  <!-- Tracking node
   <node name="hand_tracking_node" pkg="hand_tracking" type="tracker.py" output="screen" >
     <param name="display" type="bool" value="true" />
   </node>
-  
+  -->
 
 </launch>
