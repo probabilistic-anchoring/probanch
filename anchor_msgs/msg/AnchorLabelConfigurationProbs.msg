@@ -1,2 +1,2 @@
 bool status
-float[] label_configuration_probs
+float32[] label_configuration_probs
