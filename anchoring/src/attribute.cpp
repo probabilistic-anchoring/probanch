@@ -780,9 +780,21 @@ namespace anchoring {
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
     
-    // Summarize the predisctions
-    for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      this->_predictions[i] += raw_ptr->_predictions[i];
+    // Summarize the predictions
+    if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
+      for( uint i = 0; i < this->_predictions.size(); i++ ) {
+	this->_predictions[i] += raw_ptr->_predictions[i];
+      }
+    }
+    else {  // ...or update prediction/symbol based on a top down information (from language).
+      std::fill( this->_predictions.begin(), this->_predictions.end(), 0.0);
+      for( uint i = 0; i < this->_symbols.size(); i++ ) {
+	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	    this->_predictions[i] = raw_ptr->_predictions[j];
+	  }
+	}
+      }
     }
     
     /*

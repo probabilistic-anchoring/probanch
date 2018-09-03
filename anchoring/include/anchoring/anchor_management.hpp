@@ -7,6 +7,7 @@
 #include <anchor_msgs/SpatialRequest.h>
 
 #include <anchor_msgs/LogicAnchorArray.h>
+#include <anchor_msgs/SemanticAnchorArray.h>
 
 #include <anchoring/anchor_container.hpp>
 #include <anchor_utils/ml.hpp>
@@ -102,7 +103,7 @@ class AnchorManagement {
   // Main anchoring management fucntions
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr );
-  void update( const anchor_msgs::LogicAnchorPtr &update_ptr );
+  void update( const anchor_msgs::SemanticAnchorArrayPtr &update_ptr );
   bool spatialRequest( anchor_msgs::SpatialRequest::Request &req,
 		       anchor_msgs::SpatialRequest::Response &res );
   bool timedRequest( anchor_msgs::TimedRequest::Request &req,

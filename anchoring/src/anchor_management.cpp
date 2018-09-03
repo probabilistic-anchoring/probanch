@@ -22,6 +22,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/logic_anchors", 10, &AnchorManagement::track, this);
+  _update_sub = _nh.subscribe("/brain/semantic_update", 10, &AnchorManagement::update, this);
   //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
 
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
@@ -191,16 +192,22 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 
    Update function
    --------------------
-   Updates and anchor based on the infromation
+   Updates and anchor based on the information
    given by language instruction(s).
 
-   --------------------------------------- */
-void AnchorManagement::update( const anchor_msgs::LogicAnchorPtr &update_ptr ) {
+   ------------------------------------------- */
+void AnchorManagement::update( const anchor_msgs::SemanticAnchorArrayPtr &update_ptr ) {
+  ROS_INFO("Anchoring: got a semantic update!");
+  
+  // Maintain all incoming tracked objects
+  ros::Time t = ros::Time::now();
+  for( uint i = 0; i < update_ptr->anchors.size(); i++) {
 
-  // Update the class categories of an anchor
-  anchoring::AttributeMap attributes;
-  //attributes[CAFFE] = AttributePtr( new CaffeAttribute(array) );
-  //this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
+    // Update the class categories of an anchor
+    anchoring::AttributeMap attributes;
+    attributes[CAFFE] = AttributePtr( new CaffeAttribute(update_ptr->anchors[i].caffe) );
+    this->_anchors->re_acquire( update_ptr->anchors[i].id, attributes, t); // TRACK
+  }
 }
 
 
