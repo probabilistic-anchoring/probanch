@@ -1,1 +1,0 @@
-string[] label_configuration
