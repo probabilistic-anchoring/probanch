@@ -616,13 +616,14 @@ namespace anchoring {
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      if( sizeof( msg.data) > 0 ) {
+      if( sizeof(msg.data) > 0 ) {
 	cv_ptr = cv_bridge::toCvCopy( msg.data,
 				      sensor_msgs::image_encodings::BGR8 );
 	cv_ptr->image.copyTo(this->_data);
       }
     } catch (cv_bridge::Exception& e) {
-      throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
+      // FIX THIS SHIT LATER ON!!
+      //throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
     }    
     this->_border = msg.border;
     this->_point = msg.point;
