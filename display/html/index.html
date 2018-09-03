@@ -145,6 +145,12 @@
       messageType : 'std_msgs/String'
     });
 
+    var click_pub = new ROSLIB.Topic({
+      ros : ros,
+      name : '/display/click',
+      messageType : 'geometry_msgs/Point'
+    });
+    
     var instruction = new ROSLIB.Topic({
       ros : ros,
       name : '/language/instruction',
@@ -168,6 +174,23 @@
       displayImg.setAttribute( 'src', imgData);
     });
 
+    // Handle image clicks
+    $(function() {
+      $("#ROSImg").click(function(e) {
+        var offset = $(this).offset();
+        var relativeX = Math.round(e.pageX - offset.left);
+        var relativeY = Math.round(e.pageY - offset.top);
+
+        // Create and send the ROS display clicked message
+        var point = new ROSLIB.Message({
+          x : relativeX,
+          y : relativeY,
+          z : 0.0
+        });
+        click_pub.publish(point);
+      });
+    });
+    
     // Text map for changing the describing text
     var dict_summary = {
       "segmentation" : 

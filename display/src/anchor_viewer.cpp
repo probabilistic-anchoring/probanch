@@ -17,6 +17,7 @@
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
 #include <anchor_msgs/LogicAnchorArray.h>
+#include <geometry_msgs/Point.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -34,6 +35,7 @@ class AnchorViewer {
   ros::Subscriber _anchor_sub;
   ros::Subscriber _particle_sub;
   ros::Subscriber _highlight_sub;
+  ros::Subscriber _click_sub;
   ros::Publisher _selected_pub;
 
   string _display_trigger;
@@ -310,8 +312,13 @@ class AnchorViewer {
     cout << "----------------------" << endl;
   }
 
+  // Dispaly (web interface) clikc callback function
+  void web_interface_click_cb(const geometry_msgs::PointConstPtr& msg) {
+    this->click_wrapper( cv::EVENT_LBUTTONDOWN, msg->x, msg->y, -1 );
+  }
+  
   // Mouse click callback function(s)
-  static void click_cb(int event, int x, int y, int flags, void *obj) {
+  static void mouse_click_cb(int event, int x, int y, int flags, void *obj) {
     AnchorViewer *self = static_cast<AnchorViewer*>(obj);
     if( event == cv::EVENT_LBUTTONDOWN ) {
       self->click_wrapper( event, x, y, flags);
@@ -348,6 +355,7 @@ public:
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
+    _click_sub = _nh.subscribe("/display/click", 10, &AnchorViewer::web_interface_click_cb, this);
     _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
     // Used for the web interface
@@ -367,7 +375,7 @@ public:
     // Create the display window
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);
-    cv::setMouseCallback( window, &AnchorViewer::click_cb, this);
+    cv::setMouseCallback( window, &AnchorViewer::mouse_click_cb, this);
 
     this->_rng = cv::RNG( 0xFFFFFFFF );
   }
