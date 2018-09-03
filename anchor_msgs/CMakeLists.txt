@@ -33,8 +33,7 @@ add_message_files(
    ShapeAttribute.msg
    LogicAnchor.msg
    LogicAnchorArray.msg
-   AnchorLabelConfiguration.msg
-   AnchorLabelConfigurationProbs.msg
+   Instruction.msg
 )
 
 ## Generate services in the 'srv' folder
