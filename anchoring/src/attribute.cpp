@@ -616,9 +616,11 @@ namespace anchoring {
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      cv_ptr = cv_bridge::toCvCopy( msg.data,
-				    sensor_msgs::image_encodings::BGR8 );
-      cv_ptr->image.copyTo(this->_data);
+      if( sizeof( msg.data) > 0 ) {
+	cv_ptr = cv_bridge::toCvCopy( msg.data,
+				      sensor_msgs::image_encodings::BGR8 );
+	cv_ptr->image.copyTo(this->_data);
+      }
     } catch (cv_bridge::Exception& e) {
       throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
     }    
@@ -772,10 +774,12 @@ namespace anchoring {
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
-    // Update the visual data 
-    this->_data = raw_ptr->_data;
-    this->_border = raw_ptr->_border;
-    this->_point = raw_ptr->_point;
+    // Update the visual data
+    if( !raw_ptr->_data.empty() ) {
+      this->_data = raw_ptr->_data;
+      this->_border = raw_ptr->_border;
+      this->_point = raw_ptr->_point;
+    }
 
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
