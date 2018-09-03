@@ -1,6 +1,6 @@
 string instruction_text
 anchor_msgs/Anchor[] anchors
-string[]
+string[] config
 ---
 anchor_msgs/Instruction instruction
 float32[] config_probs
