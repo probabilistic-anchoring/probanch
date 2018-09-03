@@ -28,7 +28,7 @@ class AnchorManagement {
      ROS variables
      -------------- */
   ros::NodeHandle _nh, _priv_nh;
-  ros::Subscriber _object_sub, _track_sub, _assoc_sub;
+  ros::Subscriber _object_sub, _track_sub, _assoc_sub, _update_sub;
   ros::ServiceServer _spatial_srv, _timed_srv;
   ros::Publisher _anchor_pub, _display_pub;
 
@@ -102,6 +102,7 @@ class AnchorManagement {
   // Main anchoring management fucntions
   void match( const anchor_msgs::ObjectArrayConstPtr &object_ptr );
   void track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr );
+  void update( const anchor_msgs::LogicAnchorPtr &update_ptr );
   bool spatialRequest( anchor_msgs::SpatialRequest::Request &req,
 		       anchor_msgs::SpatialRequest::Response &res );
   bool timedRequest( anchor_msgs::TimedRequest::Request &req,

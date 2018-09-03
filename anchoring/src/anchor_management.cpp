@@ -187,6 +187,23 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 }
 
 
+/* -----------------------------------------
+
+   Update function
+   --------------------
+   Updates and anchor based on the infromation
+   given by language instruction(s).
+
+   --------------------------------------- */
+void AnchorManagement::update( const anchor_msgs::LogicAnchorPtr &update_ptr ) {
+
+  // Update the class categories of an anchor
+  anchoring::AttributeMap attributes;
+  //attributes[CAFFE] = AttributePtr( new CaffeAttribute(array) );
+  //this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
+}
+
+
 // Handle a request for a snapshot the the anchorspace
 bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
 				     anchor_msgs::TimedRequest::Response &res ) {
