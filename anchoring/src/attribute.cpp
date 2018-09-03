@@ -780,7 +780,7 @@ namespace anchoring {
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
     
-    // Summarize the predictions
+    // Summarize the predictions...
     if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
       for( uint i = 0; i < this->_predictions.size(); i++ ) {
 	this->_predictions[i] += raw_ptr->_predictions[i];
