@@ -39,6 +39,9 @@ class ImageToBase64 {
   image_transport::Subscriber _img_sub;
   ros::Publisher _img_str_pub;
 
+  // JPEG quality param
+  int _jpeg_quality;
+  
   // Encode a string to base64
   std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
     std::string ret;
@@ -87,6 +90,9 @@ public:
     _img_sub = _it.subscribe("/display/image", 1, &ImageToBase64::imageCb, this);
     _img_str_pub = _nh.advertise<std_msgs::String>("/display/base64img", 1);
 
+    // Read the JPEG qulaity as ROS param
+    _priv_nh.param<int>( "jpeg_quality", this->_jpeg_quality, 95);
+    std::cout << "JPEG quality: " << this->_jpeg_quality << std::endl;
   }
   ~ImageToBase64() {}
 
@@ -102,10 +108,15 @@ public:
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
-
+    
+    // Encoding compression paramters
+    vector<int> compression_params;
+    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(this->_jpeg_quality);
+    
     // Encode the image to base64
     vector<uchar> buf;
-    cv::imencode(".jpg", cv_ptr->image, buf);
+    cv::imencode(".jpg", cv_ptr->image, buf, compression_params);
     uchar *enc_msg = new uchar[buf.size()];
     for(int i=0; i < buf.size(); i++) { 
       enc_msg[i] = buf[i];

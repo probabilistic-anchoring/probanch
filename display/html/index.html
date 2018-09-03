@@ -44,6 +44,80 @@
       color: black;
     }    
 
+
+    /* Form style */
+    .form {
+    max-width: 100%;
+    padding: 0px 0px 0px 0px;
+    margin-top: 4px;
+    font: 14px Arial, Helvetica, sans-serif;
+    }
+    .form-heading {
+    font-weight: bold;
+    font-style: italic;
+    border-bottom: 2px solid #FFFFFF;
+    margin-bottom: 0px;
+    font-size: 16px;
+    padding-bottom: 2px;
+    }
+    .form label {
+    display: block;
+    margin: 12px;
+    }
+    .form label > span {
+    width: 100%;
+    font-weight: bold;
+    padding-top: 0px;
+    margin: 0px;
+    }
+    .disabled-span {
+    color: #D3D3D3;
+    }
+
+    .form input.input-field,
+    .form .select-field {
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    border: 2px solid black;
+    box-shadow: 1px 1px 4px #EBEBEB;
+    -moz-box-shadow: 1px 1px 4px #EBEBEB;
+    -webkit-box-shadow: 1px 1px 4px #EBEBEB;
+    border-radius: 3px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    padding: 7px;
+    outline: none;
+    }
+    .form .input-field:focus,
+    .form .select-field:focus{
+    border: 2px solid black;
+    }
+
+    .form input[type=submit],
+    .form input[type=button] {
+    font-weight: bold;
+    border: 2px solid #000000;
+    padding: 8px 15px 8px 15px;
+    background: #FFFFFF;
+    color: #000000;
+    border-radius: 3px;
+    }
+    .form input[type=submit]:hover,
+    .form input[type=button]:hover {
+    font-weight: bold;
+    background: #DADADA;
+    color: #000000;
+    }
+
+    .form input[type=submit]:disabled,
+    .form input[type=button]:disabled {
+    font-weight: bold;
+    border: 2px solid #D3D3D3;
+    background: #FFFFFF;
+    color: #D3D3D3;
+    }
   </style>
   <script>
 
@@ -53,7 +127,8 @@
     var ros = new ROSLIB.Ros();
   
     // Create a connection to the rosbridge WebSocket server.
-    ros.connect('ws://localhost:9090');
+    //ros.connect('ws://localhost:9090');
+    ros.connect('ws://10.0.0.12:9090');
 
     // ROS log
     ros.on( 'error', function(error) { 
@@ -64,12 +139,18 @@
     });
 
     // Publisher/subscriber objects
-    var talker = new ROSLIB.Topic({
+    var trigger = new ROSLIB.Topic({
       ros : ros,
       name : '/display/trigger',
       messageType : 'std_msgs/String'
     });
-  
+
+    var instruction = new ROSLIB.Topic({
+      ros : ros,
+      name : '/language/instruction',
+      messageType : 'std_msgs/String'
+    });
+    
     var listener = new ROSLIB.Topic({
       ros : ros,
       name : '/display/base64img',
@@ -94,9 +175,9 @@
 	/*
       "tracking" : 
       "<i>The object tracking node is used to track and record swift movements in the scene.</i>",
-	*/
       "extraction" : 
-      "<i>The feature extraction node is responsible for extract both geometric and visual features of segmented objects.</i>",
+    "<i>The feature extraction node is responsible for extract both geometric and visual features of segmented objects.</i>",
+     */
       "classification" : 
       "<i>This symbol category classification procedure is initiated with the goal of symbolically associating a category label to each object.</i>",
       "grounding" : 
@@ -105,7 +186,6 @@
       "<i>The object anchoring node is responsible for creating and maintaining consistent representations of objects, both in time and space.</i>",
       "association" : 
       "<i>High-level object tracking through the use of a Joint Probabilistic Data Association Filter (JPDAF).</i>",
-
     };
 
     var dict_body = {
@@ -114,9 +194,10 @@
   	/*
       "tracking" : 
       "This object tracking procedure utilizes a particle filter-based tracking algorithm, which is included in the Point Cloud Library (<a href='http://pointclouds.org/'>PCL</a>). However, a drawback of such particle filter algorithm is that the algorithm is designed for tracking only one object of interest at a time. A pool of particle filters (one filter for each detected object) have therefore been employed in our system setup, and where only the particle filters in the approximation of scene movements are active during the tracking process.",
-	*/
+	
       "extraction" : 
-      "The first step of the feature extraction node is to extract both a <i>shape attribute</i> as the 3D bounding box around each segmented object, and a 3D <i>position attribute</i> as the centre of the segmented point cloud. Next, both a <i>color attribute</i> and a <i>descriptor attribute</i> are extracted from each corresponding visual data of each segmented object. A color attribute is here measured as a color histogram (in the HSV color space). However, for the descriptor attribute, a more complicated procedure is invoked, which can be described using the following steps: <ul><li>Detect distinct image key-points through the use of the ORB key-point detector (Oriented FAST and Rotated BRIEF).</li><li>Extract binary feature descriptors by the use of the Fast Retina Keypoint (FREAK), in which a cascade of binary strings is computed as the intensities over retinal sampling patterns of a key-point patch.</li></ul>",
+    "The first step of the feature extraction node is to extract both a <i>shape attribute</i> as the 3D bounding box around each segmented object, and a 3D <i>position attribute</i> as the centre of the segmented point cloud. Next, both a <i>color attribute</i> and a <i>descriptor attribute</i> are extracted from each corresponding visual data of each segmented object. A color attribute is here measured as a color histogram (in the HSV color space). However, for the descriptor attribute, a more complicated procedure is invoked, which can be described using the following steps: <ul><li>Detect distinct image key-points through the use of the ORB key-point detector (Oriented FAST and Rotated BRIEF).</li><li>Extract binary feature descriptors by the use of the Fast Retina Keypoint (FREAK), in which a cascade of binary strings is computed as the intensities over retinal sampling patterns of a key-point patch.</li></ul>",
+       */
       "classification" : 
       "For this classification, we exploit recent advancements in deep learning through the <a href='http://caffe.berkeleyvision.org/'>Caffe deep learning framework</a>. The Convolutional Neural Network (CNN) architecture used in this case is based on the GoogLeNet model, which originally was trained on the ILSVRC 2012 data set. However, for our work, we have fine-tuned the model for objects categories that are relevant for a kitchen domain, e.g. <i>\'coffee mug\', \'spoon\', \'orange\', \'tomato\'</i>, etc. In the context of anchoring, we further assume that all trained object categories are part of the set of possible predicate symbols that the system have at disposal.",
       "grounding" : 
@@ -143,16 +224,34 @@
         str[0] = str[0].substring(0, 1) + str[0].substring(1).toLowerCase()
         str[1] = str[1].substring(0, 1) + str[1].substring(1).toLowerCase()
         $("h2.title").text(str[0] + " " + str[1]);
-
+    
         // Set the summary and body text 
-        $("p.summary").html(dict_summary[key])
-        $("p.body").html(dict_body[key])
+        $("p.summary").html(dict_summary[key]);
+        document.getElementById("default-body").innerHTML = "";;
+        $("p.body").html(dict_body[key]);
 
         // Create and send the ROS display trigger
         var str = new ROSLIB.Message({
           data : key
         });
-        talker.publish(str);
+        trigger.publish(str);
+      });
+    });
+
+    // Handle instruction button click
+    $(document).ready( function() {
+      $('#btnSubmit').click(function(e) {
+        e.preventDefault();
+
+        // Create and send the ROS message
+        var txt = $('#txtInstruction').val();
+        var str = new ROSLIB.Message({
+          data : txt
+        });
+        instruction.publish(str);
+
+        // Clear the input filed
+        $('#txtInstruction').val("");
       });
     });
   </script>
@@ -168,16 +267,16 @@
 <!-- Menu - horizontal style -->
 <ul class="w3-navbar w3-animate-left w3-center w3-black w3-text-grey w3-padding-0" style="width: 100%; position: fixed; top:180px; font-weight: bold">
   <li style="width: 16.666%; border-right: 1px solid white; border-left: 1px solid white;">
-    <a href="#segmentation" class="w3-padding menuItem active">OBJECT SEGMENTATION</a>
+    <a href="#segmentation" class="w3-padding menuItem">OBJECT SEGMENTATION</a>
   </li>
 <!--
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#tracking" class="w3-padding menuItem" >OBJECT TRACKING</a>
   </li>
--->
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#extraction" class="w3-padding menuItem">FEATURE EXTRACTION</a>
   </li>
+-->
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#classification" class="w3-padding menuItem" >OBJECT CLASSIFICATION</a>
   </li>
@@ -185,7 +284,7 @@
     <a href="#grounding" class="w3-padding menuItem">SYMBOL GROUNDING</a>
   </li>
   <li style="width: 16.666%; border-right: 1px solid white;">
-    <a href="#anchoring" class="w3-padding menuItem">OBJECT ANCHORING</a>
+    <a href="#anchoring" class="w3-padding menuItem active">OBJECT ANCHORING</a>
   </li>
   <li style="width: 16.666%; border-right: 1px solid white;">
     <a href="#association" class="w3-padding menuItem">DATA ASSOCIATION</a>
@@ -221,19 +320,32 @@
   <div class="w3-container w3-margin" style="float: left;">
     <img id="ROSImg" src="" alt="ROS response image..." style="width: 960px; height: 540px; border: 1px solid black; display: none;">
   </div> 
-  <div class="w3-container" style="width: 40%; float: left; margin-top: 32px;">
-    <h2 class="title" style="font-weight: bold; text-decoration: underline;"></h2>
-    <p class="summary"></p>
-    <p class="body"></p>
+  <div class="w3-container" style="width: 40%; float: left; margin-top: 0px;">
+    <h2 class="title" style="font-weight: bold; text-decoration: underline;">Object Anchoring</h2>
+    <p class="summary">
+      <i>This object segmentation node is used in our framework for segmenting and detecting objects of interest in the scene.</i>
+    </p>
+    <p class="body">
+
+      <div id="default-body">The entry point for the object anchoring node is a matching procedure. This procedure follows a bottom-up approach to perceptual anchoring, where the system constantly receives anchors and invokes a number of different matching algorithms (one matching algorithm for each measured attribute ) in order to determine if a candidate anchor has previously been perceived or not. Depending on the result of the matching procedure, anchors are subsequently maintained in memory through two functionalities:<ul><li><i>Acquire</i> -- stores a new anchor whenever a candidate anchor is received which currently does not match any attributes of an existing anchor.</li><li><i>Re-acquire</i> -- update an existing anchor whenever a candidate anchor is received which matches the attributes of an existing anchor. This functionality assures that the percepts pointed to by the anchor are the most recent and adequate perceptual representation of the object.</li></ul>
+      </div>
+
+    </p>
   </div>
-   <div class="footer w3-container" style="position: absolute; bottom: 0px; right: 0px; height: 147px; padding: 0px; z-index: -1;"></div>
+  <div class="w3-container form" style="width: 820px; float: left; margin-left: 12px;">
+    <form action="" method="post">
+      <label for="inputInstruction"><span>Give instruction:.</span><input id="txtInstruction" type="text" class="input-field" name="inputInstruction" value="" /></label>
+      <label><span>&nbsp;</span><input id="btnSubmit" class="btn" type="button" value="Submit" /></label>
+    </form>
+  </div>
+  <div class="footer w3-container" style="position: absolute; bottom: 0px; right: 0px; height: 147px; padding: 0px; z-index: -1;"></div>
 </div>
 
 <!-- Footer -->
  <footer class="w3-container w3-bottom w3-white w3-text-black" style="width: 50%">
    <div class="w3-container w3-border-top w3-border-black" style="float: left; width: 100%">
      <p style="float: left; font-weight: bold;">
-       &copy; ReGround (2016) :: Andreas Persson (andres.persson@oru.se)
+       &copy; ReGround (2018) :: Andreas Persson (andres.persson@oru.se)
      </p>
    </div>
 
@@ -268,7 +380,6 @@
    </ul>
    -->
 </footer> 
-
 
 </body>
 </html>

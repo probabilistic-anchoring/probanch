@@ -6,6 +6,8 @@
 
   <!-- Convert the image to bas64 string -->
   <node name="image_converter_node" pkg="display" type="img2str" 
-    output="screen" />
+    output="screen" >
+    <param name="jpeg_quality" type="int" value="55" />
+  </node>
 
 </launch>
