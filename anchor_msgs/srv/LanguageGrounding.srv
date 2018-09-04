@@ -2,4 +2,4 @@ string instruction_text
 anchor_msgs/Anchor[] anchors
 string[] config
 ---
-anchor_msgs/Instruction[] instruction
+anchor_msgs/Instruction[] instructions
