@@ -616,7 +616,7 @@ namespace anchoring {
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      if( sizeof(msg.data) > 0 ) {
+      if( sizeof(msg.data) / sizeof(unsigned char) > 0 ) {
 	cv_ptr = cv_bridge::toCvCopy( msg.data,
 				      sensor_msgs::image_encodings::BGR8 );
 	cv_ptr->image.copyTo(this->_data);
