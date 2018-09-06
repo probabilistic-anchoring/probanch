@@ -39,6 +39,7 @@ class AnchorViewer {
   ros::Publisher _selected_pub;
 
   string _display_trigger;
+  bool _display_window;
   ros::Subscriber _display_trigger_sub;
   image_transport::Publisher _display_image_pub;
 
@@ -369,6 +370,9 @@ public:
     if( !_priv_nh.getParam("display_mode", this->_display_trigger) ) {
       this->_display_trigger = "anchoring";
     }
+    if( !_priv_nh.getParam("display_window", this->_display_window) ) {
+      this->_display_window = false;
+    }
     ROS_WARN("[AnchorViewer] Display mode: '%s'", this->_display_trigger.c_str());    
     ROS_WARN("[AnchorViewer] Number of particles: '%d'", this->_max_particles);    
 
@@ -394,7 +398,7 @@ public:
     while(ros::ok()) {
 
       // OpenCV window for display
-      if( !this->_img.empty() ) {
+      if( !this->_img.empty() && this->_display_window ) {
 	cv::imshow( "Anchors with information...", this->anchor_img() );
 	if( video.isOpened() ) {
 	  video.write(this->anchor_img());
@@ -404,39 +408,40 @@ public:
 	if( size.width == 0 || size.height == 0 ) {
 	  size = this->_img.size();
 	}
-      }
+      
 
-      // Wait for a keystroke in the window
-      char key = cv::waitKey(1);
-      if( key == 27 || key == 'Q' || key == 'q' ) {
-	break;
-      }
-      else if( key == 'H' || key == 'h' ) {
-	this->help();
-      }
-      else if( key == 'R' || key == 'r' ) {
-	this->_highlight = "";
-      }
-      else if( key == 'S' || key == 's' ) {
-	recording = !recording;
-	if( recording ) {
-
-	  // Get time now as a string
-	  boost::posix_time::ptime t = ros::Time::now().toBoost();
-	  std::string t_str = boost::posix_time::to_simple_string(t);
-
-	  // Use the tim to create a uiquefile name
-	  std::replace( t_str.begin(), t_str.end(), ' ', '_');
-	  std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
-
-	  // Start therecording
-	  std::cout<< "[Start recording] File name: " << name << std::endl;
-	  //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
-	  video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	// Wait for a keystroke in the window
+	char key = cv::waitKey(1);
+	if( key == 27 || key == 'Q' || key == 'q' ) {
+	  break;
 	}
-	else {
-	  std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
-	  video.release();
+	else if( key == 'H' || key == 'h' ) {
+	  this->help();
+	}
+	else if( key == 'R' || key == 'r' ) {
+	  this->_highlight = "";
+	}
+	else if( key == 'S' || key == 's' ) {
+	  recording = !recording;
+	  if( recording ) {
+
+	    // Get time now as a string
+	    boost::posix_time::ptime t = ros::Time::now().toBoost();
+	    std::string t_str = boost::posix_time::to_simple_string(t);
+
+	    // Use the tim to create a uiquefile name
+	    std::replace( t_str.begin(), t_str.end(), ' ', '_');
+	    std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
+
+	    // Start therecording
+	    std::cout<< "[Start recording] File name: " << name << std::endl;
+	    //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
+	    video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	  }
+	  else {
+	    std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
+	    video.release();
+	  }
 	}
       }
 
