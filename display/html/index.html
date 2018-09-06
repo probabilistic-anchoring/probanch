@@ -231,7 +231,6 @@
       ""
     };
 
-
     // Handle menu item click 
     $(document).ready(function(){
       $("a.menuItem").click( function() {
@@ -277,6 +276,24 @@
         $('#txtInstruction').val("");
       });
     });
+    $(document).ready( function() {
+      $('#txtInstruction').on( 'keydown', function(e) {
+        if ( e.keyCode == 13 ) {
+          e.preventDefault();
+
+          // Create and send the ROS message
+          var txt = $('#txtInstruction').val();
+          var str = new ROSLIB.Message({
+            data : txt
+          });
+          instruction.publish(str);
+
+          // Clear the input filed
+          $('#txtInstruction').val("");
+        }
+      });
+    });
+    
   </script>
 </head>
 <body class="w3-white">
