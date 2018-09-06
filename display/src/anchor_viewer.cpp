@@ -160,9 +160,11 @@ class AnchorViewer {
   // Callback function for receiving particles from the data association
   void particles_cb(const anchor_msgs::LogicAnchorArrayPtr& msg_ptr) {
     //ROS_WARN("Got particles!");    
-    
+
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
+      if( msg_ptr->anchors[i].color.symbols.empty() )
+        continue;
       auto p = msg_ptr->anchors[i].particle_positions.begin();
       //ROS_WARN("Number of particles: %d", (int)msg_ptr->anchors[i].particle_positions.size());
       for( ; p != msg_ptr->anchors[i].particle_positions.end(); ++p ) {
