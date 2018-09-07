@@ -796,7 +796,7 @@ namespace anchoring {
       for( uint i = 0; i < this->_symbols.size(); i++ ) {
 	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	    this->_predictions[i] = raw_ptr->_predictions[j];
+	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
 	  }
 	}
       }
