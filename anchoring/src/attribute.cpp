@@ -792,7 +792,7 @@ namespace anchoring {
       }
     }
     else {  // ...or update prediction/symbol based on a top down information (from language).
-      std::fill( this->_predictions.begin(), this->_predictions.end(), 0.0);
+      //std::fill( this->_predictions.begin(), this->_predictions.end(), 0.0);
       for( uint i = 0; i < this->_symbols.size(); i++ ) {
 	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
