@@ -169,7 +169,7 @@ namespace anchoring {
     string id = anchor->id();
     this->_map[id] = anchor;
     //this->add(id); // Add to the binary descriptor model
-    ROS_WARN("[Anchor (acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
+    //ROS_WARN("[Anchor (acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
 
   }
   
@@ -177,14 +177,14 @@ namespace anchoring {
   void AnchorContainer::re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track ) {
     mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->maintain( db, attributes, t);
-    ROS_WARN("[Anchor (re-acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
+    //ROS_WARN("[Anchor (re-acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
     
   // Track (by position) an exisitng anchor 
   void AnchorContainer::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
     mongo::Database db(this->_db_name, this->_collection);
     this->_map[id]->maintain( db, attributes, t);
-    ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
+    //ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
 
   // Track (or correct) an existing anchor based on data association 

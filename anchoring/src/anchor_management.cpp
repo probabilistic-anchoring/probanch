@@ -22,7 +22,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/logic_anchors", 10, &AnchorManagement::track, this);
-  _update_sub = _nh.subscribe("/brain/semantic_update", 10, &AnchorManagement::update, this);
+  _update_sub = _nh.subscribe("/semantic_update", 10, &AnchorManagement::update, this);
   //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
 
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
@@ -153,9 +153,9 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   this->_anchors->getArray<anchor_msgs::Display>( display_msg.anchors, t );
   this->_display_pub.publish(display_msg);
 
-  ROS_INFO("Anchors: %d", (int)this->_anchors->size());
+  //ROS_INFO("Anchors: %d", (int)this->_anchors->size());
   //ROS_INFO("Time: %.2f", t.toSec() - _time_zero);
-  ROS_INFO("------------------------------");
+  //ROS_INFO("------------------------------");
 }
 
 
@@ -197,7 +197,7 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 
    ------------------------------------------- */
 void AnchorManagement::update( const anchor_msgs::SemanticAnchorArrayPtr &update_ptr ) {
-  ROS_INFO("Anchoring: got a semantic update!");
+  ROS_ERROR("Anchoring: got a semantic update!");
   
   // Maintain all incoming tracked objects
   ros::Time t = ros::Time::now();

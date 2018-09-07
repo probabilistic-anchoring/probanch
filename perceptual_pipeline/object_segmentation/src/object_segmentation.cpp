@@ -310,10 +310,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     for( auto &ite : hand_indices ) {
       cluster_indices.insert( cluster_indices.begin() + ite.first,  ite.second );
     }
-    ROS_INFO("Clusters: %d (include a 'hand' cluster)", (int)cluster_indices.size());
+    //ROS_INFO("Clusters: %d (include a 'hand' cluster)", (int)cluster_indices.size());
   }
   else {
-    ROS_INFO("Clusters: %d", (int)cluster_indices.size());
+    //ROS_INFO("Clusters: %d", (int)cluster_indices.size());
   }
   //this->timerEnd( t, "Post-processing");
 
