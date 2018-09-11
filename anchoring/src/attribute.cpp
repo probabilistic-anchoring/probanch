@@ -713,12 +713,12 @@ namespace anchoring {
     anchor_msgs::CaffeAttribute caffe_msg;
     //double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      //if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value
-      caffe_msg.symbols.push_back(this->_symbols[i]);
-      caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
+      //if( (this->_predictions[i] / max) > 0.25 ) {  // ...looking for spikes above max theshold value
+        caffe_msg.symbols.push_back(this->_symbols[i]);
+        caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
       //}
     }
-    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, 5);
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, 3);
     /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
@@ -797,8 +797,8 @@ namespace anchoring {
 	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
 	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
-	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] << std::endl;
-        std::cout << raw_ptr->_symbols[i] << " -- " << raw_ptr->_predictions[i] << std::endl;
+	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] / this->_n << std::endl;
+        //std::cout << raw_ptr->_symbols[i] << " -- " << raw_ptr->_predictions[i] << std::endl;
 	  }
 	}
       }
