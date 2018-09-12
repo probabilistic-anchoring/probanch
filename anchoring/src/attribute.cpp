@@ -718,7 +718,8 @@ namespace anchoring {
         caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
       //}
     }
-    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, 3);
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.9 ? 1 : max > 0.45 ? 2 : 3 );
     /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
