@@ -39,7 +39,7 @@
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="both" />
-    <param name="display_window" type="bool" value="false" />
+    <param name="display_window" type="bool" value="true" />
   </node>
 
 

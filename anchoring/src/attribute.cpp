@@ -399,13 +399,21 @@ namespace anchoring {
     //anchor_msgs::PositionAttribute poistion;
     if( !this->_array.empty() ) {
       for( const auto &pos : this->_array ) {
-	msg.position.data.pose.position.x += pos.pose.position.x;
-	msg.position.data.pose.position.y += pos.pose.position.y;
-	msg.position.data.pose.position.z += pos.pose.position.z;
+        msg.position.data.pose.position.x += pos.pose.position.x;
+        msg.position.data.pose.position.y += pos.pose.position.y;
+        msg.position.data.pose.position.z += pos.pose.position.z;
+        msg.position.data.pose.orientation.x += pos.pose.orientation.x;
+        msg.position.data.pose.orientation.y += pos.pose.orientation.y;
+        msg.position.data.pose.orientation.z += pos.pose.orientation.z;
+        msg.position.data.pose.orientation.w += pos.pose.orientation.w;
       }
       msg.position.data.pose.position.x /= (int)this->_array.size();
       msg.position.data.pose.position.y /= (int)this->_array.size();
       msg.position.data.pose.position.z /= (int)this->_array.size();
+      msg.position.data.pose.orientation.x /= (int)this->_array.size();
+      msg.position.data.pose.orientation.y /= (int)this->_array.size();
+      msg.position.data.pose.orientation.z /= (int)this->_array.size();
+      msg.position.data.pose.orientation.w /= (int)this->_array.size();
     }
     //msg.position = poistion;
   }
@@ -719,7 +727,8 @@ namespace anchoring {
       //}
     }
     double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
-    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.9 ? 1 : max > 0.45 ? 2 : 3 );
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
+    
     /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
