@@ -1,5 +1,5 @@
 <launch>
-
+  <arg name="show_window" default="false"/>
   <!-- Object segmentation node (including the Kinect) -->
   <include file="$(find object_segmentation)/launch/object_segmentation_tf_static.launch" />
 
@@ -20,7 +20,7 @@
     <param name="top_predictions" type="int" value="3" />
 
     <!-- Used for displaying a result image view -->
-    <param name="display_window" type="bool" value="false" />
+    <param name="display_window" type="bool" value="$(arg show_window)" />
   </node>
 
 
