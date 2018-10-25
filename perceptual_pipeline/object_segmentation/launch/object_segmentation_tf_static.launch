@@ -25,7 +25,7 @@
     <param name="compare_type" type="int" value="1" />
     <!--param name="compare_type" type="int" value="1" /change this one-->
 
-    <param name="plane_min_size" type="int" value="6000" />
+    <param name="plane_min_size" type="int" value="3000" />
     <param name="cluster_min_size" type="int" value="150" />
     <param name="angular_th" type="double" value="2.0" />
     <param name="distance_th" type="double" value="0.016" />
