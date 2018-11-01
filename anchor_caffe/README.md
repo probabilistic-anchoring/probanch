@@ -52,10 +52,11 @@ $ sudo ln -s libhdf5_serial.so.8.0.2 libhdf5.so
 $ sudo ln -s libhdf5_serial_hl.so.8.0.2 libhdf5_hl.so
 ```
 
-In return, change this line, as well ([source](https://github.com/NVIDIA/DIGITS/issues/156#issuecomment-219089383))
+In return, add `hdf5` includes and libraries to these lines in `Makefile.config` (according to: [source](https://github.com/NVIDIA/DIGITS/issues/156#issuecomment-219089383)):
 
 ```bash
-$ LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu/hdf5/serial/
+INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial/
+LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu/hdf5/serial/
 ```
 
 **NOTE**: `PYTHON_PATH` should be custom, to accomodate for additional packages of OpenCV, set in `<your_shell>rc`
