@@ -1,4 +1,6 @@
 
+#include <algorithm>
+
 #include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -17,7 +19,29 @@
 
 namespace anchoring {
 
+  // Set a global threashold for max spikes in distributions
+  const double CONST_MAX_TH = 0.65;
+
   using namespace std;
+
+  // --[ Namspace function ]--  
+  void sortAttribute( vector<string>  &symbols,
+		      vector<float> &predictions,
+		      int n ) {
+    for( uint i = 0; i < predictions.size() - 1; i++ ) {
+      for( uint j = i + 1; j < predictions.size(); j++ ) {
+	if( predictions[i] < predictions[j] ) {
+	  swapValues<float>( predictions[i], predictions[j]);
+	  swapValues<std::string>( symbols[i], symbols[j]);
+	}
+      }
+    }
+    if( n >= 0 && n < (int)symbols.size() ) {
+      symbols.erase( symbols.begin() + n, symbols.end());
+      predictions.erase( predictions.begin() + n, predictions.end());
+    }
+  }
+
 
   // ---------------------------------------
   // Common attribute base struct methods
@@ -133,20 +157,30 @@ namespace anchoring {
 
   void ColorAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::ColorAttribute color_msg;
-    color_msg.symbols = this->_symbols;
-    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite) {
-      color_msg.predictions.push_back((float)*ite);
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+	color_msg.symbols.push_back(this->_symbols[i]);
+	color_msg.predictions.push_back((float)this->_predictions[i] / this->_n);	
+      }
     }
+    sortAttribute( color_msg.symbols, color_msg.predictions, 5);
     msg.color = color_msg;
   }
   void ColorAttribute::populate(anchor_msgs::Display &msg) {
-    msg.colors = this->_symbols;
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      if( (this->_predictions[i] / max) > CONST_MAX_TH ) {  // ...looking for spikes above max theshold value 
+	msg.colors.push_back(this->_symbols[i]);
+      }
+    }
+    // msg.colors = this->_symbols;
   }
 
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -157,7 +191,7 @@ namespace anchoring {
 
   bool ColorAttribute::update(const AttributePtr &new_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     ColorAttribute *raw_ptr = dynamic_cast<ColorAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -166,6 +200,11 @@ namespace anchoring {
     
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
+
+    // Summarize the predisctions
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      this->_predictions[i] += raw_ptr->_predictions[i];
+    }
 
     return true;
   }
@@ -251,15 +290,28 @@ namespace anchoring {
     this->_array.push_back(msg.data);
   }
 
-  PositionAttribute::PositionAttribute( const AttributePtr &other_ptr,
+
+  PositionAttribute::PositionAttribute( const vector<geometry_msgs::PoseStamped> &array, 
+					const vector<string> &symbols,
+					AttributeType type ) : AttributeCommon( symbols, type) {
+      // Add the data (including a timestamp)
+    for( auto &pos : array ) {
+      this->_array.push_back(pos);
+    }
+  }
+
+  
+  PositionAttribute::PositionAttribute( const AttributePtr &ptr,
 					AttributeType type) : AttributeCommon(type) {
 
     // Typecast the query pointer
-    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(other_ptr.get());
+    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(ptr.get());
     assert( raw_ptr != nullptr );
 
     // Add the data (including a timestamp)
-    this->_array.push_back(raw_ptr->_array.back());
+    for( auto &pos : raw_ptr->_array ) {
+      this->_array.push_back(pos);
+    }
   }
 
   mongo::Database::Document PositionAttribute::serialize() {
@@ -344,24 +396,46 @@ namespace anchoring {
 
   // Overleaded functions for populating ROS messages
   void PositionAttribute::populate(anchor_msgs::Anchor &msg) {
-    anchor_msgs::PositionAttribute pose_msg;
-    pose_msg.data = this->_array.back();
-    msg.position = pose_msg;
+    //anchor_msgs::PositionAttribute poistion;
+    if( !this->_array.empty() ) {
+      for( const auto &pos : this->_array ) {
+        msg.position.data.pose.position.x += pos.pose.position.x;
+        msg.position.data.pose.position.y += pos.pose.position.y;
+        msg.position.data.pose.position.z += pos.pose.position.z;
+        msg.position.data.pose.orientation.x += pos.pose.orientation.x;
+        msg.position.data.pose.orientation.y += pos.pose.orientation.y;
+        msg.position.data.pose.orientation.z += pos.pose.orientation.z;
+        msg.position.data.pose.orientation.w += pos.pose.orientation.w;
+      }
+      msg.position.data.pose.position.x /= (int)this->_array.size();
+      msg.position.data.pose.position.y /= (int)this->_array.size();
+      msg.position.data.pose.position.z /= (int)this->_array.size();
+      msg.position.data.pose.orientation.x /= (int)this->_array.size();
+      msg.position.data.pose.orientation.y /= (int)this->_array.size();
+      msg.position.data.pose.orientation.z /= (int)this->_array.size();
+      msg.position.data.pose.orientation.w /= (int)this->_array.size();
+    }
+    //msg.position = poistion;
   }
   void PositionAttribute::populate(anchor_msgs::Display &msg) {
-    msg.pos = this->_array.back();
+    if( !this->_array.empty() ) {
+      for( const auto &pos : this->_array ) {
+	msg.pos.pose.position.x += pos.pose.position.x;
+	msg.pos.pose.position.y += pos.pose.position.y;
+	msg.pos.pose.position.z += pos.pose.position.z;
+      }
+      msg.pos.pose.position.x /= (int)this->_array.size();
+      msg.pos.pose.position.y /= (int)this->_array.size();
+      msg.pos.pose.position.z /= (int)this->_array.size();
+    }
   }
   
   float PositionAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
-
-    // Match aginst the last poistion (only)
-    geometry_msgs::PoseStamped train = this->_array.back();
-    geometry_msgs::PoseStamped query = raw_ptr->_array.back();
-
+    
     /*
     // 1. Check the time
     if( query.header.stamp.toSec() - train.header.stamp.toSec() > 1.0 ) {
@@ -370,12 +444,24 @@ namespace anchoring {
     */
 
     // 2. Check the distance
-    double diff_x = query.pose.position.x - train.pose.position.x;
-    double diff_y = query.pose.position.y - train.pose.position.y;
-    double diff_z = query.pose.position.z - train.pose.position.z;
-    double dist  = sqrt( diff_x*diff_x + diff_y*diff_y + diff_z*diff_z );
-
-    return 1.0 / exp(dist);
+    double _x, _y, _z, _d, _dist = -1.0;
+    for( uint i = 0; i < this->_array.size(); i++ ) {
+      geometry_msgs::PoseStamped train = this->_array[i];
+      for( uint j = 0; j < raw_ptr->_array.size(); j++ ) {      
+	geometry_msgs::PoseStamped query = raw_ptr->_array[j];
+	_x = query.pose.position.x - train.pose.position.x;
+	_y = query.pose.position.y - train.pose.position.y;
+	_z = query.pose.position.z - train.pose.position.z;
+	_d  = sqrt( _x*_x + _y*_y + _z*_z );
+	if( _dist < 0.0 || _d < _dist ) {
+	  _dist = _d;
+	}
+      }
+    }
+    if( _dist >= 0.0 ) {
+      return 1.0 / exp(_dist);
+    }
+    return 0.0;
   }
   
   /*
@@ -397,22 +483,28 @@ namespace anchoring {
 
   bool PositionAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Update the location
+    this->_array.clear();
+    for( auto &pos : raw_ptr->_array ) {
+      this->_array.push_back(pos);
+    }
+
+    /*
+    // Update the location
     if( this->match(new_ptr) < 0.01 ) { // ...not moved more than 1cm
       this->_array.back().header.stamp = raw_ptr->_array.back().header.stamp;
-      /*
-	this->_array.back() = raw_ptr->_array.front();
-      */
+      // this->_array.back() = raw_ptr->_array.front();
       }
     else {
       // Append the location (including a timestamp)
       this->_array.push_back(raw_ptr->_array.back());
     }
-  
+    */
+    
     /*
     // Append the symbol (if there exists an symbol)
     if( !raw_ptr->_symbols.empty() ) {
@@ -492,7 +584,7 @@ namespace anchoring {
 
   float ShapeAttribute::match(const AttributePtr &query_ptr) {
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     ShapeAttribute *raw_ptr = dynamic_cast<ShapeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -509,7 +601,16 @@ namespace anchoring {
     }
     return 0.0;
   }
+  
+  bool ShapeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
 
+    // Typecast the new atribute pointer
+    ShapeAttribute* raw_ptr = dynamic_cast<ShapeAttribute*>(new_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    this->_data = raw_ptr->_data;
+  }
+  
   string ShapeAttribute::toString() {
     return _symbols[0];
   }
@@ -523,16 +624,19 @@ namespace anchoring {
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      cv_ptr = cv_bridge::toCvCopy( msg.data,
-				    sensor_msgs::image_encodings::BGR8 );
-      cv_ptr->image.copyTo(this->_data);
+      if( sizeof(msg.data) / sizeof(unsigned char) > 0 ) {
+	cv_ptr = cv_bridge::toCvCopy( msg.data,
+				      sensor_msgs::image_encodings::BGR8 );
+	cv_ptr->image.copyTo(this->_data);
+      }
     } catch (cv_bridge::Exception& e) {
-      throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
+      // FIX THIS SHIT LATER ON!!
+      //throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
     }    
     this->_border = msg.border;
     this->_point = msg.point;
     this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
-    this->_N = vector<double>( this->_predictions.size(), 1.0);
+    this->_n = 1.0;   // ...counter
   }
 
   mongo::Database::Document CaffeAttribute::serialize() {
@@ -554,7 +658,7 @@ namespace anchoring {
 
       // Save (caffe) predictions
       doc.add<double>( "predictions", this->_predictions);
-      doc.add<double>( "N", this->_N);  // ..including the frequencies
+      doc.add<double>( "n", this->_n);  // ..including the frequency 
       
       // Save the contour
       for( auto &point : _border.contour ) {
@@ -589,7 +693,7 @@ namespace anchoring {
 
       // Load (caffe) predictions
       doc.get<double>( "predictions", this->_predictions);
-      doc.get<double>( "N", this->_N);
+      this->_n = (float)doc.get<double>("n");  // ...including the frequency 
 
       // Load the contour
       for( mongo::document_iterator ite = doc.begin("border"); ite != doc.end("border"); ++ite) {
@@ -615,11 +719,23 @@ namespace anchoring {
 
   void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {
     anchor_msgs::CaffeAttribute caffe_msg;
+    //double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      //if( (this->_predictions[i] / max) > 0.25 ) {  // ...looking for spikes above max theshold value
+        caffe_msg.symbols.push_back(this->_symbols[i]);
+        caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
+      //}
+    }
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
+    
+    /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
     for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
       caffe_msg.predictions.push_back((float)*ite / *n);
     }
+    */
     msg.caffe = caffe_msg;
   }
 
@@ -628,7 +744,7 @@ namespace anchoring {
     float best = 0.0;
     int index = -1;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_N[i]; 
+      float prob = this->_predictions[i] / this->_n; 
       if( prob > best ) {
 	best = prob;
 	index = i;
@@ -636,14 +752,14 @@ namespace anchoring {
     }
     if( index >= 0 ) {
       msg.category = this->_symbols[index];
-      msg.prediction = this->_predictions[index] / this->_N[index];
+      msg.prediction = this->_predictions[index] / this->_n;
     }
     
   }
 
   float CaffeAttribute::match(const AttributePtr &query_ptr) { 
 
-    // Typecast the query pointer
+    // Typecast the query attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
@@ -652,8 +768,8 @@ namespace anchoring {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
 	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
 	  float diff = 1.0 / 
-	    exp( abs( (this->_predictions[i] / this->_N[i]) - raw_ptr->_predictions[j] ) /
-		 ( (this->_predictions[i] / this->_N[i]) * raw_ptr->_predictions[j] ) );
+	    exp( abs( (this->_predictions[i] / this->_n) - raw_ptr->_predictions[j] ) /
+		 ( (this->_predictions[i] / this->_n) * raw_ptr->_predictions[j] ) );
 	  if (diff > result ) {
 	    result = diff;
 	  }
@@ -665,15 +781,40 @@ namespace anchoring {
 
   bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
-    // Typecast the query pointer
+    // Typecast the new attribute pointer
     CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
-    // Update the visual data 
-    this->_data = raw_ptr->_data;
-    this->_border = raw_ptr->_border;
-    this->_point = raw_ptr->_point;
+    // Update the visual data
+    if( !raw_ptr->_data.empty() ) {
+      this->_data = raw_ptr->_data;
+      this->_border = raw_ptr->_border;
+      this->_point = raw_ptr->_point;
+    }
 
+    // Increment the counter
+    this->_n = this->_n + raw_ptr->_n;
+    
+    // Summarize the predictions...
+    if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
+      for( uint i = 0; i < this->_predictions.size(); i++ ) {
+	this->_predictions[i] += raw_ptr->_predictions[i];
+      }
+    }
+    else {  // ...or update prediction/symbol based on a top down information (from language).
+      //std::fill( this->_predictions.begin(), this->_predictions.end(), 0.0);
+      for( uint i = 0; i < this->_symbols.size(); i++ ) {
+	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
+	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] / this->_n << std::endl;
+        //std::cout << raw_ptr->_symbols[i] << " -- " << raw_ptr->_predictions[i] << std::endl;
+	  }
+	}
+      }
+    }
+    
+    /*
     // Add non-exisitng symbols
     for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {
       if( find( this->_symbols.begin(), this->_symbols.end(), raw_ptr->_symbols[i]) == this->_symbols.end() ) {
@@ -692,6 +833,7 @@ namespace anchoring {
 	} 
       }
     }
+    */
     return true;
   }
 
@@ -700,7 +842,7 @@ namespace anchoring {
     int index = -1;
     std::stringstream ss;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_N[i];
+      float prob = this->_predictions[i] / this->_n;
       if( prob > best ) {
 	best = prob;
 	index = i;

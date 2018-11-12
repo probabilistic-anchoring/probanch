@@ -1,5 +1,5 @@
 <launch>
-
+  <arg name="show_window" default="false"/>
   <!-- Object segmentation node (including the Kinect) -->
   <include file="$(find object_segmentation)/launch/object_segmentation_tf_static.launch" />
 
@@ -16,7 +16,13 @@
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
 
   <!-- Anchor Caffe node -->
-  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" />
+  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" >
+    <param name="top_predictions" type="int" value="3" />
+
+    <!-- Used for displaying a result image view -->
+    <param name="display_window" type="bool" value="$(arg show_window)" />
+  </node>
+
 
   <!-- Anchoring framework -->
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
@@ -33,6 +39,7 @@
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="both" />
+    <param name="display_window" type="bool" value="true" />
   </node>
 
 

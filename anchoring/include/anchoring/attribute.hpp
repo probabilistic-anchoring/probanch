@@ -21,7 +21,7 @@
 
 // --[ anchoring namespace... 
 namespace anchoring {
-
+  
   using namespace std;
 
   // ---[ Different attribute types ]---
@@ -58,7 +58,6 @@ namespace anchoring {
     virtual string toString() { return ""; }
 
     string getTypeStr();
-
   }; // ...base attribute struct ]---
   
 
@@ -118,13 +117,10 @@ namespace anchoring {
     PositionAttribute(AttributeType type = POSITION) : AttributeCommon(type) {}
     PositionAttribute( const anchor_msgs::PositionAttribute &msg,
 		       AttributeType type = POSITION );
-    PositionAttribute( const geometry_msgs::PoseStamped &data, 
+    PositionAttribute( const vector<geometry_msgs::PoseStamped> &array, 
 		       const vector<string> &symbols = vector<string>(),
-		       AttributeType type = POSITION ) : AttributeCommon( symbols, type) {
-      // Add the data (including a timestamp)
-      this->_array.push_back(data);
-    }
-    PositionAttribute( const AttributePtr &other_ptr,
+		       AttributeType type = POSITION );
+    PositionAttribute( const AttributePtr &ptr,
 		       AttributeType type = POSITION);
     
     // Override methods
@@ -141,7 +137,7 @@ namespace anchoring {
   // ---[ Shape attribute struct ]---
   //-----------------------------------------------
   struct ShapeAttribute : public AttributeCommon {
-    geometry_msgs::Point _data;
+    geometry_msgs::Vector3 _data;
 
     // Constructors
     ShapeAttribute(AttributeType type = SHAPE) : AttributeCommon(type) {}
@@ -154,6 +150,7 @@ namespace anchoring {
     void populate(anchor_msgs::Anchor &msg);
     void populate(anchor_msgs::Display &msg);
     float match(const AttributePtr &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &new_ptr);
     string toString();
   }; 
 
@@ -163,7 +160,7 @@ namespace anchoring {
   struct CaffeAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
-    vector<double> _N;
+    float _n;
     
     anchor_msgs::Contour _border;
     anchor_msgs::Point2d _point;
@@ -183,6 +180,19 @@ namespace anchoring {
     string toString();
   }; 
 
+
+  // --[ Namspace function headers (and template functions) ]--
+  template <typename T>
+  void swapValues(T &x, T &y) {
+    T temp = x;
+    x = y;
+    y = temp;
+  }
+  void sortAttribute( vector<string>  &symbols,
+		      vector<float> &predictions,
+		      int n = -1 );
+  
+  
 } // namespace anchoring ]---
   
 #endif // __ATTRIBUTE_HPP__ 

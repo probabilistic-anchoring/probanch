@@ -157,11 +157,11 @@ namespace anchoring {
     if( this->_aging ) { 
       this->create(db);    // ...in order to be saved to the database
     }
-    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Map keys are different
+    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Attributes keys does not match 
       this->append(db, attributes);
     }
-    else { // Update existing attributes
-      this->update(db, attributes);
+    else {
+      this->update(db, attributes);  // Update existing attributes
     }
   }
 
@@ -222,6 +222,24 @@ namespace anchoring {
 	docs.push_back(subdoc);	
       }
       db.update<mongo::Database::Document>( this->_id, "attributes", docs);
+
+      // Check and update the (unique) symbol 
+      auto ite = this->_attributes.find(CAFFE);
+      if( ite != this->_attributes.end() ) {
+	std::string symbol = ite->second->toString();
+	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	  for( auto x : this->_history ) {
+	    if( x.compare( 0, symbol.size(), symbol) == 0 ) {
+	      this->_x = x;
+	      return;
+	    }
+	  }
+	  this->_history.push_back(this->_x);
+	  this->_x = this->generateSymbol( symbol, db);
+	  db.update<std::string>( this->_id, "x", this->_x);
+	  db.update<std::string>( this->_id, "H", this->_history);
+	}
+      }
     }
     catch( const std::exception &e ) {
       std::cout << "[Anchor::append]" << e.what() << std::endl;

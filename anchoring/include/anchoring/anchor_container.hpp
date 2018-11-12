@@ -62,13 +62,13 @@ namespace anchoring {
     // Public anchoring functions
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
     void track(const string &id, const string &other);
-    void acquire(AttributeMap &attributes, const ros::Time &t, bool save = false);
+    void acquire(AttributeMap &attributes, const ros::Time &t, bool create_persistent = false);
     void re_acquire(const string &id, AttributeMap &attributes, const ros::Time &t, bool track = false);
     void maintain();
 
     // Get anchors as different ROS messages
     template <typename T> T get(const string &id);
-    template <typename T> void getArray(vector<T> &array, const ros::Time &t);
+    template <typename T> void getArray(vector<T> &array, const ros::Time &t = ros::Time::now());
 
     const AttributePtr& get(const string &id, AttributeType type) const {
       auto ite = this->_map.find(this->resolve(id));
@@ -102,11 +102,18 @@ namespace anchoring {
   }
 
   template<typename T> void AnchorContainer::getArray(vector<T> &array, const ros::Time &t) {
-    
-    // Iterate and get a snapshot of all anchors in current scene
+
+    // Get the last time for anchor updates
+    double stamp = -1.0;
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
-      if( abs(t.toSec() - ite->second->time()) < 0.001 ) { // ...only updated anchors.
-      //if( abs(t.toSec() - ite->second->time()) < 5.0 ) { // ...only updated anchors.
+      if( abs(t.toSec() - ite->second->time()) < stamp || stamp < 0.0 ) {
+	stamp = abs(t.toSec() - ite->second->time());
+      }
+    }
+    
+    // Iterate and get a snapshot of all anchors in current scene 
+    for( auto ite = this->_map.begin(); ite != this->_map.end(); ++ite) {
+      if( abs(t.toSec() - ite->second->time()) < (stamp + 0.001) ) { // ...only updated anchors.
 	array.push_back(ite->second->getAnchor<T>());
       }
     }

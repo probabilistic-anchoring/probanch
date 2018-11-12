@@ -25,19 +25,23 @@ add_message_files(
    DescriptorAttribute.msg
    Display.msg
    DisplayArray.msg
+   Instruction.msg
+   LogicAnchor.msg
+   LogicAnchorArray.msg
    MovementArray.msg
    Object.msg
    ObjectArray.msg
    Point2d.msg
    PositionAttribute.msg
    ShapeAttribute.msg
-   LogicAnchor.msg
-   LogicAnchorArray.msg
+   SemanticAnchor.msg
+   SemanticAnchorArray.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   LanguageGrounding.srv
    SpatialRequest.srv
    TimedRequest.srv
 )

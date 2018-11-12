@@ -310,10 +310,10 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     for( auto &ite : hand_indices ) {
       cluster_indices.insert( cluster_indices.begin() + ite.first,  ite.second );
     }
-    ROS_INFO("Clusters: %d (include a 'hand' cluster)", (int)cluster_indices.size());
+    //ROS_INFO("Clusters: %d (include a 'hand' cluster)", (int)cluster_indices.size());
   }
   else {
-    ROS_INFO("Clusters: %d", (int)cluster_indices.size());
+    //ROS_INFO("Clusters: %d", (int)cluster_indices.size());
   }
   //this->timerEnd( t, "Post-processing");
 
@@ -424,7 +424,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
 	  pose.header.stamp = cloud_msg->header.stamp;
-	  segmentation::getPosition( cluster_ptr, pose.pose);
+	  segmentation::getOrientedPosition( cluster_ptr, pose.pose);
 	  obj.position.data = pose;
 
 

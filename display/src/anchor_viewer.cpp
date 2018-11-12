@@ -17,6 +17,7 @@
 #include <std_msgs/String.h>
 #include <anchor_msgs/DisplayArray.h>
 #include <anchor_msgs/LogicAnchorArray.h>
+#include <geometry_msgs/Point.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -34,9 +35,11 @@ class AnchorViewer {
   ros::Subscriber _anchor_sub;
   ros::Subscriber _particle_sub;
   ros::Subscriber _highlight_sub;
+  ros::Subscriber _click_sub;
   ros::Publisher _selected_pub;
 
   string _display_trigger;
+  bool _display_window;
   ros::Subscriber _display_trigger_sub;
   image_transport::Publisher _display_image_pub;
 
@@ -157,9 +160,11 @@ class AnchorViewer {
   // Callback function for receiving particles from the data association
   void particles_cb(const anchor_msgs::LogicAnchorArrayPtr& msg_ptr) {
     //ROS_WARN("Got particles!");    
-    
+
     this->_particles.clear();
     for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
+      if( msg_ptr->anchors[i].color.symbols.empty() )
+        continue;
       auto p = msg_ptr->anchors[i].particle_positions.begin();
       //ROS_WARN("Number of particles: %d", (int)msg_ptr->anchors[i].particle_positions.size());
       for( ; p != msg_ptr->anchors[i].particle_positions.end(); ++p ) {
@@ -310,8 +315,13 @@ class AnchorViewer {
     cout << "----------------------" << endl;
   }
 
+  // Dispaly (web interface) clikc callback function
+  void web_interface_click_cb(const geometry_msgs::PointConstPtr& msg) {
+    this->click_wrapper( cv::EVENT_LBUTTONDOWN, msg->x, msg->y, -1 );
+  }
+  
   // Mouse click callback function(s)
-  static void click_cb(int event, int x, int y, int flags, void *obj) {
+  static void mouse_click_cb(int event, int x, int y, int flags, void *obj) {
     AnchorViewer *self = static_cast<AnchorViewer*>(obj);
     if( event == cv::EVENT_LBUTTONDOWN ) {
       self->click_wrapper( event, x, y, flags);
@@ -348,6 +358,7 @@ public:
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
     _particle_sub = nh.subscribe("/logic_anchors", 10, &AnchorViewer::particles_cb, this);
     _highlight_sub = _nh.subscribe("/display/selected", 10, &AnchorViewer::highlight_cb, this);
+    _click_sub = _nh.subscribe("/display/click", 10, &AnchorViewer::web_interface_click_cb, this);
     _selected_pub = _nh.advertise<std_msgs::String>("/display/selected", 1);
 
     // Used for the web interface
@@ -361,13 +372,16 @@ public:
     if( !_priv_nh.getParam("display_mode", this->_display_trigger) ) {
       this->_display_trigger = "anchoring";
     }
+    if( !_priv_nh.getParam("display_window", this->_display_window) ) {
+      this->_display_window = false;
+    }
     ROS_WARN("[AnchorViewer] Display mode: '%s'", this->_display_trigger.c_str());    
     ROS_WARN("[AnchorViewer] Number of particles: '%d'", this->_max_particles);    
 
     // Create the display window
     const char *window = "Anchors with information...";
     cv::namedWindow( window, 1);
-    cv::setMouseCallback( window, &AnchorViewer::click_cb, this);
+    cv::setMouseCallback( window, &AnchorViewer::mouse_click_cb, this);
 
     this->_rng = cv::RNG( 0xFFFFFFFF );
   }
@@ -386,7 +400,7 @@ public:
     while(ros::ok()) {
 
       // OpenCV window for display
-      if( !this->_img.empty() ) {
+      if( !this->_img.empty() && this->_display_window ) {
 	cv::imshow( "Anchors with information...", this->anchor_img() );
 	if( video.isOpened() ) {
 	  video.write(this->anchor_img());
@@ -396,8 +410,9 @@ public:
 	if( size.width == 0 || size.height == 0 ) {
 	  size = this->_img.size();
 	}
-      }
+      
 
+<<<<<<< HEAD
       // Wait for a keystroke in the window
       char key = cv::waitKey(1);
       if( key == 27 || key == 'Q' || key == 'q' ) {
@@ -425,10 +440,40 @@ public:
 	  std::cout<< "[Start recording] File name: " << name << std::endl;
 	  //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
 	  video.open( path + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
+=======
+	// Wait for a keystroke in the window
+	char key = cv::waitKey(1);
+	if( key == 27 || key == 'Q' || key == 'q' ) {
+	  break;
 	}
-	else {
-	  std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
-	  video.release();
+	else if( key == 'H' || key == 'h' ) {
+	  this->help();
+	}
+	else if( key == 'R' || key == 'r' ) {
+	  this->_highlight = "";
+>>>>>>> b5317325f5b758508831191589e824bdbb4359e2
+	}
+	else if( key == 'S' || key == 's' ) {
+	  recording = !recording;
+	  if( recording ) {
+
+	    // Get time now as a string
+	    boost::posix_time::ptime t = ros::Time::now().toBoost();
+	    std::string t_str = boost::posix_time::to_simple_string(t);
+
+	    // Use the tim to create a uiquefile name
+	    std::replace( t_str.begin(), t_str.end(), ' ', '_');
+	    std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
+
+	    // Start therecording
+	    std::cout<< "[Start recording] File name: " << name << std::endl;
+	    //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
+	    video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	  }
+	  else {
+	    std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
+	    video.release();
+	  }
 	}
       }
 

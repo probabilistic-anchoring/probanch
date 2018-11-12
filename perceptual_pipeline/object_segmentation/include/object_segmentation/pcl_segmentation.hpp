@@ -26,7 +26,7 @@
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
 
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Vector3.h>
 
 // Useful macros
 #define FPS_CALC(_WHAT_) \
@@ -205,7 +205,7 @@ namespace segmentation {
   void getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr, 
 			    geometry_msgs::Pose &pos );
   void getShape( const pcl::PointCloud<Point>::Ptr &projected_cloud_ptr,
-		 geometry_msgs::Point &dim );
+		 geometry_msgs::Vector3 &shape );
 }
 
 #endif // __SEGMENTATION_HPP__

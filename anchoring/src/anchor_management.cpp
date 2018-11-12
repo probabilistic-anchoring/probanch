@@ -22,6 +22,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/logic_anchors", 10, &AnchorManagement::track, this);
+  _update_sub = _nh.subscribe("/semantic_update", 10, &AnchorManagement::update, this);
   //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
 
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
@@ -127,7 +128,6 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   }
   */
 
-
   // Manage the anchors
   for( uint i = 0; i < objects.size(); i++) {
     string id = objects[i].getId();
@@ -139,7 +139,7 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     }
   }
 
-  // Get a snapshot of all anchors seen in the scene at time t
+  // Get all anchors seen in the scene at this time (t)
   anchor_msgs::AnchorArray msg;
   this->_anchors->getArray<anchor_msgs::Anchor>( msg.anchors, t );
   this->_anchor_pub.publish(msg);
@@ -153,17 +153,12 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   this->_anchors->getArray<anchor_msgs::Display>( display_msg.anchors, t );
   this->_display_pub.publish(display_msg);
 
-  ROS_INFO("Anchors: %d", (int)this->_anchors->size());
+  //ROS_INFO("Anchors: %d", (int)this->_anchors->size());
   //ROS_INFO("Time: %.2f", t.toSec() - _time_zero);
-  ROS_INFO("------------------------------");
+  //ROS_INFO("------------------------------");
 }
 
-/* -----------------------------------------
-   Predict if
-   --------------------------------------- */
-float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
 
-}
 
 /* -----------------------------------------
    Main track function(s)
@@ -174,31 +169,120 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
   ros::Time t = track_ptr->header.stamp;
   for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
-    // IF tracked hidden object, add the position of hte object
+    // Tracked hidden object, add the position(s) of hte object
     if( !track_ptr->anchors[i].observed ) {
       
-      // Transform the coordinates to a geometry message
-      geometry_msgs::PoseStamped msg;
-      msg.header = track_ptr->header;
+      // Populate a list of position messages
+      std::vector<geometry_msgs::PoseStamped> array;
       auto p = track_ptr->anchors[i].particle_positions.begin();
       for( ; p != track_ptr->anchors[i].particle_positions.end(); ++p ) {  
-	msg.pose.position.x += p->data.pose.position.x;
-	msg.pose.position.y += p->data.pose.position.y;
-	msg.pose.position.z += p->data.pose.position.z;
+	array.push_back(p->data);
       }
-      msg.pose.position.x /= track_ptr->anchors[i].particle_positions.size();
-      msg.pose.position.y /= track_ptr->anchors[i].particle_positions.size();
-      msg.pose.position.z /= track_ptr->anchors[i].particle_positions.size();
 
       // Track the anchor
       anchoring::AttributeMap attributes;
-      attributes[POSITION] = AttributePtr( new PositionAttribute(msg) );
+      attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
       this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
     }
   }
 }
 
 
+/* -----------------------------------------
+
+   Update function
+   --------------------
+   Updates and anchor based on the information
+   given by language instruction(s).
+
+   ------------------------------------------- */
+void AnchorManagement::update( const anchor_msgs::SemanticAnchorArrayPtr &update_ptr ) {
+  ROS_ERROR("Anchoring: got a semantic update!");
+  
+  // Maintain all incoming tracked objects
+  ros::Time t = ros::Time::now();
+  for( uint i = 0; i < update_ptr->anchors.size(); i++) {
+
+    // Update the class categories of an anchor
+    anchoring::AttributeMap attributes;
+    attributes[CAFFE] = AttributePtr( new CaffeAttribute(update_ptr->anchors[i].caffe) );
+    this->_anchors->re_acquire( update_ptr->anchors[i].id, attributes, t); // TRACK
+  }
+}
+
+
+// Handle a request for a snapshot the the anchorspace
+bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
+				     anchor_msgs::TimedRequest::Response &res ) {
+
+  // Get a snapshot of all anchors seen scene at time t
+  this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
+  return true;
+}
+
+// Handle a request for spatial information about one (or more) anchor(s)
+bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req,
+				       anchor_msgs::SpatialRequest::Response &res ) {
+  try {
+
+    // Iterate given ids and collect spatial positions and volumes
+    for( auto &id : req.ids) {
+      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
+    }
+  }
+  catch( const std::exception &e ) {
+    ROS_ERROR("[AnchorManagement::spatialRequest]%s", e.what() );
+    return false;
+  }
+  return true;
+}
+
+
+// For 'ROS loop' access
+void AnchorManagement::spin() {
+  ros::Rate rate(30);
+  while (ros::ok()) {
+
+    // Maintain the anchor list while idle
+    if( !this->_anchors->empty() ) {
+      this->_anchors->maintain();
+    }
+
+    ros::spinOnce();
+    rate.sleep();
+  }
+}
+
+// ------------------------------------------
+// Main function
+// ------------------------------------------
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "anchoring_management");
+  ros::NodeHandle nh;
+
+  // Reading the number of threads used to initilize the anchor space with
+  int threads;
+  if( !ros::param::get("~threads", threads) ) {
+    threads = 8;  // Defualt: 8
+  }
+
+  AnchorManagement node(nh);
+  node.init(threads);
+
+  node.spin();
+  return 0;
+}
+
+
+// ---[ OLD STUFF ]---------
+
+/* -----------------------------------------
+   Predict if
+   ----------------------------------------
+float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float> > &matches) {
+
+}
+   --------------------------------------- */
 /*
 // ---[ Track method based on data association ]---
 void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr ) {
@@ -263,7 +347,7 @@ void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstP
      -1 - tracked by distance
       0 - no match
      +1 - re-acquried by match
-   -------------------------------------- */
+   -------------------------------------- 
 int AnchorManagement::process( map< string, map<AttributeType, float> > &matches,
 			       string &id,
 			       float dist_th,
@@ -301,65 +385,6 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
 
   return 0;
 }
+----------------------------------*/
 
-// Handle a request for a snapshot the the anchorspace
-bool AnchorManagement::timedRequest( anchor_msgs::TimedRequest::Request &req,
-				     anchor_msgs::TimedRequest::Response &res ) {
-
-  // Get a snapshot of all anchors seen scene at time t
-  this->_anchors->getArray<anchor_msgs::Anchor>( res.anchors, req.t );
-  return true;
-}
-
-// Handle a request for spatial information about one (or more) anchor(s)
-bool AnchorManagement::spatialRequest( anchor_msgs::SpatialRequest::Request &req,
-				       anchor_msgs::SpatialRequest::Response &res ) {
-  try {
-
-    // Iterate given ids and collect spatial positions and volumes
-    for( auto &id : req.ids) {
-      res.anchors.push_back(this->_anchors->get<anchor_msgs::Anchor>(id));
-    }
-  }
-  catch( const std::exception &e ) {
-    ROS_ERROR("[AnchorManagement::spatialRequest]%s", e.what() );
-    return false;
-  }
-  return true;
-}
-
-
-// For 'ROS loop' access
-void AnchorManagement::spin() {
-  ros::Rate rate(30);
-  while (ros::ok()) {
-
-    // Maintain the anchor list while idle
-    if( !this->_anchors->empty() ) {
-      this->_anchors->maintain();
-    }
-
-    ros::spinOnce();
-    rate.sleep();
-  }
-}
-
-// ------------------------------------------
-// Main function
-// ------------------------------------------
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "anchoring_management");
-  ros::NodeHandle nh;
-
-  // Reading the number of threads used to initilize the anchor space with
-  int threads;
-  if( !ros::param::get("~threads", threads) ) {
-    threads = 8;  // Defualt: 8
-  }
-
-  AnchorManagement node(nh);
-  node.init(threads);
-
-  node.spin();
-  return 0;
-}
+// ---[ END ]----
