@@ -11,10 +11,10 @@ import argparse
 import cv2
 
 # Global parameters
-x = 220
-y = 200
-width = 320
-height = 320
+x = 220 # 160 # 200
+y = 300 # 280 # 200
+width = 400 # 400 # 320
+height = 220 # 240 # 320
 
 # Function for processing a video strean frame by frame
 def processVideo(path, fname):

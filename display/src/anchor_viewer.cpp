@@ -424,7 +424,7 @@ public:
 	  // Start therecording
 	  std::cout<< "[Start recording] File name: " << name << std::endl;
 	  //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
-	  video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	  video.open( path + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
 	}
 	else {
 	  std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
