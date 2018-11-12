@@ -405,42 +405,12 @@ public:
 	if( video.isOpened() ) {
 	  video.write(this->anchor_img());
 	}
-
+	
 	// Get the image size (once)
 	if( size.width == 0 || size.height == 0 ) {
 	  size = this->_img.size();
 	}
       
-
-<<<<<<< HEAD
-      // Wait for a keystroke in the window
-      char key = cv::waitKey(1);
-      if( key == 27 || key == 'Q' || key == 'q' ) {
-	break;
-      }
-      else if( key == 'H' || key == 'h' ) {
-	this->help();
-      }
-      else if( key == 'R' || key == 'r' ) {
-	this->_highlight = "";
-      }
-      else if( key == 'S' || key == 's' ) {
-	recording = !recording;
-	if( recording ) {
-
-	  // Get time now as a string
-	  boost::posix_time::ptime t = ros::Time::now().toBoost();
-	  std::string t_str = boost::posix_time::to_simple_string(t);
-
-	  // Use the tim to create a uiquefile name
-	  std::replace( t_str.begin(), t_str.end(), ' ', '_');
-	  std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
-
-	  // Start therecording
-	  std::cout<< "[Start recording] File name: " << name << std::endl;
-	  //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
-	  video.open( path + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
-=======
 	// Wait for a keystroke in the window
 	char key = cv::waitKey(1);
 	if( key == 27 || key == 'Q' || key == 'q' ) {
@@ -451,7 +421,6 @@ public:
 	}
 	else if( key == 'R' || key == 'r' ) {
 	  this->_highlight = "";
->>>>>>> b5317325f5b758508831191589e824bdbb4359e2
 	}
 	else if( key == 'S' || key == 's' ) {
 	  recording = !recording;
@@ -461,14 +430,14 @@ public:
 	    boost::posix_time::ptime t = ros::Time::now().toBoost();
 	    std::string t_str = boost::posix_time::to_simple_string(t);
 
-	    // Use the tim to create a uiquefile name
+	    // Use the time to create a uiquefile name
 	    std::replace( t_str.begin(), t_str.end(), ' ', '_');
 	    std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
 
-	    // Start therecording
+	    // Start the recording
 	    std::cout<< "[Start recording] File name: " << name << std::endl;
 	    //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
-	    video.open( path + name, CV_FOURCC('M','J','P','G'), 20, size, true);
+	    video.open( path + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
 	  }
 	  else {
 	    std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
@@ -476,7 +445,7 @@ public:
 	  }
 	}
       }
-
+      
       ros::spinOnce();
       rate.sleep();
     }
