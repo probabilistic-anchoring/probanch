@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>anchor_utils</name>
+  <name>database</name>
   <version>0.0.1</version>
-  <description>The anchor_utils package</description>
+  <description>The MongoDB database interface package</description>
   <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
   <license>MIT</license>
 
@@ -12,11 +12,9 @@
   <build_depend>roslib</build_depend>
   <build_depend>anchor_msgs</build_depend>
 
-
   <run_depend>roscpp</run_depend>
   <run_depend>roslib</run_depend>
   <run_depend>anchor_msgs</run_depend>
-
 
   <export>
     <build_export_depend>libbsoncxx</build_export_depend>

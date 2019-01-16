@@ -6,12 +6,13 @@
   <script src="./js/jquery-3.1.1.min.js"></script>
   <script src="./js/eventemitter2.min.js"></script>
   <script src="./js/roslib.min.js"></script>
+  <!-- script src="./js/opencv.js" type="text/javascript"></script -->
   <link rel="stylesheet" href="./css/w3.css">
   <!--<link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">-->
   <style>
     body,h1,h2,h3,h4,h5 {font-family: "Arial", sans-serif}
     .header {
-      border: 1px solid black;
+      border: 1px solid black;	
       background-image: url(./images/network_header.jpg);
       background-position: right top;
       background-size: 535px 200px;
@@ -159,19 +160,30 @@
     
     var listener = new ROSLIB.Topic({
       ros : ros,
-      name : '/display/base64img',
-      messageType : 'std_msgs/String'
-      //messageType : 'sensor_msgs/Image'
+      //name : '/display/base64img',
+      name : '/display/image/compressed',
+      //messageType : 'std_msgs/String'
+      messageType : 'sensor_msgs/CompressedImage'
     });
   
     // Callback function for reciving an image
     listener.subscribe(function(message) {
       //console.log('Received message on ' + listener.name + ': ' + message.data);
       var imgData = "data:image/jpeg;base64," + message.data;
-      //console.log(imgData);
-      displayImg = document.getElementById("ROSImg");
-      displayImg.style.display = "inline";
-      displayImg.setAttribute( 'src', imgData);
+
+      // Get the canvas 
+      var displayCanvas = document.getElementById("ROSImg");
+      displayCanvas.style.display = "inline";
+      var ctx = displayCanvas.getContext("2d");
+
+      // Add the incomming image as the canvas source
+      var img = new Image();
+      img.onload = function() {
+        displayCanvas.width = this.width;
+        displayCanvas.height = this.height;
+        ctx.drawImage(img, 0, 0, this.width, this.height);
+      };
+      img.src = imgData;
     });
 
     // Handle image clicks
@@ -358,7 +370,10 @@
 <!-- Page content -->
 <div class="w3-main w3-padding" style="margin-top: 230px;">
   <div class="w3-container w3-margin" style="float: left;">
+    <canvas id="ROSImg" style="border: 1px solid black; display: none;"></canvas>
+    <!--
     <img id="ROSImg" src="" alt="ROS response image..." style="width: 960px; height: 540px; border: 1px solid black; display: none;">
+    -->
   </div> 
   <div class="w3-container" style="width: 40%; float: left; margin-top: 0px;">
     <h2 class="title" style="font-weight: bold; text-decoration: underline;">Object Anchoring</h2>

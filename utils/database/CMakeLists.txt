@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(anchor_utils)
+project(database)
 
 # Check c++11 / c++0x
 include(CheckCXXCompilerFlag)
@@ -18,9 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
 )
-
-# Prevent Cude library from giving a linking error
-set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
 ## System dependencies are found with CMake's conventions
 find_package(libbsoncxx REQUIRED)
@@ -47,7 +44,6 @@ catkin_package(
   INCLUDE_DIRS include ${LIBMONGOCXX_INCLUDE_DIRS} ${LIBBSONCXX_INCLUDE_DIRS}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS roscpp roslib
-  DEPENDS OpenCV
 )
 
 ###########
@@ -61,7 +57,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${LIBMONGOCXX_INCLUDE_DIRS}
   ${LIBBSONCXX_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
 )
 
 # Link the external libraries
@@ -71,13 +66,12 @@ link_directories(
 )
 
 ## Declare a C++ library
-add_library( ${PROJECT_NAME} src/database.cpp src/ml.cpp )
+add_library( ${PROJECT_NAME} src/database.cpp )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( ${PROJECT_NAME}
   ${LIBMONGOCXX_LIBRARIES}
   ${LIBBSONCXX_LIBRARIES}
-  ${OpenCV_LIBRARIES}
 )
 
 # Simple database cleaner
@@ -87,16 +81,12 @@ target_link_libraries( cleaner
   ${catkin_LIBRARIES}
 )
 
-# For testing
+# Testing
 add_executable(db_test src/db_test.cpp)
 target_link_libraries( db_test
   ${PROJECT_NAME} 
   ${catkin_LIBRARIES}
-)
-add_executable(ml_test src/ml_test.cpp)
-target_link_libraries( ml_test
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############

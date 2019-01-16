@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <ros/ros.h>
 
-#include <pcl_conversions/pcl_conversions.h>
+//#include <pcl_conversions/pcl_conversions.h>  // #warning The <pcl/ros/conversions.h> header is deprecated
+#include <pcl/conversions.h>
+
 #include <pcl_ros/transforms.h>
 #include <pcl/io/pcd_io.h>
 

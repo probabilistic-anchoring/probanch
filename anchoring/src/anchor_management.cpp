@@ -48,7 +48,7 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   // Load train classifier
   //_classifier = ml::load( db, "ml", "svm");
   const string path = ros::package::getPath("anchoring");
-  _classifier = machine::load( path + "/models/svm.yml" );
+  _classifier = machine::load( path + "/models/svm.yml", "svm");
 
   _time_zero = -1.0;
 }

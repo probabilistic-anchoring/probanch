@@ -2,7 +2,7 @@
 #define __ANCHOR_HPP__
 
 #include <map>
-#include <memory>
+//#include <memory>
 #include <iomanip>
 #include <thread>
 #include <mutex>

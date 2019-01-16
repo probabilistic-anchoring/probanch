@@ -145,6 +145,7 @@ void AnchorAnnotation::sort( map< string, map<anchoring::AttributeType, float> >
   }
   
   #if DEBUG == 1
+  std::cout << "---" << std::endl;
   std::cout << "Best matches: " << std::endl;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
     std::cout << this->_anchors->toString(ite->first) << std::endl;
@@ -164,7 +165,7 @@ void AnchorAnnotation::save( map< string, map<anchoring::AttributeType, float> >
       result.push_back( ite->second[COLOR] );
       result.push_back( ite->second[POSITION] );
       result.push_back( ite->second[SHAPE] );
-      result.push_back( (float)(2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, this->_lock_time)) ))) );  // Add the time as well...
+      result.push_back( (float)(2.0 / (1.0 + std::exp( this->_anchors->diff( ite->first, this->_lock_time) ))) );  // Add the time as well...
 
       // Create MongoDB document
       mongo::Database::Document doc;
@@ -219,6 +220,8 @@ void AnchorAnnotation::clickCb(int event, int x, int y, int flags, void *obj) {
 }
 
 void AnchorAnnotation::clickWrapper(int event, int x, int y, int flags) {
+  //x += 320;
+  //y += 320;
   if( this->_idx < 0 ) {
     int idx = 0;
     for( auto &object : _objects) {
@@ -307,7 +310,13 @@ cv::Mat AnchorAnnotation::subImages(int idx) {
   cv::cvtColor( result, result, CV_GRAY2BGR);
   result.convertTo( result, -1, 1.0, 50); 
   //cv::Mat result( this->_img.size(), this->_img.type(), cv::Scalar::all(255)); // <-- ...white bg
-  
+
+  // Get the contour of the selceted object
+  std::vector<std::vector<cv::Point> > contour;
+  this->getContour( this->_objects[idx][CAFFE], contour );
+  cv::drawContours( result, contour, -1, cv::Scalar( 0, 0, 255), 1);
+
+    
   // Iterate and draw sub images
   cv::Scalar color = cv::Scalar::all(255); // White
   int pose = cv::getTrackbarPos( "Time slider:", window);
@@ -375,9 +384,14 @@ void AnchorAnnotation::spin() {
     if( !this->_img.empty() ) {
       if( this->_idx < 0 ) {
 	cv::imshow( AnchorAnnotation::window, this->_img );
+	//cv::Mat result = this->_img( cv::Rect( 320, 320, 280, 210) );
+	//cv::imshow( AnchorAnnotation::window, result );
       }
       else {
 	cv::imshow( AnchorAnnotation::window, this->subImages(this->_idx) );
+	//cv::Mat result = this->subImages(this->_idx);
+	//result = result( cv::Rect( 320, 320, 280, 210) );
+	//cv::imshow( AnchorAnnotation::window, result );
       }
     }
 

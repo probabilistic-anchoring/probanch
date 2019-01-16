@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 
-#include <anchor_utils/database.hpp>
+#include <database/database.hpp>
 
 using namespace mongo;
 
@@ -59,7 +59,7 @@ int main(int, char**) {
   }
 
   // Path to image on disk
-  std::string path = ros::package::getPath("anchor_utils");
+  std::string path = ros::package::getPath("database");
   path = path + "/images/";
   cv::Mat img = cv::imread( path + "apple.jpg", CV_LOAD_IMAGE_COLOR);
   std::cout << "Image size: " << img.rows << " x " << img.cols << std::endl;

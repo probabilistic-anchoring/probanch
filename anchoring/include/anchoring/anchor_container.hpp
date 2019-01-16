@@ -7,6 +7,7 @@
 #include <thread>
 #include <mutex>
 
+//#include <database/database.hpp>
 #include <anchoring/anchor.hpp>
 
 namespace anchoring {
@@ -76,7 +77,7 @@ namespace anchoring {
     }
     double diff(const string &id, const ros::Time &t) {
       auto ite = this->_map.find(this->resolve(id));
-      return abs(t.toSec() - ite->second->time());
+      return std::abs(t.toSec() - ite->second->time());
     }
 
     // Map access functions

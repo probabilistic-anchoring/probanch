@@ -248,7 +248,7 @@ cv::Mat KeypointFeatures::filterDescriptor( const Mat& descriptor,
 
 // Constructor(s)
 ColorFeatures::ColorFeatures(const std::string &filename) {
-  this->_svm = machine::load(filename);
+  this->_svm = machine::load(filename, "svm");
 }
 
 ColorFeatures::ColorFeatures(int hbins,
@@ -333,7 +333,7 @@ ColorFeatures::~ColorFeatures() {
 
 // Load a pre-trained moel
 void ColorFeatures::load(const std::string &filename) {
-  this->_svm = machine::load(filename);
+  this->_svm = machine::load(filename, "svm");
 }
 
 // Color detection

@@ -719,7 +719,7 @@ namespace anchoring {
       //}
     }
     double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
-    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.9 ? 1 : max > 0.45 ? 2 : 3 );
+    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.9 ? 1 : max > 0.45 ? 2 : 3 ) );
     /*
     caffe_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
@@ -757,10 +757,10 @@ namespace anchoring {
     float result = 0.0;
     for( uint i = 0; i < this->_symbols.size(); i++ ) {
       for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
-	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	if( this->_symbols[i] == raw_ptr->_symbols[j] && (this->_predictions[i] / this->_n) > 0.05 && raw_ptr->_predictions[j] > 0.05  ) {
 	  float diff = 1.0 / 
 	    exp( abs( (this->_predictions[i] / this->_n) - raw_ptr->_predictions[j] ) /
-		 ( (this->_predictions[i] / this->_n) * raw_ptr->_predictions[j] ) );
+		 ( (this->_predictions[i] / this->_n) + raw_ptr->_predictions[j] ) );
 	  if (diff > result ) {
 	    result = diff;
 	  }

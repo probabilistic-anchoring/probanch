@@ -203,18 +203,18 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       //cv::Scalar color = cv::Scalar::all(64); // Dark gray
       cv::drawContours( result, contours, -1, color, 1);
 
-      cv::Point2f p1(rect.x, rect.y + 10);
-      cv::Point2f p2(rect.x + 105, rect.y + 10);
+      cv::Point2f p1(rect.x + 10, rect.y + 10);
+      cv::Point2f p2(rect.x + 90, rect.y + 10);
       cv::line( result, p1, p2, cv::Scalar::all(64), 1, 8);
-      p1.x += 7;
+      p1.x += 6;
       p1.y -= 1;
       for( int i = 0; i < preds.size(); i++ ) {
 	if( SHADES_OF_RED_HIGH == i )
 	  continue;
 	p2.x = p1.x + 6;
-	p2.y = p1.y - (int)(preds[i] * 50.0);
+	p2.y = p1.y - (int)(preds[i] * 40.0);
 	cv::rectangle( result, p1, p2, this->_cf.getColor(i), CV_FILLED);
-	p1.x += 7;
+	p1.x += 6;
       }  
     }
 

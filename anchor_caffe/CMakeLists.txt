@@ -14,9 +14,13 @@ else()
 endif()
 
 # Set Caffe dirs
-set(Caffe_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/caffe/include ${PROJECT_SOURCE_DIR}/caffe/distribute/include)
-set(Caffe_LINK_LIBRARAY ${PROJECT_SOURCE_DIR}/caffe/build/lib)
-
+#set(Caffe_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/caffe/include ${PROJECT_SOURCE_DIR}/caffe/distribute/include)
+#set(Caffe_LINK_LIBRARAY ${PROJECT_SOURCE_DIR}/caffe/build/lib)
+set(Caffe_DIR "/opt/caffe")
+set(Caffe_INCLUDE_DIRS ${Caffe_DIR}/include ${Caffe_DIR}/distribute/include)
+set(Caffe_LINK_LIBRARAY ${Caffe_DIR}/build/lib)
+message("Caffe_INCLUDE_DIRS: ${Caffe_INCLUDE_DIRS}.")
+message("Caffe_LINK_LIBRARAY: ${Caffe_LINK_LIBRARAY}.")
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS

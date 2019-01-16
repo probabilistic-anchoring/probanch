@@ -6,7 +6,7 @@
 #include <vector>
 
 // OpenCV includes
-#include <anchor_utils/ml.hpp>
+#include <ml/ml.hpp>
 
 #if CV_MAJOR_VERSION == 2 // opencv2 only
 #include <opencv2/features2d/features2d.hpp>
