@@ -424,7 +424,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;
 	  pose.header.stamp = cloud_msg->header.stamp;
-	  segmentation::getPosition( cluster_ptr, pose.pose);
+	  segmentation::getOrientedPosition( cluster_ptr, pose.pose);
 	  obj.position.data = pose;
 
 
