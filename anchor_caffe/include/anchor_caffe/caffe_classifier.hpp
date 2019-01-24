@@ -1,6 +1,6 @@
 
-#ifndef __CLASSIFIER_HPP__
-#define __CLASSIFIER_HPP__
+#ifndef __CAFFE_CLASSIFIER_HPP__
+#define __CAFFE_CLASSIFIER_HPP__
 
 #include <iostream>
 #include <vector>
@@ -222,4 +222,4 @@ void Classifier::Preprocess(const cv::Mat& img,
     cv::split(sample_normalized, *input_channels);
 }
 
-#endif // __CLASSIFIER_HPP__
+#endif // __CAFFE_CLASSIFIER_HPP__

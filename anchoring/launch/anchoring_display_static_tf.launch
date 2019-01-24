@@ -27,7 +27,7 @@
   <!-- Anchoring framework -->
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
-    <param name="db_name" type="string" value="anchortmpdb" />
+    <param name="db_name" type="string" value="anchortmpdb2" />
   </node>
 
 

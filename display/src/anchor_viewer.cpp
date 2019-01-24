@@ -1,6 +1,7 @@
 #include <iostream>
-#include <vector>
 #include <sstream>
+#include <fstream>
+#include <vector>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -46,6 +47,7 @@ class AnchorViewer {
   cv::Mat _img;
   vector<anchor_msgs::Display> _anchors;
   string _highlight;
+  cv::Mat _icon;
 
   // Camera information
   image_geometry::PinholeCameraModel _cam_model;
@@ -245,8 +247,19 @@ class AnchorViewer {
 
       // Print anchoring information
       if( this->_display_trigger == "anchoring" || this->_display_trigger == "both" ) {
+	int x_top = rect.x + 5, y_top = rect.y + 5;
+	int x_centre = x_top + this->_icon.cols / 2, y_centre = y_top + this->_icon.rows / 2;
+	cv::line( result_img, cv::Point( x_centre, y_centre), cv::Point( x_centre + (rect.width * 0.8), y_centre), color, 1);
+	cv::circle( result_img, cv::Point( x_centre, y_centre), 10, cv::Scalar::all(255), -1);
+	this->_icon.copyTo( result_img( cv::Rect( x_top, y_top, this->_icon.cols, this->_icon.rows) ) );
+	cv::circle( result_img, cv::Point( x_centre, y_centre), 10, color, 1);
+	cv::putText( result_img, ite->x, cv::Point( rect.x + 22, rect.y + 12), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	
+	/*
 	cv::rectangle( result_img, rect, color, 1, 8);
 	cv::putText( result_img, ite->x, cv::Point( rect.x+10, rect.y+16), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	*/
+	
 	/*
 	 std::stringstream ss;
 	 ss << "Symbol: " << ite->x;
@@ -285,6 +298,14 @@ class AnchorViewer {
     }
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
 
+    cv::Rect roi;
+    roi.x = 280;
+    roi.y = 260;
+    roi.width = 360;
+    roi.height = 270;
+    //cv::Mat crop = result_img(roi);
+    cv::rectangle( result_img, roi, color, 1);
+    
     /*
     // TMP
     cv::Rect roi;
@@ -350,6 +371,19 @@ class AnchorViewer {
     }
   }
 
+  // Generate a unique name
+  std::string uname(const std::string &suffix) {
+
+    // Get time now as a string
+    boost::posix_time::ptime t = ros::Time::now().toBoost();
+    std::string t_str = boost::posix_time::to_simple_string(t);
+
+    // Use the time to create a uiquefile name
+    std::replace( t_str.begin(), t_str.end(), ' ', '_');
+    std::string name = t_str.substr( 0, t_str.find(".")) + "." + suffix;
+    return name;
+  }
+
 public:
   AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh) { //,  _display_trigger("anchoring"), _max_particles(-1) {
     _counter = 0;
@@ -379,10 +413,18 @@ public:
     ROS_WARN("[AnchorViewer] Number of particles: '%d'", this->_max_particles);    
 
     // Create the display window
-    const char *window = "Anchors with information...";
-    cv::namedWindow( window, 1);
-    cv::setMouseCallback( window, &AnchorViewer::mouse_click_cb, this);
+    if( this->_display_window ) {
+      const char *window = "Anchors with information...";
+      cv::namedWindow( window, 1);
+      cv::setMouseCallback( window, &AnchorViewer::mouse_click_cb, this);
+    }
 
+    // Read icon image
+    string fname = ros::package::getPath("display") + "/images/symbol.png";
+    this->_icon = cv::imread( fname, CV_LOAD_IMAGE_COLOR);
+    cv::resize( this->_icon, this->_icon, cv::Size(), 0.06, 0.06, INTER_AREA);
+      
+    // Randomize
     this->_rng = cv::RNG( 0xFFFFFFFF );
   }
   ~AnchorViewer() {}
@@ -392,7 +434,7 @@ public:
     // Video recording varaibles
     bool recording = false;
     cv::VideoWriter video;
-    string path = ros::package::getPath("display") + "/videos/";
+    string path = ros::package::getPath("display");
 
     // Main ROS loop
     ros::Rate rate(30);
@@ -422,25 +464,43 @@ public:
 	else if( key == 'R' || key == 'r' ) {
 	  this->_highlight = "";
 	}
+	else if( key == 'X' || key == 'x' ) {
+	  
+	  // Save a screen-shot to file
+	  cv::Mat cropped = this->anchor_img()( cv::Rect(280, 260, 360, 270) );
+	  std::string name = this->uname("png");
+	  cv::imwrite( path + "/images/" + name, cropped);
+	  
+	}
+	else if( key == 'F' || key == 'f' ) {
+
+	  // Log all anchors and their symbols to file.  
+	  std::string name = this->uname("txt");
+	  std::stringstream ss;
+	  ss << "id:category:color:size" << endl;
+	  std::ofstream oFile( path + "/images/" + name);
+	  oFile  << ss.rdbuf();
+	  for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
+	    ss.str("");
+	    ss << ite->x << ":" << ite->category << ":" << ite->colors.front() << ":" << ite->size << endl;;
+	    oFile  << ss.rdbuf();
+	  }
+	  oFile.close();
+	}
 	else if( key == 'S' || key == 's' ) {
 	  recording = !recording;
 	  if( recording ) {
-
-	    // Get time now as a string
-	    boost::posix_time::ptime t = ros::Time::now().toBoost();
-	    std::string t_str = boost::posix_time::to_simple_string(t);
-
-	    // Use the time to create a uiquefile name
-	    std::replace( t_str.begin(), t_str.end(), ' ', '_');
-	    std::string name = t_str.substr( 0, t_str.find(".")) + ".avi";
+	    
+	    // Get a unique file name
+	    std::string name = this->uname("avi"); 
 
 	    // Start the recording
 	    std::cout<< "[Start recording] File name: " << name << std::endl;
 	    //video.open( path + name, CV_FOURCC('X','V','I','D'), 20, size, true);
-	    video.open( path + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
+	    video.open( path + "/videos/" + name, CV_FOURCC('M','J','P','G'), 30.0, size, true);
 	  }
 	  else {
-	    std::cout<< "[Stop recording] Saved to path:" << path << std::endl;
+	    std::cout<< "[Stop recording] Saved to path:" << path + "/videos/" << std::endl;
 	    video.release();
 	  }
 	}

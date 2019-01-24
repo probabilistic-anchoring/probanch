@@ -1,26 +1,27 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(anchor_caffe)
 
-# Check c++11 / c++0x
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "-std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "-std=c++0x")
-else()
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
 
-# Set Caffe dirs
-#set(Caffe_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/caffe/include ${PROJECT_SOURCE_DIR}/caffe/distribute/include)
-#set(Caffe_LINK_LIBRARAY ${PROJECT_SOURCE_DIR}/caffe/build/lib)
-set(Caffe_DIR "/opt/caffe")
-set(Caffe_INCLUDE_DIRS ${Caffe_DIR}/include ${Caffe_DIR}/distribute/include)
-set(Caffe_LINK_LIBRARAY ${Caffe_DIR}/build/lib)
-message("Caffe_INCLUDE_DIRS: ${Caffe_INCLUDE_DIRS}.")
-message("Caffe_LINK_LIBRARAY: ${Caffe_LINK_LIBRARAY}.")
+## Set var for Caffe/OpenCV implementation (TRUE/FALSE)
+set(CAFFE_SUPPORT TRUE)
+if( CAFFE_SUPPORT )
+  add_definitions( -DINCLUDE_CAFFE_CLASSIFIER )
+  message(STATUS "Caffe framework used for classification." )
+  
+  ## Set Caffe dirs
+  if(DEFINED ENV{CAFFE_ROOT})
+    set(Caffe_DIR $ENV{CAFFE_ROOT})
+    message(STATUS "Caffe root directory: " ${Caffe_DIR})
+  else()
+    message(STATUS "No Caffe found, using OpenCV instead.")
+  endif()
+  set(Caffe_INCLUDE_DIRS ${Caffe_DIR}/include ${Caffe_DIR}/distribute/include)
+  set(Caffe_LINK_LIBRARAY ${Caffe_DIR}/build/lib)
+else()
+  message(STATUS "OpenCV used for classification." )
+endif()
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -36,36 +37,24 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
-find_package(CUDA QUIET)
-if( NOT CUDA_FOUND )
-  # Set Caffe var for CPU only use
-  add_definitions(-DCPU_ONLY=1)
-  set(NO_CUDA TRUE)
+if( CAFFE_SUPPORT )
+  find_package(CUDA QUIET)
+  if( NOT CUDA_FOUND )
+    
+    # Set Caffe var for CPU only use
+    add_definitions(-DCPU_ONLY=1)
+  endif()
 endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
    CaffeService.srv
 )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -92,7 +81,15 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-if( NO_CUDA )
+if( CUDA_FOUND AND CAFFE_SUPPORT )
+  include_directories(
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+    ${Caffe_INCLUDE_DIRS}
+  )
+elseif( CAFFE_SUPPORT )
   include_directories(
     include
     ${catkin_INCLUDE_DIRS}
@@ -104,8 +101,6 @@ else()
     include
     ${catkin_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
-    ${CUDA_INCLUDE_DIRS}
-    ${Caffe_INCLUDE_DIRS}
   )
 endif()
 
@@ -118,19 +113,26 @@ link_directories(${Caffe_LINK_LIBRARAY})
 # )
 
 ## Add cmake target dependencies of the library
-## as an example, code may need to be generated before libraries
-## either from message generation or dynamic reconfigure
 # add_dependencies(anchor_caffe ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(anchor_caffe src/anchor_caffe.cpp)
+add_executable(anchor_caffe src/object_classification.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(anchor_caffe ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-if( NO_CUDA )
+if( CUDA_FOUND AND CAFFE_SUPPORT )
+  target_link_libraries(
+    anchor_caffe
+    ${catkin_LIBRARIES} 
+    ${OpenCV_LIBRARIES}
+    ${CUDA_LIBRARIES}
+    caffe
+    glog
+  )
+elseif( CAFFE_SUPPORT ) 
   target_link_libraries(
     anchor_caffe
     ${catkin_LIBRARIES} 
@@ -143,9 +145,6 @@ else()
     anchor_caffe
     ${catkin_LIBRARIES} 
     ${OpenCV_LIBRARIES}
-    ${CUDA_LIBRARIES}
-    caffe
-    glog
   )
 endif()
 
@@ -185,15 +184,3 @@ endif()
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_anchor_caffe.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)

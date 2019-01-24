@@ -10,17 +10,21 @@
 
 #include <ros/ros.h>
 #include <ros/package.h>
-#include <std_msgs/String.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <anchor_caffe/CaffeService.h> 
-#include <anchor_caffe/classifier.hpp>
+// Switch between Caffe and OpenCV implementation (defined in CMakeList)
+#ifdef INCLUDE_CAFFE_CLASSIFIER
+  #include <anchor_caffe/caffe_classifier.hpp>
+#else
+  #include <anchor_caffe/cv_classifier.hpp>
+#endif
 
 #include <std_msgs/String.h>
+#include <anchor_caffe/CaffeService.h>
 #include <anchor_msgs/ObjectArray.h>
 
 using namespace std;
@@ -51,7 +55,6 @@ class AnchorCaffe {
   string _weights_path;
   string _mean_file;
   string _label_file;
-  //string _image_path;
 
   // For displaying a streaming result image
   cv::Mat result_img_;
@@ -105,6 +108,7 @@ class AnchorCaffe {
       }    
 
       // Classify image
+      //auto t = cv::getTickCount();
       if( img.data ) {
 	vector<Prediction> predictions = this->_classifier->Classify(img);
 	vector<Prediction>::iterator ite = predictions.begin();
@@ -118,7 +122,9 @@ class AnchorCaffe {
 	}
 	//ROS_INFO("[Caffe] object: %s (%.2f)", output.objects[i].caffe.symbols.front().c_str(), output.objects[i].caffe.predictions.front());
       }
-
+      //double s = (cv::getTickCount() - t) / cv::getTickFrequency();
+      //ROS_INFO("Classification time: %.2f (ms)", (100.0 * s));
+	       
       // Draw the result
       if( (this->display_image_ || this->display_window_ ) && img.data ) {
 
