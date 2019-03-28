@@ -32,29 +32,31 @@ cd ~/catkin_ws
 catkin_make -DCMAKE_BUILD_TYPE="Release" --pkg iai_kinect2
 ```
 Do not forgot to include the flag `-Dfreenect2_DIR=$HOME/<pathto>/freenect2/lib/cmake/freenect2 iai_kinect2`. If you installed libfreenect2 in a custom directory.
-### anchor_msgs ###
+### Anchor Messages ###
 We can now build the anchor_msgs package:
 ```
 catkin_make --pkg anchor_msgs
 ```
 
 ### Anchor Caffe ###
-This framework is dependent of the [Caffe Deep learning framework](http://caffe.berkeleyvision.org/), which source code can be found at: [https://github.com/BVLC/caffe](https://github.com/BVLC/caffe)
+This framework is dependent of the [Caffe Deep learning framework](http://caffe.berkeleyvision.org/).
 
 We first need to install some dependencies.
 ```bash
 $ sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler
 $ sudo apt-get install --no-install-recommends libboost-all-dev
 $ sudo apt-get install libgflags-dev libgoogle-glog-dev liblmdb-dev
+$ sudo apt-get install libopenblas-base libopenblas-dev
 ```
 
-
-
-`$ sudo apt-get install libopenblas-base libopenblas-dev`
-
-
 ** Build Caffe: **
-Clone the repo and then:
+
+Clone the repo and then to a location of your choice:
+```bash
+$ git clone https://github.com/BVLC/caffe.git
+```
+
+We can start build the Caffe framework now.
 ```bash
 $ cd caffe
 $ cp Makefile.config.example Makefile.config
@@ -66,7 +68,6 @@ $ cp Makefile.config.example Makefile.config
 * Set `USE_OPENCV := 1` (for OpenCV support).
 * Set `BLAS := atlas` to `BLAS := open` for OpenBLAS support.
 * Set `OPENCV_VERSION := 3`, if your're using OpenCV >= 3, see [here](https://github.com/BVLC/caffe/issues/3700#issuecomment-187493856)
-* Change numpy directory in `PYTHON_INCLUDE` to local install `<numpy_location>/core/include`, e.g. `/usr/local/lib/python2.7/dist-packages/numpy/core/include/`
 * Change line `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include` to `INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial/` if an error with hdf5 occurs.
 
 ** Fix hdf5  **
@@ -96,9 +97,16 @@ $ make pycaffe -j8
 
 Create a distribute directory with all the Caffe headers, compiled libraries, binaries, etc.:
 
-`$ make distribute`
+```bash
+$ make distribute
+```
 
 
+Set an environment variable to make Caffe globally available
+```
+export CAFFE_ROOT=<pathto>/caffe
+```
+Add this line for example in your `.bashrc` file.
 
 Download ReGround GoogLeNet model (fine-tuned with 101 object categories):
 
@@ -120,20 +128,6 @@ $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359
 $ echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.4.list
 $ sudo apt-get update
 $ sudo apt-get install -y mongodb-org
-```
-
-
-* Install/update cmake (resion 3.2 is required):
-```
-$ git clone https://github.com/mongodb/mongo-c-driver.git
-$ cd mongo-c-driver
-$ git checkout x.y.z  # To build a particular release
-$ python build/calc_release_version.py > VERSION_CURRENT
-$ mkdir cmake-build
-$ cd cmake-build
-$ cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF ..
-$ make
-$ sudo make install
 ```
 
 * Install MongoDB C drivers:
