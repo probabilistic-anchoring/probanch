@@ -25,6 +25,7 @@ from ar_track_alvar_msgs.msg import AlvarMarkers
 
 
 class AlvarTFBroadcaster():
+    rospy.init_node('transform_node', anonymous=True)
     bridge = CvBridge()
     show_image_bool = False
 
@@ -76,7 +77,6 @@ class AlvarTFBroadcaster():
 
 def main(args):
     try:
-        rospy.init_node('transform_node', anonymous=True)
         AlvarTFBroadcaster()
 
         rospy.spin()
