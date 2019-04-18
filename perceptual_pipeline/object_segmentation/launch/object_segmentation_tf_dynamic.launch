@@ -37,7 +37,7 @@
 
   <!-- Tracking node -->
   <node name="hand_tracking_node" pkg="hand_tracking" type="tracker.py" output="screen" >
-    <param name="display" type="bool" value="true" />
+    <param name="display" type="bool" value="false" />
   </node>
 
 </launch>
