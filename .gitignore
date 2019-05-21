@@ -1,5 +1,6 @@
 *.png
 *.avi
+*.bag
 bin/
 log/
 data/
