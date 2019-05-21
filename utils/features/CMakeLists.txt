@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(feature_extraction)
+project(features)
 
 # Check c++11 / c++0x
 include(CheckCXXCompilerFlag)
@@ -15,18 +15,26 @@ endif()
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
-  anchor_msgs
-  cv_bridge
-  features
-  image_transport
+  ml
   roscpp
+  roslib
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(OpenCV REQUIRED)
+# Find OpenCV
+find_package( OpenCV )
+if(OpenCV_VERSION_MAJOR GREATER 2)
+  find_package(OpenCV 3 REQUIRED COMPONENTS xfeatures2d)
+else()
+  find_package(OpenCV 2 REQUIRED COMPONENTS features2d)
+endif()
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
+
+# Find OpenCV
+#find_package(OpenCV REQUIRED COMPONENTS core highgui)
+#message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -37,43 +45,60 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 ###################################
 ## The catkin_package macro generates cmake config files for your package
 ## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
+## INCLUDE_DIRS: uncomment this if your package contains header files
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES feature_extraction
-  CATKIN_DEPENDS anchor_msgs cv_bridge features image_transport roscpp
+  INCLUDE_DIRS include ${catkin_INCLUDE_DIRS}
+  LIBRARIES visual
+  CATKIN_DEPENDS roscpp roslib
   DEPENDS OpenCV
 )
 
 ###########
 ## Build ##
 ###########
-#set(catkin_INCLUDE_DIRS "/opt/ros/kinetic/include/" "/home/aspo/Workspace/devel/include/")
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-## Declare a C++ executable
-add_executable(extraction src/feature_extraction.cpp )
-#add_dependencies(extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+## Declare a C++ library
+add_library( visual src/visual.cpp )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(extraction
+target_link_libraries( visual
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+
+# For testing
+#add_executable( feature_test src/db_test.cpp)
+#target_link_libraries( feature_test
+#  ${PROJECT_NAME} 
+#  ${catkin_LIBRARIES}
+#)
 
 #############
 ## Install ##
 #############
 
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+#install(TARGETS ${PROJECT_NAME}
+#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+#)
+
+#install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  PATTERN ".svn" EXCLUDE
+#)
+
+#install(DIRECTORY include/${PROJECT_NAME}/
+#        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})

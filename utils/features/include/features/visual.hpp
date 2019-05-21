@@ -6,13 +6,82 @@
 #include <vector>
 
 // OpenCV includes
-#include <ml/ml.hpp>
-
+#include <opencv2/core/version.hpp>
+#include <opencv2/core/core.hpp>
 #if CV_MAJOR_VERSION == 2 // opencv2 only
 #include <opencv2/features2d/features2d.hpp>
 #endif
 
-#include <feature_extraction/shades.hpp>
+#include <ml/ml.hpp>
+
+#include <features/shades.hpp>
+
+namespace visual_2d {
+
+  // ---[ Used namespaces ]---
+  using namespace std;
+  using namespace cv;
+  
+  // ---[ Class for color features
+  // ----------------------------------------
+  class ColorFeatures {
+  public:
+
+    // --[ Constructor(s)/destructor ]-- 
+    ColorFeatures(const string &filename);
+    ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
+    ~ColorFeatures() {}
+
+    // --[ Color detection ]--
+    void load(const string &filename);
+    void calculate( const Mat &img,
+		    Mat &hist,
+		    const Mat &mask = Mat() );
+
+    void predict( const Mat &hist,
+		  vector<float> &preds);
+
+    void normalize( Mat &hist );
+
+    void reduce( const Mat &hist,
+		 Mat &result, 
+		 int hbins = 30, int sbins = 32, int vbins = 4 );
+
+    string colorSymbol(int idx);
+    Scalar getColor(int pred);
+
+    // Static helper functions
+    static Mat equalizeIntensity(const Mat& img);
+
+    // Getter/setter functions
+    void setScaleFactor(float val) { if( val >= 0.0 && val <= 1.0 ) this->_scale = val; }
+    float getScaleFactor() { return this->_scale; }
+  
+  private:
+
+    // SVM classifier
+    machine::MachinePtr _svm; 
+  
+    int _hbins;
+    int _sbins;
+    int _vbins;
+
+    // Scale factor (in range: [0.0, 1.0])
+    float _scale;
+
+    // --[ Private helper function ]--
+    void buildTrainingData( const Color index[], 
+			    int n,
+			    float cl,
+			    Mat &trainData,
+			    Mat &labelData );
+    float totalValue(const Mat &hist);
+    float maxValue(const Mat &hist);
+    
+  }; // ...end of class. ]---
+
+} // namespace 'visual_2d'
+
 
 
 #if CV_MAJOR_VERSION == 2 // opencv2 only
@@ -101,65 +170,4 @@ private:
 #endif // opencv2 ...
 
 
-// --------------------------
-// Class for color features
-// ----------------------------------------
-class ColorFeatures {
-public:
-
-  // -------------------
-  // Public function
-  // -------------------
-  ColorFeatures(const std::string &filename);
-  ColorFeatures(int hbins = 180, int sbins = 256, int vbins = 256);
-  ~ColorFeatures();
-
-  // Color detection
-  void load(const std::string &filename);
-  void calculate( const cv::Mat &img,
-		  cv::Mat &hist,
-		  const cv::Mat &mask = cv::Mat() );
-
-  void predict( const cv::Mat &hist,
-		std::vector<float> &preds);
-
-  void normalize( cv::Mat &hist );
-
-  void reduce( const cv::Mat &hist,
-	       cv::Mat &result, 
-	       int hbins = 30, int sbins = 32, int vbins = 4 );
-
-  std::string colorSymbol(int idx);
-  cv::Scalar getColor(int pred);
-
-  // Static helper functions
-  static cv::Mat equalizeIntensity(const cv::Mat& img);
-
-  // Setter/getter functions
-  void setScaleFactor(float val) { if( val >= 0.0 && val <= 1.0 ) this->_scale = val; }
-  float getScaleFactor() { return this->_scale; }
-  
-// Private space
-private:
-
-  // SVM classifier
-  machine::MachinePtr _svm; 
-  
-  int _hbins;
-  int _sbins;
-  int _vbins;
-
-  // Scale factor (in range: [0.0, 1.0])
-  float _scale;
-
-  // Private helper function
-  void buildTrainingData( const Color index[], 
-			  int n,
-			  float cl,
-			  cv::Mat &trainData,
-			  cv::Mat &labelData );
-  float totalValue(const cv::Mat &hist);
-  float maxValue(const cv::Mat &hist);
-};
-
-#endif // __FEATURES_HPP__
+#endif // __VISUAL_HPP__

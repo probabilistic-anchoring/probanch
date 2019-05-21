@@ -123,7 +123,7 @@ namespace machine {
   void ML::save(const string filename) {
     this->_model->save(filename.c_str());
   }
-} // ...namespace ]---
+} // ...namespace ('ml') ]---
 
 // -------------------
 // Namespace functions

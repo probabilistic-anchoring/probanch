@@ -1,4 +1,4 @@
-#include <feature_extraction/colors.hpp>
+#include <features/colors.hpp>
 
 #define COLOR_SHADES_MAX 15
 

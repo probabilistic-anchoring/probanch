@@ -35,7 +35,7 @@ namespace machine {
 
   public:
 
-    // --[ Constructor(s)/destructor --]
+    // --[ Constructor(s)/destructor ]--
 #if CV_MAJOR_VERSION == 2
     ML(string type, shared_ptr<CvStatModel> model) : _type(type), _model(model) {}
     ML(string type, shared_ptr<CvStatModel> model, CvSVMParams params ) 
@@ -124,7 +124,7 @@ namespace machine {
       return avg / (float)this->_stats.size();
     }
 
-  }; // ...end of class. ]---
+  }; // ...end of struct. ]---
 
   
   // ---[ Namespace functions ]---

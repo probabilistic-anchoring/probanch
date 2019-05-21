@@ -6,14 +6,14 @@
 #include <std_msgs/String.h>
 #include <anchor_msgs/ObjectArray.h>
 
-#include <feature_extraction/visual_features.hpp>
+#include <features/visual.hpp>
 
 class FeatureExtraction {
   
 private:
 
   // Color feature object 
-  ColorFeatures _cf; 
+  visual_2d::ColorFeatures _cf; 
 
   // ROS node handles 
   ros::NodeHandle nh_; 
