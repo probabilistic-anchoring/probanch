@@ -16,6 +16,9 @@ def argparser():
                         help="name+path of this file")
 
     parser.add_argument("-mode", type=str, help="which scenario to solve")
+    parser.add_argument("-run", type=int, help="which run")
+
+
 
     return parser
 
@@ -44,5 +47,10 @@ if __name__ == "__main__":
         from class_in_hand import InHand
         model_file = os.path.join(path, 'models/in_hand.pl')
         rel_track = InHand(model_file, N_SAMPLES)
+    elif args['mode']=="collect_data_in_hand":
+        RUN = args['run']
+        from class_collect_data_in_hand import CollectDataInHand
+        model_file = os.path.join(path, 'models/collect_data_in_hand.pl')
+        rel_track = CollectDataInHand(model_file, N_SAMPLES, RUN)
 
     rospy.spin()
