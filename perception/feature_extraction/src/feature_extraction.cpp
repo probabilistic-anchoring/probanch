@@ -213,14 +213,14 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	  continue;
 	p2.x = p1.x + 6;
 	p2.y = p1.y - (int)(preds[i] * 40.0);
-	cv::rectangle( result, p1, p2, this->_cf.getColor(i), CV_FILLED);
+	cv::rectangle( result, p1, p2, this->_cf.getColorScalar(i), CV_FILLED);
 	p1.x += 6;
       }  
     }
 
     // Ground color symbols (and add the result to the output message)
     for( uint j = 0; j < preds.size(); j++) {
-      output.objects[i].color.symbols.push_back(this->_cf.colorSymbol(j));
+      output.objects[i].color.symbols.push_back(this->_cf.getColorSymbol(j));
       output.objects[i].color.predictions.push_back(preds[j]);
     }
 

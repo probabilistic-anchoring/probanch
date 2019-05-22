@@ -24,12 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Find OpenCV
-find_package( OpenCV )
-if(OpenCV_VERSION_MAJOR GREATER 2)
-  find_package(OpenCV 3 REQUIRED COMPONENTS xfeatures2d)
-else()
-  find_package(OpenCV 2 REQUIRED COMPONENTS features2d)
-endif()
+find_package(OpenCV REQUIRED COMPONENTS features2d)
 message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
 # Find OpenCV
@@ -69,7 +64,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library( visual src/visual.cpp )
+add_library( visual src/color_features.cpp src/keypoint_features.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( visual
