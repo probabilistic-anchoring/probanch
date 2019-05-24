@@ -1,6 +1,8 @@
 # The Anchoring System #
 
-This repository contains the source code of the anchoring system. The overall system is (or it will eventually be) divided into the following individual ROS packages:
+This repository contains the source code of the **anchoring framework** used to *"create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
+
+The overall system is (or it will eventually be) divided into the following individual ROS packages:
 
 * **anchoring**: the main anchoring management system.
 * **anchor_caffe**: an ROS wrapper for the Caffe framework (for object recognition/classification).
@@ -25,8 +27,7 @@ For more details, have a look a the more [detailed installation instructions](IN
 The following dependencies are required for a basic installation of the framework:
 
 #### 1. Robot Operating System (ROS)
-
-The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment. 
+ 
 The appropriate ROS distributions for currently supported Ubuntu LTS releases can be installed through the following steps:
 
 * __Setup software packages and keys:__
@@ -53,15 +54,10 @@ The appropriate ROS distributions for currently supported Ubuntu LTS releases ca
         sudo rosdep init
         rosdep update
 
-
-#### 2. OpenCV (Open Source Computer Vision Library)
-
-#### 3. MongoDB Database Server
+#### 2. MongoDB Database Server
 
 For this framework, a document-oriented NoSQL [MongoDB Database server](https://www.mongodb.com/) is integrated and used in order to facilitate persistent storage and maintenance of anchored objects. 
-More specifically, the `utils` directory contains a `database` package that is compiled as a library which, currently, contains a *generic database interface* for seamless access and communication with the database in order to store and retrieve anchored objects, log data, etc.
-This library has been rewritten for the latest C++11 drivers for [MongoDB](http://mongodb.github.io/mongo-cxx-driver/mongocxx-v3/). 
-The latest version of the [MongoDB Community Edition database](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/), together with all C and C++ drivers, can be installed through the following steps:
+More specifically, the `utils` directory contains a `database` package that is compiled as a library which, currently, contains a *generic database interface* for seamless access and communication with the database in order to store and retrieve anchored objects, log data, etc. This library has been rewritten for the latest C++11 drivers for [MongoDB](http://mongodb.github.io/mongo-cxx-driver/mongocxx-v3/).  The latest version of the [MongoDB Community Edition database](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/), together with all C and C++ drivers, can be installed through the following steps:
 
 * __Install the database:__
 
@@ -91,6 +87,28 @@ The latest version of the [MongoDB Community Edition database](https://docs.mong
         sudo make EP_mnmlstc_core # For MNMLSTC polyfill
         make && sudo make install
 
+#### 3. OpenCV (Open Source Computer Vision Library)
+
+The [OpenCV (Open Source Computer Vision library)](https://opencv.org/) is the primary library used by this framework for the processing of visual sensory data. The framework has been installed and tested together with [OpenCV 3.4](https://github.com/opencv/opencv). To install the latest stable release of OpenCV 3.4, proceed with the following steps:
+
+* __Download and prepare the installation:__
+
+        #!sh
+        ~/Download/
+        git clone https://github.com/opencv/opencv.git
+        git clone https://github.com/opencv/opencv_contrib.git
+        cd ~/Download/opencv_contrib && git checkout 3.4.6
+        cd ~/Download/opencv && git checkout 3.4.6
+
+* __Compile and install:__
+
+        #!sh
+        ~/Download/opencv
+        mkdir build && cd build
+        cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules/ ..
+        make -j8
+        sudo make install
+
 *Note, make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
 _____________________
 
@@ -110,10 +128,16 @@ Your are now ready to clone and install the anchoring framework.
     cd ~/catkin_ws/src
     catkin_init_workspace
     git clone --recursive https://<user>@bitbucket.org/reground/anchoring.git
-
 _____________________
 
 
 ## Tutorial ##
 Coming soon.
+_____________________
+
+## References ##
+
+__[1]__ A. Persson, P. Zuidberg Dos Martires, A. Loutfi, and L. De Raedt: [Semantic Relational Object Tracking](https://arxiv.org/abs/1902.09937). In: IEEE Transactions on Cognitive and Developmental Systems, 2019.
+
+
 
