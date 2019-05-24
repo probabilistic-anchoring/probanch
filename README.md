@@ -36,23 +36,22 @@ The appropriate ROS distributions for currently supported Ubuntu LTS releases ca
         sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
 
 * __Ubuntu 16.04 (Xenial) installation:__
-```sh
-       sudo apt-get update
-       sudo apt-get install ros-kinetic-desktop-full
-```
+
+        #!sh
+        sudo apt-get update
+        sudo apt-get install ros-kinetic-desktop-full
 
 * __Ubuntu 18.04 (Bionic) installation:__
-```sh
-       sudo apt-get update
-       sudo apt-get install ros-melodic-desktop-full
-```
+
+        #!sh
+        sudo apt-get update
+        sudo apt-get install ros-melodic-desktop-full
 
 * __Initialize rosdep (same for all Ubuntu releases):__
-```sh
-       sudo rosdep init
-       rosdep update
-```
 
+        #!sh
+        sudo rosdep init
+        rosdep update
 
 
 #### 2. OpenCV (Open Source Computer Vision Library)
@@ -65,32 +64,32 @@ This library has been rewritten for the latest C++11 drivers for [MongoDB](http:
 The latest version of the [MongoDB Community Edition database](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/), together with all C and C++ drivers, can be installed through the following steps:
 
 * __Install the database:__
-```sh
-       sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
-       echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.4.list
-       sudo apt-get update
-       sudo apt-get install -y mongodb-org
-```
+
+        #!sh
+        sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
+        echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.4.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-org
 
 * __Install MongoDB C drivers:__
-```sh
-       sudo apt-get install pkg-config libssl-dev libsasl2-dev git gcc automake autoconf libtool
-       git clone https://github.com/mongodb/mongo-c-driver.git
-       cd mongo-c-driver
-       git checkout 1.6.0  # To build latest stable release
-       ./autogen.sh --with-libbson=bundled --enable-static
-       make
-       sudo make install
-```
+
+        #!sh
+        sudo apt-get install pkg-config libssl-dev libsasl2-dev git gcc automake autoconf libtool
+        git clone https://github.com/mongodb/mongo-c-driver.git
+        cd mongo-c-driver
+        git checkout 1.6.0  # To build latest stable release
+        ./autogen.sh --with-libbson=bundled --enable-static
+        make
+        sudo make install
 
 * __Install MongoDB C++ drivers:__
-```sh
-       $ git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/stable --depth 1
-       $ cd mongo-cxx-driver/build
-       $ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-       $ sudo make EP_mnmlstc_core # For MNMLSTC polyfill
-       $ make && sudo make install
-```
+
+        #!sh
+        git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/stable --depth 1
+        cd mongo-cxx-driver/build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+        sudo make EP_mnmlstc_core # For MNMLSTC polyfill
+        make && sudo make install
 
 *Note, make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
 _____________________
@@ -105,12 +104,13 @@ _____________________
 ## Installation ##
 
 Your are now ready to clone and install the anchoring framework.
-```bash
-mkdir -p ~/catkin_ws/src
-cd ~/catkin_ws/src
-catkin_init_workspace
-git clone --recursive https://<user>@bitbucket.org/reground/anchoring.git
-```
+
+    #!sh
+    mkdir -p ~/catkin_ws/src
+    cd ~/catkin_ws/src
+    catkin_init_workspace
+    git clone --recursive https://<user>@bitbucket.org/reground/anchoring.git
+
 _____________________
 
 
