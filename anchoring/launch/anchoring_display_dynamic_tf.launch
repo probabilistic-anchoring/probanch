@@ -6,8 +6,8 @@
   <!-- Feature extraction node -->
   <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
 
-  <!-- Anchor Caffe node -->
-  <node name="anchor_caffe_node" pkg="anchor_caffe" type="anchor_caffe" output="screen" >
+  <!-- Object classification (ROS Caffe framework wrapper) node -->
+  <node name="object_classification_node" pkg="object_classification" type="object_classification" output="screen" >
     <param name="top_predictions" type="int" value="3" />
 
     <!-- Used for displaying a result image view -->

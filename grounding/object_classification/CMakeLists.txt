@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(anchor_caffe)
+project(object_classification)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -116,16 +116,16 @@ link_directories(${Caffe_LINK_LIBRARAY})
 # add_dependencies(anchor_caffe ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(anchor_caffe src/object_classification.cpp)
+add_executable(object_classification src/object_classification.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(anchor_caffe ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(object_classification ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 if( CUDA_FOUND AND CAFFE_SUPPORT )
   target_link_libraries(
-    anchor_caffe
+    object_classification
     ${catkin_LIBRARIES} 
     ${OpenCV_LIBRARIES}
     ${CUDA_LIBRARIES}
@@ -134,7 +134,7 @@ if( CUDA_FOUND AND CAFFE_SUPPORT )
   )
 elseif( CAFFE_SUPPORT ) 
   target_link_libraries(
-    anchor_caffe
+    object_classification
     ${catkin_LIBRARIES} 
     ${OpenCV_LIBRARIES}
     caffe
@@ -142,7 +142,7 @@ elseif( CAFFE_SUPPORT )
   )
 else()
   target_link_libraries(
-    anchor_caffe
+    object_classification
     ${catkin_LIBRARIES} 
     ${OpenCV_LIBRARIES}
   )
