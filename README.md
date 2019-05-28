@@ -2,15 +2,18 @@
 
 This repository contains the source code of the **anchoring framework** used to *"create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
 
-The overall system is (or it will eventually be) divided into the following individual ROS packages:
+The overall system is (or it will eventually be) divided into the following subfolders, which each contains one or many individual ROS packages:
 
-* **anchoring**: the main anchoring management system.
-* **anchor_caffe**: an ROS wrapper for the Caffe framework (for object recognition/classification).
-* **anchor_reasoning**: a package that handles the logical reasoning
-* **anchor_msgs**: a separate package for all anchor specific ROS messages.
-* **anchor_utils**: a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
-* **display**: a package used for displaying of the results, both resulting anchors and intermediate results throughout the perceptual pipeline.
-* **perceptual_pipeline**: a package for all processing (object segmentation, feature extraction, etc.) of sensor data.
+* [**anchoring**](https://bitbucket.org/reground/anchoring/src/master/anchoring/): the main anchoring management system.
+* [**bagfiles**](https://bitbucket.org/reground/anchoring/src/master/bagfiles/): contains a couple of example bagfiles (should, however, be kept as a minimal folder in order to prevent the repository to exceed the storage capacity).
+* [**display**](https://bitbucket.org/reground/anchoring/src/master/display/): a package used for displaying of the results, both resulting anchors and intermediate results throughout the perceptual pipeline.
+* [**grounding**](https://bitbucket.org/reground/anchoring/src/master/grounding/): contains (currently) only a ROS wrapper for the Caffe framework for object classification.
+* [**messagea**](https://bitbucket.org/reground/anchoring/src/master/messages/): a folder for separate package(s) for all anchor specific ROS messages.
+* [**perception**](https://bitbucket.org/reground/anchoring/src/master/perception/): a seperate folder for all package for handling and processing of sensor data (e.g., object segmentation, feature extraction, etc.).
+* [**reasoning**](https://bitbucket.org/reground/anchoring/src/master/reasoning/): a package that handles the logical reasoning.
+* [**utils**](https://bitbucket.org/reground/anchoring/src/master/utils/): a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
+_____________________
+
 
 ## Dependencies ##
 
