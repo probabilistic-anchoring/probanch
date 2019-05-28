@@ -1,6 +1,6 @@
-# The Anchoring System #
+# The Anchoring Framework #
 
-This repository contains the source code of the **anchoring framework** used to *"create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
+This repository contains the source code of the **anchoring framework** used to *" ...create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
 
 The overall system is (or it will eventually be) divided into the following subfolders, which each contains one or many individual ROS packages:
 
@@ -42,14 +42,12 @@ The appropriate ROS distributions for currently supported Ubuntu LTS releases ca
 * __Ubuntu 16.04 (Xenial) installation:__
 
         #!sh
-        sudo apt-get update
-        sudo apt-get install ros-kinetic-desktop-full
+        sudo apt-get update && sudo apt-get install ros-kinetic-desktop-full
 
 * __Ubuntu 18.04 (Bionic) installation:__
 
         #!sh
-        sudo apt-get update
-        sudo apt-get install ros-melodic-desktop-full
+        sudo apt-get update && sudo apt-get install ros-melodic-desktop-full
 
 * __Initialize rosdep (same for all Ubuntu releases):__
 
