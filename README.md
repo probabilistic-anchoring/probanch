@@ -71,7 +71,7 @@ More specifically, the `utils` directory contains a `database` package that is c
 * __Install MongoDB C drivers:__
 
         #!sh
-        sudo apt-get install pkg-config libssl-dev libsasl2-dev git gcc automake autoconf libtool
+        sudo apt-get install pkg-config libssl-dev libsasl2-dev git gcc automake autoconf libtool cmake
         git clone https://github.com/mongodb/mongo-c-driver.git
         cd mongo-c-driver
         git checkout 1.6.0  # To build latest stable release
