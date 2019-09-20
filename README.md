@@ -25,37 +25,11 @@ The code has been written and tested in both Ubuntu 16.04 (Xenial) together with
 For more details, have a look a the more [detailed installation instructions](INSTALL.md)
 
 
-### Basic Requirements
+### __Basic Requirements:__
 
 The following dependencies are required for a basic installation of the framework:
 
-#### 1. Robot Operating System (ROS)
- 
-The appropriate ROS distributions for currently supported Ubuntu LTS releases can be installed through the following steps:
-
-* __Setup software packages and keys:__
-
-        #!sh
-        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-        sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-
-* __Ubuntu 16.04 (Xenial) installation:__
-
-        #!sh
-        sudo apt-get update && sudo apt-get install ros-kinetic-desktop-full
-
-* __Ubuntu 18.04 (Bionic) installation:__
-
-        #!sh
-        sudo apt-get update && sudo apt-get install ros-melodic-desktop-full
-
-* __Initialize rosdep (same for all Ubuntu releases):__
-
-        #!sh
-        sudo rosdep init
-        rosdep update
-
-#### 2. MongoDB Database Server
+#### 1. MongoDB Database Server
 
 For this framework, a document-oriented NoSQL [MongoDB Database server](https://www.mongodb.com/) is integrated and used in order to facilitate persistent storage and maintenance of anchored objects. 
 More specifically, the `utils` directory contains a `database` package that is compiled as a library which, currently, contains a *generic database interface* for seamless access and communication with the database in order to store and retrieve anchored objects, log data, etc. This library has been rewritten for the latest C++11 drivers for [MongoDB](http://mongodb.github.io/mongo-cxx-driver/mongocxx-v3/).  The latest version of the [MongoDB Community Edition database](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/), together with all C and C++ drivers, can be installed through the following steps:
@@ -88,9 +62,19 @@ More specifically, the `utils` directory contains a `database` package that is c
         sudo make EP_mnmlstc_core # For MNMLSTC polyfill
         make && sudo make install
 
-#### 3. OpenCV (Open Source Computer Vision Library)
+#### 2. OpenCV (Open Source Computer Vision Library)
 
 The [OpenCV (Open Source Computer Vision library)](https://opencv.org/) is the primary library used by this framework for the processing of visual sensory data. The framework has been installed and tested together with [OpenCV 3.4](https://github.com/opencv/opencv). To install the latest stable release of OpenCV 3.4, proceed with the following steps:
+
+* __Required system dependencies:__
+
+        #!sh
+        sudo apt-get install build-essential cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+
+* __Optional system dependencies:__
+
+        #!sh
+        sudo apt-get install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libdc1394-22-dev
 
 * __Download and prepare the installation:__
 
@@ -98,8 +82,8 @@ The [OpenCV (Open Source Computer Vision library)](https://opencv.org/) is the p
         ~/Download/
         git clone https://github.com/opencv/opencv.git
         git clone https://github.com/opencv/opencv_contrib.git
-        cd ~/Download/opencv_contrib && git checkout 3.4.6
-        cd ~/Download/opencv && git checkout 3.4.6
+        cd ~/Download/opencv_contrib && git checkout 3.4.7
+        cd ~/Download/opencv && git checkout 3.4.7
 
 * __Compile and install:__
 
@@ -110,14 +94,78 @@ The [OpenCV (Open Source Computer Vision library)](https://opencv.org/) is the p
         make -j8
         sudo make install
 
-*Note, make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
+*__Note:__* *make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
+
+#### 3. Robot Operating System (ROS)
+ 
+The appropriate ROS distribution for currently supported Ubuntu LTS releases can be installed through the following steps:
+
+* __Setup software packages and keys:__
+
+        #!sh
+        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+        sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+
+* __Ubuntu 16.04 (Xenial) installation:__
+
+        #!sh
+        sudo apt-get update && sudo apt-get install ros-kinetic-ros-base
+
+* __Ubuntu 18.04 (Bionic) installation:__
+
+        #!sh
+        sudo apt-get update && sudo apt-get install ros-melodic-ros-base
+
+* __Initialize rosdep (same for all Ubuntu releases):__
+
+        #!sh
+        sudo rosdep init
+        rosdep update
+
+This framework is also heavily dependent of the `cv_bridge` ROS package for converting and transporting OpenCV images between submodules (or ROS nodes). However, the `cv_bridge`, installed as part of the larger `vision_opencv` package through the default package manager (e.g., `sudo apt-get install ros-melodic-vision-opencv`), is __only__ built for __Python 2.7__. 
+
+*__Note:__* *installing the* `vision_opencv` *package through the use of the package manager, will also install a minimal "default" version of OpenCV.*
+
+To instead build `cv_bridge` (as part of larger the `vision_opencv` package) using the custom installation of OpenCV (installed in *Step 2*), together with either __Python 2.7__ or __Python 3.x__:
+
+* __Common preparation step:__
+
+        #!sh
+        mkdir -p ~/Workspaces/catkin_ws && cd ~/Workspaces/catkin_ws
+
+* __Python 3.x (in this case, Python 3.6) dependencies and configuration (NOT required for Python 2.7):__
+
+        #!sh
+        sudo apt-get install python-catkin-tools python3-pip python3-dev python3-catkin-pkg-modules python3-numpy python3-yaml
+        sudo -H pip3 install --upgrade pip
+        sudo -H pip3 install rospkg catkin_pkg
+        mkdir -p ~/Workspaces/catkin_ws && cd ~/Workspaces/catkin_ws
+        catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
+
+* __Common installation steps:__
+
+        #!sh
+        catkin config --install
+        mkdir src && cd src
+        git clone -b melodic https://github.com/ros-perception/vision_opencv.git
+        cd ~/Workspaces/catkin_ws
+        catkin build cv_bridge
+        source install/setup.bash --extend
+
+*__Note:__* *the ROS environment variables must be sourced (e.g.,* `source /opt/ros/melodic/setup.bash` *) for the package to build correctly.*
+
 _____________________
 
-### Optimal Performance
+### __Optimal Performance:__
 
-#### 1. Nvidia CUDA
+#### 1. [Nvidia CUDA](https://developer.nvidia.com/cuda-zone) 
 
 For optimal performance, this framework is using Nvidia CUDA libraries for both handling the processing of input sensory RGB-D data, as well as semantically classifying perceived objects. In the latter case is further the Caffe deep learning framework utilized (likewise for optimized system performance).
+
+#### 2. [Caffe](https://caffe.berkeleyvision.org/) Deep Learning Framework 
+
+For optimal performance, this framework is using Nvidia CUDA libraries for both handling the processing of input sensory RGB-D data, as well as semantically classifying perceived objects. In the latter case is further the Caffe deep learning framework utilized (likewise for optimized system performance).
+
 _____________________
 
 ## Installation ##
