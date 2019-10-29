@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>features</name>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
   <description>The features package for handling both 2d visual and 3d spatial features.</description>
   <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>libpcl-all-dev</build_depend>
   <build_depend>ml</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslib</build_depend>
 
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>libpcl-all</exec_depend>
   <exec_depend>ml</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>roslib</exec_depend>

@@ -1,27 +1,25 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(features)
 
-# Check c++11 / c++0x
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "-std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "-std=c++0x")
-else()
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
   ml
+  pcl_conversions
+  pcl_ros
   roscpp
   roslib
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system)
+#find_package(Boost REQUIRED COMPONENTS system)
+
+# Find the Point Clude Library (PCL)
+find_package(PCL REQUIRED)
 
 # Find OpenCV
 find_package(OpenCV REQUIRED COMPONENTS features2d)
@@ -46,9 +44,9 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include ${catkin_INCLUDE_DIRS}
-  LIBRARIES visual
-  CATKIN_DEPENDS roscpp roslib
-  DEPENDS OpenCV
+  LIBRARIES spatial visual 
+  CATKIN_DEPENDS geometry_msgs roscpp roslib
+  DEPENDS OpenCV PCL
 )
 
 ###########
@@ -61,17 +59,22 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
+## Declare a C++ libraries
 add_library( visual src/color_features.cpp src/keypoint_features.cpp)
+add_library( spatial src/spatial_features.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( visual
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
-
+target_link_libraries( spatial
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 
 # For testing
 #add_executable( feature_test src/db_test.cpp)

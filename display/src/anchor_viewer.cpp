@@ -297,15 +297,15 @@ class AnchorViewer {
       }
     }
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
-
+    /*
     cv::Rect roi;
     roi.x = 280;
     roi.y = 260;
     roi.width = 360;
     roi.height = 270;
-    //cv::Mat crop = result_img(roi);
+    cv::Mat crop = result_img(roi);
     cv::rectangle( result_img, roi, color, 1);
-    
+    */
     /*
     // TMP
     cv::Rect roi;

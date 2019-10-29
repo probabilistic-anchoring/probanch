@@ -1,6 +1,6 @@
 <launch>
 
-  <!-- Laucnh Kinect2 bridge (with default parameters) -->
+  <!-- Launch Kinect2 bridge (with default parameters) -->
   <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch">
     <arg name="calib_path" value="$(find anchoring)/data/" />
     <arg name="publish_tf" value="true" />
@@ -14,7 +14,7 @@
   <node pkg="tf" type="static_transform_publisher" name="kinect_base_tf" args="0 0 0.5 0 0.4363 0 kinect_base_link kinect_tilt_link 100" />
   <node pkg="tf" type="static_transform_publisher" name="kinect_tilt_tf" args="0 0 0.08 0 0 0 kinect_tilt_link kinect_rotate_link 100" />
   <node pkg="tf" type="static_transform_publisher" name="kinect_rotate_tf" args="0 0 0 -1.570796327 0 -1.570796327 kinect_rotate_link kinect2_link 100" />
-  <!--<node pkg="tf" type="static_transform_publisher" name="kinect2_lens_tf" args="0.095 0 0 0 0 0 kinect2_lense_link kinect2_link 100" />-->
+  <!-- node pkg="tf" type="static_transform_publisher" name="kinect2_lens_tf" args="0.095 0 0 0 0 0 kinect2_lense_link kinect2_link 100" / -->
 
   <!-- Run object segmentation (recognition) node -->
   <node name="object_segmentation_node" pkg="object_segmentation" type="object_segmentation" output="screen">

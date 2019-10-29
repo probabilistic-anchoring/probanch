@@ -1,0 +1,7 @@
+<library path="lib/libcommuncation_nodelet">
+  <class name="communcation_nodelet/ObjectSegmentation" type="communcation::ObjectSegmentation" base_class_type="nodelet::Nodelet">
+    <description>
+      This is my *test* nodelet.
+    </description>
+  </class>
+</library>

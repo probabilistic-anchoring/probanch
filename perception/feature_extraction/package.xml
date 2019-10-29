@@ -3,7 +3,7 @@
   <name>feature_extraction</name>
   <version>0.0.0</version>
   <description>The feature extraction package</description>
-  <maintainer email="andreas.persson@oru.se">aspo</maintainer>
+  <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
   <license>MIT</license>
 
   <author email="anddreas.persson@oru.se">Andreas Persson</author>
@@ -14,7 +14,6 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>features</build_depend>
   <build_depend>image_transport</build_depend>
-  <build_depend>features</build_depend>
   <build_depend>roscpp</build_depend>
 
   <run_depend>anchor_msgs</run_depend>

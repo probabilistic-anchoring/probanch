@@ -1,36 +1,28 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_segmentation)
 
-# Check c++11 / c++0x
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "-std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "-std=c++0x")
-else()
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package( catkin REQUIRED COMPONENTS
   anchor_msgs
-  rospy
-  hand_tracking
-  roscpp
-  rostime
-  std_msgs 
+  console
+  cv_bridge
   geometry_msgs
-  sensor_msgs 
-  message_filters
-  cv_bridge 
+  hand_tracking
   image_geometry
   image_transport
+  message_filters
   pcl_conversions
   pcl_ros
+  roscpp
+  rospy
+  rostime
+  sensor_msgs
+  std_msgs 
 )
 
 ## System dependencies are found with CMake's conventions
@@ -55,7 +47,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES segmentation
-  CATKIN_DEPENDS  anchor_msgs roscpp rospy hand_tracking rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
+  CATKIN_DEPENDS  anchor_msgs console roscpp rospy hand_tracking rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
 #  DEPENDS system_lib
 )
 
@@ -80,6 +72,7 @@ add_executable(object_calibration src/object_calibration.cpp src/pcl_segmentatio
 add_dependencies(object_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(object_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries( object_segmentation 
   ${catkin_LIBRARIES}
@@ -92,7 +85,26 @@ target_link_libraries( object_calibration
   ${Boost_LIBRARIES}  
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
-)
+  )
+
+# Communcation test
+add_executable(communcation_node src/communcation_node.cpp)
+target_link_libraries( communcation_node
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}  
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  )
+add_library(communcation_nodelet SHARED src/communcation_nodelet.cpp)
+target_link_libraries( communcation_nodelet
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}  
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  )
+if(catkin_EXPORTED_LIBRARIES)
+  add_dependencies(communcation_nodelet ${catkin_EXPORTED_LIBRARIES})
+endif()
 
 #############
 ## Install ##

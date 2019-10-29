@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>console</name>
+  <version>0.0.1</version>
+  <description>The console package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <license>MIT</license>
+
+  <!-- Author tags are optional, mutiple are allowed, one per tag -->
+  <author email="anddreas.persson@oru.se">Andreas Persson</author>
+  
+  <!-- Dependencies can be catkin packages or system dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>roslib</build_depend>
+  <build_depend>nodelet</build_depend>
+
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>roslib</build_export_depend>
+  <build_export_depend>nodelet</build_export_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>roslib</exec_depend>
+  <exec_depend>nodelet</exec_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+  </export>
+</package>

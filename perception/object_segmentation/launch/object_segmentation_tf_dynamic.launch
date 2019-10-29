@@ -8,7 +8,7 @@
   </include>
 
   <!--  Dynamic transform publisher -->
-	<include file="$(find ar_transform)/launch/ar_transform.launch" />
+  <include file="$(find ar_transform)/launch/ar_transform.launch" />
   <node name="table_tf" pkg="ar_transform" type="transformer.py" cwd="node" output="screen" />
 
   <!-- Run object segmentation (recognition) node -->
@@ -33,7 +33,6 @@
     <param name="max_z" type="double" value="0.30" />
 
   </node>
-
 
   <!-- Tracking node -->
   <node name="hand_tracking_node" pkg="hand_tracking" type="tracker.py" output="screen" >

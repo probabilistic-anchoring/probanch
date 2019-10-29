@@ -8,15 +8,15 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>anchor_msgs</build_depend>
   <build_depend>database</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslib</build_depend>
-  <build_depend>anchor_msgs</build_depend>
-
+  
+  <run_depend>anchor_msgs</run_depend>
   <run_depend>database</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>roslib</run_depend>
-  <run_depend>anchor_msgs</run_depend>
 
   <export>
   </export>

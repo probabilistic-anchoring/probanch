@@ -8,10 +8,7 @@
 // OpenCV includes
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/version.hpp>
-//#if CV_MAJOR_VERSION == 2 // opencv2 only
 #include <opencv2/features2d/features2d.hpp>
-
-//#endif
 
 #include <ml/ml.hpp>
 

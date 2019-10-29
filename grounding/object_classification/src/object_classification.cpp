@@ -20,11 +20,11 @@
 #ifdef INCLUDE_CAFFE_CLASSIFIER
   #include <anchor_caffe/caffe_classifier.hpp>
 #else
-  #include <anchor_caffe/cv_classifier.hpp>
+  #include <object_classification/cv_classifier.hpp>
 #endif
 
 #include <std_msgs/String.h>
-#include <anchor_caffe/CaffeService.h>
+#include <object_classification/CaffeService.h>
 #include <anchor_msgs/ObjectArray.h>
 
 using namespace std;
@@ -179,8 +179,8 @@ class AnchorCaffe {
 
 
   // Private callback function for receiving and classifying an image
-  bool classify( anchor_caffe::CaffeService::Request &req,
-		 anchor_caffe::CaffeService::Response &res ) {
+  bool classify( object_classification::CaffeService::Request &req,
+		 object_classification::CaffeService::Response &res ) {
     
     // Read percept from ROS message
     cv_bridge::CvImagePtr cv_ptr;
@@ -216,7 +216,7 @@ public:
   AnchorCaffe(ros::NodeHandle nh, int n, bool display) : _nh(nh), _N(n), _it(nh), display_window_(display), display_image_(false) {
 
     // Get base dir through ros path
-    const string ROOT_PATH = ros::package::getPath("anchor_caffe");
+    const string ROOT_PATH = ros::package::getPath("object_classification");
     cout << ROOT_PATH<<endl;
     _model_path = ROOT_PATH + "/model/reground.prototxt";
     _weights_path = ROOT_PATH + "/model/reground_googlenet.caffemodel";
@@ -272,7 +272,7 @@ public:
 // Main function
 // -----------------------------------------
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "anchor_caffe_node");
+  ros::init(argc, argv, "object_classification_node");
 
   // Read the number of top predictions to display
   int n;
