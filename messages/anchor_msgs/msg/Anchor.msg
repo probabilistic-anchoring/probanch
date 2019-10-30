@@ -1,8 +1,8 @@
 string id
 string x
 time t
-anchor_msgs/CaffeAttribute caffe
+anchor_msgs/CategoryAttribute category
 anchor_msgs/ColorAttribute color
 anchor_msgs/DescriptorAttribute descriptor
 anchor_msgs/PositionAttribute position
-anchor_msgs/ShapeAttribute shape
+anchor_msgs/SizeAttribute size

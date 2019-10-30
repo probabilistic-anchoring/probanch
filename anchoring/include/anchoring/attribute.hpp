@@ -28,9 +28,9 @@ namespace anchoring {
   enum AttributeType {
     DESCRIPTOR = 0,
     COLOR      = 1,
-    SHAPE      = 2,
+    SIZE       = 2,
     POSITION   = 3,
-    CAFFE      = 4
+    CATEGORY   = 4
   };
 
   // ---[ Common attribute base struct 
@@ -136,13 +136,13 @@ namespace anchoring {
 
   // ---[ Shape attribute struct ]---
   //-----------------------------------------------
-  struct ShapeAttribute : public AttributeCommon {
+  struct SizeAttribute : public AttributeCommon {
     geometry_msgs::Vector3 _data;
 
     // Constructors
-    ShapeAttribute(AttributeType type = SHAPE) : AttributeCommon(type) {}
-    ShapeAttribute( const anchor_msgs::ShapeAttribute &msg,
-		    AttributeType type = SHAPE);
+    SizeAttribute(AttributeType type = SIZE) : AttributeCommon(type) {}
+    SizeAttribute( const anchor_msgs::SizeAttribute &msg,
+		   AttributeType type = SIZE);
 
     // Override methods
     mongo::Database::Document serialize(); 
@@ -157,7 +157,7 @@ namespace anchoring {
 
   // ---[ Caffe attribute struct ]---
   //-----------------------------------------------
-  struct CaffeAttribute : public AttributeCommon {
+  struct CategoryAttribute : public AttributeCommon {
     cv::Mat _data;
     vector<double> _predictions;
     float _n;
@@ -166,9 +166,9 @@ namespace anchoring {
     anchor_msgs::Point2d _point;
 
     // Constructors
-    CaffeAttribute(AttributeType type = CAFFE) : AttributeCommon(type) {}
-    CaffeAttribute( const anchor_msgs::CaffeAttribute &msg,
-		    AttributeType type = CAFFE );
+    CategoryAttribute(AttributeType type = CATEGORY) : AttributeCommon(type) {}
+    CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
+		       AttributeType type = CATEGORY );
 
     // Override methods
     mongo::Database::Document serialize(); 

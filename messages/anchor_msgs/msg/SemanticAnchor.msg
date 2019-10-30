@@ -1,2 +1,2 @@
 string id
-anchor_msgs/CaffeAttribute caffe
+anchor_msgs/CategoryAttribute category

@@ -1,3 +1,3 @@
-sensor_msgs/CompressedImage data
-anchor_msgs/Point2d point
 anchor_msgs/Contour border
+sensor_msgs/Image data
+anchor_msgs/Point2d point

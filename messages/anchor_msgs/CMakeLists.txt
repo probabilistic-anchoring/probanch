@@ -18,8 +18,7 @@ add_message_files(
    FILES
    Anchor.msg
    AnchorArray.msg
-   CaffeAttribute.msg
-   ClusterArray.msg
+   CategoryAttribute.msg
    ColorAttribute.msg
    Contour.msg
    DescriptorAttribute.msg
@@ -33,9 +32,11 @@ add_message_files(
    ObjectArray.msg
    Point2d.msg
    PositionAttribute.msg
-   ShapeAttribute.msg
+   SizeAttribute.msg
    SemanticAnchor.msg
    SemanticAnchorArray.msg
+   SpatialPercept.msg
+   VisualPercept.msg
 )
 
 ## Generate services in the 'srv' folder

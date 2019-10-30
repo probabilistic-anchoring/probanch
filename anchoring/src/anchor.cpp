@@ -77,11 +77,11 @@ namespace anchoring {
 	case POSITION:
 	  this->_attributes[POSITION] = AttributePtr( new PositionAttribute(type) );
 	  break;
-	case SHAPE:
-	  this->_attributes[SHAPE] = AttributePtr( new ShapeAttribute(type) );
+	case SIZE:
+	  this->_attributes[SIZE] = AttributePtr( new SizeAttribute(type) );
 	  break;
-	case CAFFE:
-	  this->_attributes[CAFFE] = AttributePtr( new CaffeAttribute(type) );
+	case CATEGORY:
+	  this->_attributes[CATEGORY] = AttributePtr( new CategoryAttribute(type) );
 	  break;
 	};
 
@@ -110,7 +110,7 @@ namespace anchoring {
     try {
 
       // Generate a unique symbol
-      AttributeMap::iterator ite = this->_attributes.find(CAFFE);
+      AttributeMap::iterator ite = this->_attributes.find(CATEGORY);
       if( ite != this->_attributes.end() ) {
 	this->_x = this->generateSymbol( ite->second->toString(), db);
       }
@@ -224,7 +224,7 @@ namespace anchoring {
       db.update<mongo::Database::Document>( this->_id, "attributes", docs);
 
       // Check and update the (unique) symbol 
-      auto ite = this->_attributes.find(CAFFE);
+      auto ite = this->_attributes.find(CATEGORY);
       if( ite != this->_attributes.end() ) {
 	std::string symbol = ite->second->toString();
 	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
@@ -268,7 +268,7 @@ namespace anchoring {
       }
 
       // Check and update the (unique) symbol 
-      ite = this->_attributes.find(CAFFE);
+      ite = this->_attributes.find(CATEGORY);
       if( ite != this->_attributes.end() ) {
 	std::string symbol = ite->second->toString();
 	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {

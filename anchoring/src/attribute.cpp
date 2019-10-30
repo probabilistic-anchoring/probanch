@@ -76,9 +76,9 @@ namespace anchoring {
     switch(this->_type) {
     case DESCRIPTOR: result = "descriptor"; break;
     case COLOR:      result = "color"; break;
-    case SHAPE:      result = "shape"; break;
+    case SIZE :      result = "size"; break;
     case POSITION:   result = "position"; break;
-    default:         result = "image"; break;
+    default:         result = "category"; break;
     }
     return result;
   }
@@ -528,64 +528,64 @@ namespace anchoring {
 
   
   // --------------------------------
-  // Shape attribute class methods
+  // Size attribute class methods
   // -------------------------------------
-  ShapeAttribute::ShapeAttribute( const anchor_msgs::ShapeAttribute &msg,
-				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+  SizeAttribute::SizeAttribute( const anchor_msgs::SizeAttribute &msg,
+				AttributeType type ) : AttributeCommon( msg.symbols, type) {
     this->_data = msg.data;
   }
 
-  mongo::Database::Document ShapeAttribute::serialize() {
+  mongo::Database::Document SizeAttribute::serialize() {
   
     // Save the symbol(s)
     mongo::Database::Document doc = AttributeCommon::serialize();
 
     // Save the shape
     try {
-      std::vector<double> shape;
-      shape.push_back(this->_data.x);
-      shape.push_back(this->_data.y);
-      shape.push_back(this->_data.z);
-      doc.add<double>( "data", shape);
+      std::vector<double> size;
+      size.push_back(this->_data.x);
+      size.push_back(this->_data.y);
+      size.push_back(this->_data.z);
+      doc.add<double>( "data", size);
     }
     catch( const std::exception &e) {
-      cout << "[ShapeAttribute::serialize]" << e.what() << endl;
+      cout << "[SizeAttribute::serialize]" << e.what() << endl;
     }
     return doc;
   }
 
-  void ShapeAttribute::deserialize(const mongo::Database::Document &doc) {
+  void SizeAttribute::deserialize(const mongo::Database::Document &doc) {
 
     // Load the shape
     try {
-      vector<double> shape;
-      doc.get<double>( "data", shape);
-      this->_data.x = shape[0];
-      this->_data.y = shape[1];
-      this->_data.z = shape[2];
+      vector<double> size;
+      doc.get<double>( "data", size);
+      this->_data.x = size[0];
+      this->_data.y = size[1];
+      this->_data.z = size[2];
     }
     catch( const std::exception &e) {
-      cout << "[ShapeAttribute::deserialize]" << e.what() << endl;
+      cout << "[SizeAttribute::deserialize]" << e.what() << endl;
     }
 
     // Load the symbol(s) 
     AttributeCommon::deserialize(doc);
   }
 
-  void ShapeAttribute::populate(anchor_msgs::Anchor &msg) {
-    anchor_msgs::ShapeAttribute shape_msg;
-    shape_msg.data = this->_data;
-    shape_msg.symbols = this->_symbols;
-    msg.shape = shape_msg;
+  void SizeAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::SizeAttribute size_msg;
+    size_msg.data = this->_data;
+    size_msg.symbols = this->_symbols;
+    msg.size = size_msg;
   }
-  void ShapeAttribute::populate(anchor_msgs::Display &msg) {
+  void SizeAttribute::populate(anchor_msgs::Display &msg) {
     msg.size = _symbols[0];
   }
 
-  float ShapeAttribute::match(const AttributePtr &query_ptr) {
+  float SizeAttribute::match(const AttributePtr &query_ptr) {
 
     // Typecast the query attribute pointer
-    ShapeAttribute *raw_ptr = dynamic_cast<ShapeAttribute*>(query_ptr.get());
+    SizeAttribute *raw_ptr = dynamic_cast<SizeAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Jaccard similarity coefficient
@@ -602,25 +602,25 @@ namespace anchoring {
     return 0.0;
   }
   
-  bool ShapeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
+  bool SizeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
 
     // Typecast the new atribute pointer
-    ShapeAttribute* raw_ptr = dynamic_cast<ShapeAttribute*>(new_ptr.get());
+    SizeAttribute* raw_ptr = dynamic_cast<SizeAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     this->_data = raw_ptr->_data;
   }
   
-  string ShapeAttribute::toString() {
+  string SizeAttribute::toString() {
     return _symbols[0];
   }
 
 
   // -------------------------------
-  // Caffe attribute class methods
+  // Category attribute class methods
   // ----------------------------------
-  CaffeAttribute::CaffeAttribute( const anchor_msgs::CaffeAttribute &msg,
-				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
+  CategoryAttribute::CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
+					AttributeType type ) : AttributeCommon( msg.symbols, type) {
     // Read the data from ROS msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
@@ -631,7 +631,7 @@ namespace anchoring {
       }
     } catch (cv_bridge::Exception& e) {
       // FIX THIS SHIT LATER ON!!
-      //throw std::logic_error("[CaffeAttribute::CaffeAttribute]:" + std::string(e.what()) );
+      //throw std::logic_error("[CategoryAttribute::CaategoryAttribute]:" + std::string(e.what()) );
     }    
     this->_border = msg.border;
     this->_point = msg.point;
@@ -639,7 +639,7 @@ namespace anchoring {
     this->_n = 1.0;   // ...counter
   }
 
-  mongo::Database::Document CaffeAttribute::serialize() {
+  mongo::Database::Document CategoryAttribute::serialize() {
 
     // Save the symbol(s)
     mongo::Database::Document doc = AttributeCommon::serialize();
@@ -656,7 +656,7 @@ namespace anchoring {
       std::size_t length = buff.size();
       doc.add<unsigned char*>( "data", buff.data(), length);
 
-      // Save (caffe) predictions
+      // Save (category) predictions
       doc.add<double>( "predictions", this->_predictions);
       doc.add<double>( "n", this->_n);  // ..including the frequency 
       
@@ -675,12 +675,12 @@ namespace anchoring {
       doc.add( "point", p_doc);
     }
     catch( const std::exception &e) {
-      cout << "[CaffeAttribute::serialize]" << e.what() << endl;
+      cout << "[CategoryAttribute::serialize]" << e.what() << endl;
     }
     return doc;
   }
 
-  void CaffeAttribute::deserialize(const mongo::Database::Document &doc) {
+  void CategoryAttribute::deserialize(const mongo::Database::Document &doc) {
   
     // Load the image -- from DB
     try {
@@ -691,7 +691,7 @@ namespace anchoring {
       vector<uchar> buff( array, array + length);
       this->_data = cv::imdecode( cv::Mat(buff), CV_LOAD_IMAGE_COLOR);
 
-      // Load (caffe) predictions
+      // Load (category) predictions
       doc.get<double>( "predictions", this->_predictions);
       this->_n = (float)doc.get<double>("n");  // ...including the frequency 
 
@@ -710,36 +710,36 @@ namespace anchoring {
       //std::cout << "Point: " << doc.get("point").get<int>("x") << ", " << doc.get("point").get<int>("y") << std::endl;
     }
     catch( const std::exception &e) {
-      cout << "[CaffeAttribute::deserialize]" << e.what() << endl;
+      cout << "[CategoryAttribute::deserialize]" << e.what() << endl;
     }
 
     // Load the symbol(s) 
     AttributeCommon::deserialize(doc);
   }
 
-  void CaffeAttribute::populate(anchor_msgs::Anchor &msg) {
-    anchor_msgs::CaffeAttribute caffe_msg;
+  void CategoryAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::CategoryAttribute category_msg;
     //double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
       //if( (this->_predictions[i] / max) > 0.25 ) {  // ...looking for spikes above max theshold value
-        caffe_msg.symbols.push_back(this->_symbols[i]);
-        caffe_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
+      category_msg.symbols.push_back(this->_symbols[i]);
+      category_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
       //}
     }
     double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
-    sortAttribute( caffe_msg.symbols, caffe_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
+    sortAttribute( category_msg.symbols, category_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
 
     /*
-    caffe_msg.symbols = this->_symbols;
+    category_msg.symbols = this->_symbols;
     auto n = this->_N.begin();
     for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
       caffe_msg.predictions.push_back((float)*ite / *n);
     }
     */
-    msg.caffe = caffe_msg;
+    msg.category = category_msg;
   }
 
-  void CaffeAttribute::populate(anchor_msgs::Display &msg) {
+  void CategoryAttribute::populate(anchor_msgs::Display &msg) {
     msg.border = this->_border;
     float best = 0.0;
     int index = -1;
@@ -757,10 +757,10 @@ namespace anchoring {
     
   }
 
-  float CaffeAttribute::match(const AttributePtr &query_ptr) { 
+  float CategoryAttribute::match(const AttributePtr &query_ptr) { 
 
     // Typecast the query attribute pointer
-    CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(query_ptr.get());
+    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
 
     float result = 0.0;
@@ -779,10 +779,10 @@ namespace anchoring {
     return result;
   }
 
-  bool CaffeAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
+  bool CategoryAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
     // Typecast the new attribute pointer
-    CaffeAttribute *raw_ptr = dynamic_cast<CaffeAttribute*>(new_ptr.get());
+    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(new_ptr.get());
     assert( raw_ptr != nullptr );
 
     // Update the visual data
@@ -837,7 +837,7 @@ namespace anchoring {
     return true;
   }
 
-  string CaffeAttribute::toString() {
+  string CategoryAttribute::toString() {
     float best = 0.0;
     int index = -1;
     std::stringstream ss;
