@@ -400,7 +400,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	    anchor_msgs::Point2d p;
 	    p.x = contour[j].x;
 	    p.y = contour[j].y;
-	    obj.caffe.border.contour.push_back(p);
+	    obj.visual.border.contour.push_back(p);
 	  }
 
 
@@ -434,30 +434,30 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  //std::cout << "Position: [" << obj.position.data.pose.position.x << ", " << obj.position.data.pose.position.y << ", " << obj.position.data.pose.position.z << "]" << std::endl;	 
 
 	  // 2. Extract the shape
-	  segmentation::getShape( cluster_ptr, obj.shape.data );
+	  segmentation::getSize( cluster_ptr, obj.size.data );
 
-	  // Ground shape symbols
-	  std::vector<double> data = { obj.shape.data.x, obj.shape.data.y, obj.shape.data.z};
+	  // Ground size symbols
+	  std::vector<double> data = { obj.size.data.x, obj.size.data.y, obj.size.data.z};
 	  std::sort( data.begin(), data.end(), std::greater<double>());
 	  if( data.front() <= 0.1 ) { // 0 - 15 [cm] = small
-	    obj.shape.symbols.push_back("small");
+	    obj.size.symbols.push_back("small");
 	  }
 	  else if( data.front() <= 0.20 ) { // 16 - 30 [cm] = medium
-	    obj.shape.symbols.push_back("medium");
+	    obj.size.symbols.push_back("medium");
 	  }
 	  else {  // > 30 [cm] = large
-	    obj.shape.symbols.push_back("large");
+	    obj.size.symbols.push_back("large");
 	  }
 	  if( data[0] < data[1] * 1.1 ) {
-	    obj.shape.symbols.push_back("square");
+	    obj.size.symbols.push_back("square");
 	  }
 	  else {
-	    obj.shape.symbols.push_back("rectangle");
+	    obj.size.symbols.push_back("rectangle");
 	    if( data[0] > data[1] * 1.5 ) {
-	      obj.shape.symbols.push_back("long");
+	      obj.size.symbols.push_back("long");
 	    }
 	    else {
-	      obj.shape.symbols.push_back("short");
+	      obj.size.symbols.push_back("short");
 	    }
 	  }
 
@@ -465,7 +465,7 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  // TEST  
 	  // ---------------------------------------
 	  // Attempt to filter out glitchs
-	  if ( obj.shape.data.z < 0.02 )
+	  if ( obj.size.data.z < 0.02 )
 	    continue;
 	  
 	  // Add the object to the object array message

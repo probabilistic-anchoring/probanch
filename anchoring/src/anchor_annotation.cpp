@@ -38,7 +38,7 @@ AnchorAnnotation::AnchorAnnotation(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"),
     this->_db_name = "anchordb";
     ROS_WARN("Using default database (anchordb).");
   }
-  _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", this->_db_name) );
+  _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection("anchors", this->_db_name) );
 
   // Read (other) ROS params
   if( !_priv_nh.getParam("max_matches", this->_max_matches) ) {

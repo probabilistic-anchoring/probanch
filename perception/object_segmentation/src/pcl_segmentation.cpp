@@ -519,7 +519,7 @@ void segmentation::getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud
   pos.orientation.w = rotation.w();
 }
 
-void segmentation::getShape( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+void segmentation::getSize( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
 			     geometry_msgs::Vector3 &shape ) {
   // Get the 3D bounding box
   Point proj_min;

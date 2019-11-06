@@ -112,8 +112,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   
     // Get the contour
     std::vector<cv::Point> contour;
-    for( uint j = 0; j < objects_msg->objects[i].caffe.border.contour.size(); j++) {
-      cv::Point p( objects_msg->objects[i].caffe.border.contour[j].x, objects_msg->objects[i].caffe.border.contour[j].y );
+    for( uint j = 0; j < objects_msg->objects[i].visual.border.contour.size(); j++) {
+      cv::Point p( objects_msg->objects[i].visual.border.contour[j].x, objects_msg->objects[i].visual.border.contour[j].y );
       contour.push_back(p);
     }
 
@@ -158,11 +158,11 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::Mat sub_img = img(rect);
     sub_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
     cv_ptr->encoding = "bgr8";
-    cv_ptr->toImageMsg(output.objects[i].caffe.data);
+    cv_ptr->toImageMsg(output.objects[i].visual.data);
     
     // Top-left corner point to message point
-    output.objects[i].caffe.point.x = rect.x;
-    output.objects[i].caffe.point.y = rect.y; 
+    output.objects[i].visual.point.x = rect.x;
+    output.objects[i].visual.point.y = rect.y; 
     
     // 3. Extract color attribute
     // --------------------------- 

@@ -18,7 +18,7 @@
 
 // Switch between Caffe and OpenCV implementation (defined in CMakeList)
 #ifdef INCLUDE_CAFFE_CLASSIFIER
-  #include <anchor_caffe/caffe_classifier.hpp>
+  #include <object_classification/caffe_classifier.hpp>
 #else
   #include <object_classification/cv_classifier.hpp>
 #endif
@@ -29,7 +29,7 @@
 
 using namespace std;
 
-class AnchorCaffe {
+class ObjectClassification {
   
   /* --------------
      ROS variables
@@ -88,7 +88,7 @@ class AnchorCaffe {
 	result_img_.convertTo( result_img_, -1, 1.0, 50); 
 	
       } catch (cv_bridge::Exception& e) {
-	ROS_ERROR("[AnchorCaffe::process] receiving image: %s", e.what());
+	ROS_ERROR("[ObjectClassification::process] receiving image: %s", e.what());
 	return;
       }
     }
@@ -99,11 +99,11 @@ class AnchorCaffe {
       // Read percept from ROS message
       cv::Mat img;
       try {
-	cv_ptr = cv_bridge::toCvCopy( objects_msg->objects[i].caffe.data,
+	cv_ptr = cv_bridge::toCvCopy( objects_msg->objects[i].visual.data,
 				      sensor_msgs::image_encodings::BGR8 );
 	cv_ptr->image.copyTo(img);
       } catch (cv_bridge::Exception& e) {
-	ROS_ERROR("[AnchorCaffe::process] receiving image: %s", e.what());
+	ROS_ERROR("[ObjectClassification::process] receiving image: %s", e.what());
 	return;
       }    
 
@@ -117,10 +117,9 @@ class AnchorCaffe {
 	  size_t pos = str.find(' ');
 	  str.substr( 0, pos);
 	  pos++;
-	  output.objects[i].caffe.symbols.push_back(str.substr(pos));
-	  output.objects[i].caffe.predictions.push_back(ite->second);
+	  output.objects[i].category.symbols.push_back(str.substr(pos));
+	  output.objects[i].category.predictions.push_back(ite->second);
 	}
-	//ROS_INFO("[Caffe] object: %s (%.2f)", output.objects[i].caffe.symbols.front().c_str(), output.objects[i].caffe.predictions.front());
       }
       //double s = (cv::getTickCount() - t) / cv::getTickFrequency();
       //ROS_INFO("Classification time: %.2f (ms)", (100.0 * s));
@@ -132,8 +131,8 @@ class AnchorCaffe {
 	//cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
 	//cv::Scalar color = cv::Scalar::all(64); // Dark gray
 
-	int x = objects_msg->objects[i].caffe.point.x;
-	int y = objects_msg->objects[i].caffe.point.y;
+	int x = objects_msg->objects[i].visual.point.x;
+	int y = objects_msg->objects[i].visual.point.y;
 	cv::Rect rect( cv::Point(x,y), img.size());
 	img.copyTo(result_img_(rect));
 	
@@ -143,8 +142,8 @@ class AnchorCaffe {
 	ss << setprecision(2) << fixed;
 	int offset = -10 - (16 * (this->_N - 1));
 	for( uint j = 0; j < this->_N; j++) {
-	  ss << (j+1) << ". " << output.objects[i].caffe.symbols[j];
-	  ss << " (" << output.objects[i].caffe.predictions[j] * 100.0 << "%)";
+	  ss << (j+1) << ". " << output.objects[i].category.symbols[j];
+	  ss << " (" << output.objects[i].category.predictions[j] * 100.0 << "%)";
 	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
 	  ss.str("");
 	  offset += 16;
@@ -177,70 +176,30 @@ class AnchorCaffe {
     }
   }
 
-
-  // Private callback function for receiving and classifying an image
-  bool classify( object_classification::CaffeService::Request &req,
-		 object_classification::CaffeService::Response &res ) {
-    
-    // Read percept from ROS message
-    cv_bridge::CvImagePtr cv_ptr;
-    cv::Mat img;
-    try {
-      cv_ptr = cv_bridge::toCvCopy( req.image,
-				    sensor_msgs::image_encodings::BGR8 );
-      cv_ptr->image.copyTo(img);
-    } catch (cv_bridge::Exception& e) {
-      ROS_ERROR("[anchor_cafffe] receiving image: %s", e.what());
-      return false;
-    }    
-
-    // Classify image
-    if( img.data ) {
-      vector<Prediction> predictions = this->_classifier->Classify(img);
-      vector<Prediction>::iterator ite = predictions.begin();
-      for( ; ite != predictions.end(); ++ite ) {
-	string str = ite->first;
-	size_t pos = str.find(' ');
-	res.wordnet_ids.push_back(str.substr( 0, pos));
-	pos++;
-	res.symbols.push_back(str.substr(pos));
-	res.predictions.push_back(ite->second);
-      }
-      //ROS_WARN("[Caffe] object: %s (%.2f)", res.symbols.front().c_str(), res.predictions.front());
-      return true;
-    }
-    return false;
-  }
-
 public:
-  AnchorCaffe(ros::NodeHandle nh, int n, bool display) : _nh(nh), _N(n), _it(nh), display_window_(display), display_image_(false) {
+  ObjectClassification(ros::NodeHandle nh, int n, bool display) : _nh(nh), _N(n), _it(nh), display_window_(display), display_image_(false) {
 
     // Get base dir through ros path
     const string ROOT_PATH = ros::package::getPath("object_classification");
     cout << ROOT_PATH<<endl;
     _model_path = ROOT_PATH + "/model/reground.prototxt";
     _weights_path = ROOT_PATH + "/model/reground_googlenet.caffemodel";
-    //_weights_path = ROOT_PATH + "/model/finetune_reground.caffemodel";
-    //_mean_file = ROOT_PATH + "/model/imagenet_mean.binaryproto";
     _label_file = ROOT_PATH + "/model/reground_words.txt";
-    //_image_path = ROOT_SAMPLE + "/model/cat.jpg";
 
     // Create the classifier
-    //this->_classifier = new Classifier( _model_path, _weights_path, _label_file, _mean_file);
     this->_classifier = new Classifier( _model_path, _weights_path, _label_file);
 
     // ROS setup
-    this->_caffe_srv  = _nh.advertiseService("/caffe_classifier", &AnchorCaffe::classify, this);
-    obj_sub_ = nh.subscribe("/objects/processed", 10, &AnchorCaffe::processCb, this);
+    obj_sub_ = nh.subscribe("/objects/processed", 10, &ObjectClassification::processCb, this);
     obj_pub_ = nh.advertise<anchor_msgs::ObjectArray>("/objects/classified", 10);
 
     // Used for the web interface
-    display_trigger_sub_ = _nh.subscribe("/display/trigger", 1, &AnchorCaffe::triggerCb, this);
+    display_trigger_sub_ = _nh.subscribe("/display/trigger", 1, &ObjectClassification::triggerCb, this);
     display_image_pub_ = _it.advertise("/display/image", 1);
 
   };
 
-  ~AnchorCaffe() {
+  ~ObjectClassification() {
     // Clean up...
     delete this->_classifier; 
   }
@@ -287,7 +246,7 @@ int main(int argc, char** argv) {
   }  
 
   ros::NodeHandle nh;
-  AnchorCaffe node(nh, n, display);
+  ObjectClassification node(nh, n, display);
   node.spin();
   return 0;
 }

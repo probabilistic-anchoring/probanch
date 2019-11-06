@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include <anchoring/attribute.hpp>
+#include <anchoring/percept.hpp>
 
 namespace anchoring {
 
@@ -18,17 +19,18 @@ namespace anchoring {
   public:
     
     // Public functions
-    Anchor(const string &id) : _id(id), _aging(false) {} 
-    Anchor(AttributeMap &attributes, const ros::Time &t);
+    Anchor(const string &id) : _id(id), _persistent(true) {} 
+    Anchor(const ros::Time &t, AttributeMap &attributes, PerceptMap &percepts);
     ~Anchor();
 
     // Anchoring helper functions
     void load(const mongo::Database &db); 
-    void create(mongo::Database &db); 
-    void maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t);
+    void save(mongo::Database &db); 
+    void update(mongo::Database &db, const ros::Time &t, AttributeMap &attributes, PerceptMap &percepts);
+    void update(mongo::Database &db, const ros::Time &t, AttributeMap &attributes);
     void merge(mongo::Database &db, std::shared_ptr<Anchor> &other);
     
-    bool expired() { return this->_attributes.empty(); }
+    bool expired() { return this->_attributes.empty() || this->_percepts.empty(); }
     bool merged(const string &id) { return std::find( _history.begin(), _history.end(), id) != _history.end(); }
 
     // Matching function
@@ -56,9 +58,7 @@ namespace anchoring {
   private:
 
     // ---[ Private update functions ]---
-    template <typename Map> bool compare(Map const &lhs, Map const &rhs);
-    void append(mongo::Database &db, AttributeMap &attributes);
-    void update(mongo::Database &db, AttributeMap &attributes);
+    //template <typename Map> bool compare(Map const &lhs, Map const &rhs);
 
     // Unique id for each anchor
     string _id;
@@ -67,8 +67,9 @@ namespace anchoring {
     // Unique symbol for each anchor
     string _x;
     
-    // Features 
+    // Attributes and percepts 
     AttributeMap _attributes;
+    PerceptMap _percepts;
 
     // Time
     ros::Time _t;
@@ -76,8 +77,8 @@ namespace anchoring {
     // Variables and functions for maintenance
     std::thread _thread;
     std::mutex _mtx;
-    bool _aging;
-    void decreaseAnchor(int life);
+    bool _persistent;
+    void fading(int life);
 
     string generateSymbol(const string &key, mongo::Database &db);
 
@@ -97,9 +98,13 @@ namespace anchoring {
     for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
       ite->second->populate(msg);
     }
+    for( auto ite = this->_percepts.begin(); ite != this->_percepts.end(); ++ite) {
+      ite->second->populate(msg);
+    }
     return msg;
   }
 
+  /*
   // Compare and check if all keys of two maps are the same
   template <typename Map> bool Anchor::compare(Map const &lhs, Map const &rhs) {
 
@@ -109,6 +114,7 @@ namespace anchoring {
     return lhs.size() == rhs.size()
       && std::equal(lhs.begin(), lhs.end(), rhs.begin(), pred);
   }
+  */
 }
 
 #endif // __ANCHOR_HPP__

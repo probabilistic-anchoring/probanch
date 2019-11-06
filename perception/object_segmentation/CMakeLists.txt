@@ -88,23 +88,23 @@ target_link_libraries( object_calibration
   )
 
 # Communcation test
-add_executable(communcation_node src/communcation_node.cpp)
-target_link_libraries( communcation_node
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}  
-  ${PCL_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  )
-add_library(communcation_nodelet SHARED src/communcation_nodelet.cpp)
-target_link_libraries( communcation_nodelet
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}  
-  ${PCL_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  )
-if(catkin_EXPORTED_LIBRARIES)
-  add_dependencies(communcation_nodelet ${catkin_EXPORTED_LIBRARIES})
-endif()
+#add_executable(communcation_node src/communcation_node.cpp)
+#target_link_libraries( communcation_node
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}  
+#  ${PCL_LIBRARIES}
+#  ${OpenCV_LIBRARIES}
+#  )
+#add_library(communcation_nodelet SHARED src/communcation_nodelet.cpp)
+#target_link_libraries( communcation_nodelet
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}  
+#  ${PCL_LIBRARIES}
+#${OpenCV_LIBRARIES}
+#  )
+#if(catkin_EXPORTED_LIBRARIES)
+#  add_dependencies(communcation_nodelet ${catkin_EXPORTED_LIBRARIES})
+#endif()
 
 #############
 ## Install ##

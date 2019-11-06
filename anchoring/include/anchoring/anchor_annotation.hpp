@@ -3,7 +3,7 @@
 
 #include <anchor_msgs/ObjectArray.h> 
 
-#include <anchoring/anchor_container.hpp>
+#include <anchoring/anchor_collection.hpp>
 
 using namespace std;
 
@@ -13,7 +13,7 @@ using namespace std;
 class AnchorAnnotation {
   
   // An object for holding all anchors
-  std::unique_ptr<anchoring::AnchorContainer> _anchors;
+  std::unique_ptr<anchoring::AnchorCollection> _anchors;
 
   // List of attributes of unknown objects
   std::vector<anchoring::AttributeMap> _objects;

@@ -38,11 +38,11 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   std::string db;
   if( _priv_nh.getParam("db_name", db) ) {
     ROS_WARN("Using database : %s", db.c_str());
-    _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", db) );
+    _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection("anchors", db) );
   }
   else {  // ...default databas
     ROS_WARN("Using default database (anchordb).");
-    _anchors = std::unique_ptr<AnchorContainer>( new AnchorContainer("anchors", "anchordb") );
+    _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection("anchors", "anchordb") );
   }
 
   // Load train classifier
@@ -81,18 +81,30 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Create a map of all object attributes
     AttributeMap attributes;
     try {
+      attributes[CATEGORY] = AttributePtr( new CategoryAttribute(object_ptr->objects[i].category) );
+      attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
       if( !object_ptr->objects[i].descriptor.data.data.empty() ) {
 	attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(object_ptr->objects[i].descriptor) );
       }
-      attributes[COLOR] = AttributePtr( new ColorAttribute(object_ptr->objects[i].color) );
-      attributes[SHAPE] = AttributePtr( new ShapeAttribute(object_ptr->objects[i].shape) );
       attributes[POSITION] = AttributePtr( new PositionAttribute(object_ptr->objects[i].position) );
-      attributes[CAFFE] = AttributePtr( new CaffeAttribute(object_ptr->objects[i].caffe) );
+      attributes[SIZE] = AttributePtr( new SizeAttribute(object_ptr->objects[i].size) );
     } catch( const std::exception &e ) {
-      ROS_ERROR("[AnchorManagement::match]%s", e.what() );
+      ROS_ERROR("[AnchorManagement::match] %s", e.what() );
       continue;
     }
-    ObjectMatching object(attributes);
+
+    // Create a map of all object attributes
+    PerceptMap percepts;
+    try {
+      percepts[SPATIAL] = PerceptPtr( new SpatialPercept(object_ptr->objects[i].spatial) );
+      percepts[VISUAL] = PerceptPtr( new VisualPercept(object_ptr->objects[i].visual) );
+    } catch( const std::exception &e ) {
+      ROS_ERROR("[AnchorManagement::match] %s", e.what() );
+      continue;
+    }
+
+    // Create the object
+    ObjectMatching object(attributes, percepts);
 
     // Match all attributes
     this->_anchors->match( object._attributes, object._matches);
@@ -100,10 +112,10 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
     // Process the matches
     for( auto ite = object._matches.begin(); ite != object._matches.end(); ++ite) {
       cv::Mat sample( 1, 5, CV_32F);
-      sample.at<float>( 0, 0) = ite->second[CAFFE];
+      sample.at<float>( 0, 0) = ite->second[CATEGORY];
       sample.at<float>( 0, 1) = ite->second[COLOR];
       sample.at<float>( 0, 2) = ite->second[POSITION];
-      sample.at<float>( 0, 3) = ite->second[SHAPE];
+      sample.at<float>( 0, 3) = ite->second[SIZE];
       sample.at<float>( 0, 4) = (float)(2.0 / (1.0 + exp( abs(this->_anchors->diff( ite->first, t)) )));
 
       // Classify the sample
@@ -132,10 +144,10 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
   for( uint i = 0; i < objects.size(); i++) {
     string id = objects[i].getId();
     if( !id.empty() ) {
-      this->_anchors->re_acquire( id, objects[i]._attributes, t ); // RE_ACQUIRE
+      this->_anchors->re_acquire( id, objects[i]._attributes, objects[i]._percepts, t ); // RE_ACQUIRE
     }
     else {
-      this->_anchors->acquire(objects[i]._attributes, t); // ACQUIRE
+      this->_anchors->acquire(objects[i]._attributes, objects[i]._percepts, t); // ACQUIRE
     }
   }
 
@@ -205,8 +217,9 @@ void AnchorManagement::update( const anchor_msgs::SemanticAnchorArrayPtr &update
 
     // Update the class categories of an anchor
     anchoring::AttributeMap attributes;
-    attributes[CAFFE] = AttributePtr( new CaffeAttribute(update_ptr->anchors[i].caffe) );
-    this->_anchors->re_acquire( update_ptr->anchors[i].id, attributes, t); // TRACK
+    attributes[CATEGORY] = AttributePtr( new CategoryAttribute(update_ptr->anchors[i].category) );
+    this->_anchors->track( update_ptr->anchors[i].id, attributes, t); // TRACK
+    //this->_anchors->re_acquire( update_ptr->anchors[i].id, attributes, t); // TRACK
   }
 }
 
@@ -243,9 +256,9 @@ void AnchorManagement::spin() {
   ros::Rate rate(30);
   while (ros::ok()) {
 
-    // Maintain the anchor list while idle
+    // Remove expired anchors from list (while idle)
     if( !this->_anchors->empty() ) {
-      this->_anchors->maintain();
+      this->_anchors->remove();
     }
 
     ros::spinOnce();
@@ -370,9 +383,9 @@ int AnchorManagement::process( map< string, map<AttributeType, float> > &matches
   best = 0.0;
   for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
 
-    // ( DESCRIPTOR OR CAFFE ) AND ( COLOR AND SHAPE )
-    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CAFFE] );
-    float rate_2 = min( ite->second[COLOR], ite->second[SHAPE] );
+    // ( DESCRIPTOR OR CATEGORY ) AND ( COLOR AND SIZE )
+    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CATEGORY] );
+    float rate_2 = min( ite->second[COLOR], ite->second[SIZE] );
     float rate = min( rate_1, rate_2 );
     if( rate > best ) {
       best = rate;

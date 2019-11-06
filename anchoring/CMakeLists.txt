@@ -89,13 +89,14 @@ include_directories(
 # )
 
 ## Declare a C++ executable
-add_executable(anchoring src/anchor_management.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp )
-add_executable(annotation src/anchor_annotation.cpp src/anchor_container.cpp src/anchor.cpp src/attribute.cpp )
+add_executable(anchoring src/anchor_management.cpp src/anchor_collection.cpp src/anchor.cpp src/attribute.cpp src/percept.cpp)
+#add_executable(anchoring src/anchor_management.cpp src/anchor_collection.cpp src/anchor.cpp src/attribute_common.cpp src/attribute_category.cpp src/attribute_color.cpp src/attribute_descriptor.cpp src/attribute_position.cpp src/attribute_size.cpp)
+#add_executable(annotation src/anchor_annotation.cpp src/anchor_collection.cpp src/anchor.cpp src/attribute.cpp )
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(anchoring ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(annotation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(annotation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries( anchoring
@@ -104,12 +105,12 @@ target_link_libraries( anchoring
    ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
-target_link_libraries( annotation
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-   ${PCL_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-)
+#target_link_libraries( annotation
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#   ${PCL_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+#)
 
 #############
 ## Install ##

@@ -9,7 +9,7 @@
 #include <anchor_msgs/LogicAnchorArray.h>
 #include <anchor_msgs/SemanticAnchorArray.h>
 
-#include <anchoring/anchor_container.hpp>
+#include <anchoring/anchor_collection.hpp>
 #include <ml/ml.hpp>
 
 using namespace std;
@@ -20,7 +20,7 @@ using namespace std;
 class AnchorManagement {
 
   // An objects for holding all anchors
-  std::unique_ptr<anchoring::AnchorContainer> _anchors;
+  std::unique_ptr<anchoring::AnchorCollection> _anchors;
 
   // Object classicication
   machine::MachinePtr _classifier;
@@ -37,23 +37,14 @@ class AnchorManagement {
 
   /* Struct for temporary storage of matching results */
   struct ObjectMatching {
-    ObjectMatching(anchoring::AttributeMap &attributes) : _attributes(std::move(attributes)) {}
-    /*
-    ObjectMatching( ObjectMatching&& other ) :
-      _attributes(std::move(other._attributes)),
-      _matches(other._matches),
-      _predictions(other._predictions)
-    {
+    ObjectMatching(anchoring::AttributeMap &attributes, anchoring::PerceptMap &percepts) :
+      _attributes(std::move(attributes)),
+      _percepts(std::move(percepts)) {
+      /* Empty constructor */
     }
-    ObjectMatching& operator=(ObjectMatching &&other) {
-      _attributes = std::move(other._attributes);
-      _matches = other._matches;
-      _predictions = other._predictions;
-      return *this;
-    }
-    */
 
     // Local variables
+    anchoring::PerceptMap _percepts;
     anchoring::AttributeMap _attributes;
     map< string, map<anchoring::AttributeType, float> > _matches;
     map< string, float> _predictions;

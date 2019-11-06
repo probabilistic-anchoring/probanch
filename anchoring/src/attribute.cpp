@@ -1,16 +1,10 @@
 
 #include <algorithm>
+#include <cassert>
 
 #include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
-// #define NDEBUG
-#include <cmath>
-#include <cassert>
 
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
@@ -22,9 +16,10 @@ namespace anchoring {
   // Set a global threashold for max spikes in distributions
   const double CONST_MAX_TH = 0.65;
 
+  // Used namespace(s)
   using namespace std;
 
-  // --[ Namspace function ]--  
+  // --[ Namspace functions ]--  
   void sortAttribute( vector<string>  &symbols,
 		      vector<float> &predictions,
 		      int n ) {
@@ -42,9 +37,29 @@ namespace anchoring {
     }
   }
 
+  // Mapping between attribute type and string
+  AttributeType mapAttributeType(const string &type) {
+    if( type == "category" ) return CATEGORY;
+    if( type == "color" ) return COLOR;
+    if( type == "descriptor" ) return DESCRIPTOR;
+    if( type == "position" ) return POSITION;
+    return SIZE;
+  }
 
+  // Create an attribute (pointer) based on the attribute type  
+  AttributePtr createAttribute(AttributeType type) {
+    switch(type) {
+    case CATEGORY:   return AttributePtr( new CategoryAttribute(type) );
+    case COLOR:      return AttributePtr( new ColorAttribute(type) );
+    case DESCRIPTOR: return AttributePtr( new DescriptorAttribute(type) );
+    case POSITION:   return AttributePtr( new PositionAttribute(type) );
+    default:         return AttributePtr( new SizeAttribute(type) );
+    };
+  }
+
+  
   // ---------------------------------------
-  // Common attribute base struct methods
+  // 0. Common attribute base struct methods
   // ------------------------------------------
   mongo::Database::Document AttributeCommon::serialize() {
     mongo::Database::Document doc;
@@ -74,18 +89,166 @@ namespace anchoring {
   string AttributeCommon::getTypeStr() {
     string result;
     switch(this->_type) {
-    case DESCRIPTOR: result = "descriptor"; break;
+    case CATEGORY:   result = "category"; break;
     case COLOR:      result = "color"; break;
-    case SIZE :      result = "size"; break;
+    case DESCRIPTOR: result = "descriptor"; break;
     case POSITION:   result = "position"; break;
-    default:         result = "category"; break;
+    case SIZE :      result = "size"; break;
+    default:         result = "none"; break;
     }
     return result;
   }
 
 
+  // -------------------------------
+  // 1. Category attribute class methods
+  // --------------_--------------------
+  CategoryAttribute::CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
+					AttributeType type ) : AttributeCommon( msg.symbols, type) {
+    this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
+    this->_n = 1.0;   // ...counter
+  }
+
+  mongo::Database::Document CategoryAttribute::serialize() {
+
+    // Save the symbol(s)
+    mongo::Database::Document doc = AttributeCommon::serialize();
+
+    // Save (category) predictions
+    try {
+      doc.add<double>( "predictions", this->_predictions);
+      doc.add<double>( "n", this->_n);  // ..including the frequency 
+    }
+    catch( const std::exception &e) {
+      cout << "[CategoryAttribute::serialize]" << e.what() << endl;
+    }
+    return doc;
+  }
+
+  void CategoryAttribute::deserialize(const mongo::Database::Document &doc) {
+  
+    // Load (category) predictions
+    try {
+      doc.get<double>( "predictions", this->_predictions);
+      this->_n = (float)doc.get<double>("n");  // ...including the frequency 
+    }
+    catch( const std::exception &e) {
+      cout << "[CategoryAttribute::deserialize]" << e.what() << endl;
+    }
+
+    // Load the symbol(s) 
+    AttributeCommon::deserialize(doc);
+  }
+
+  void CategoryAttribute::populate(anchor_msgs::Anchor &msg) {
+    anchor_msgs::CategoryAttribute category_msg;
+    //double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
+    for( uint i = 0; i < this->_predictions.size(); i++ ) {
+      //if( (this->_predictions[i] / max) > 0.25 ) {  // ...looking for spikes above max theshold value
+      category_msg.symbols.push_back(this->_symbols[i]);
+      category_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
+      //}
+    }
+    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
+    sortAttribute( category_msg.symbols, category_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
+
+    /*
+    category_msg.symbols = this->_symbols;
+    auto n = this->_N.begin();
+    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
+      categoryu_msg.predictions.push_back((float)*ite / *n);
+    }
+    */
+    msg.category = category_msg;
+  }
+
+  void CategoryAttribute::populate(anchor_msgs::Display &msg) {
+    float best = 0.0;
+    int index = -1;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      float prob = this->_predictions[i] / this->_n; 
+      if( prob > best ) {
+	best = prob;
+	index = i;
+      }
+    }
+    if( index >= 0 ) {
+      msg.category = this->_symbols[index];
+      msg.prediction = this->_predictions[index] / this->_n;
+    }
+    
+  }
+
+  float CategoryAttribute::match(const AttributePtr &query_ptr) { 
+
+    // Typecast the query attribute pointer
+    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(query_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    float result = 0.0;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	if( this->_symbols[i] == raw_ptr->_symbols[j] && (this->_predictions[i] / this->_n) > 0.05 && raw_ptr->_predictions[j] > 0.05  ) {
+	  float diff = 1.0 / 
+	    exp( abs( (this->_predictions[i] / this->_n) - raw_ptr->_predictions[j] ) /
+		 ( (this->_predictions[i] / this->_n) + raw_ptr->_predictions[j] ) );
+	  if (diff > result ) {
+	    result = diff;
+	  }
+	}
+      }
+    }
+    return result;
+  }
+
+  bool CategoryAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
+    
+    // Typecast the new attribute pointer
+    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(new_ptr.get());
+    assert( raw_ptr != nullptr );
+
+    // Increment the counter
+    this->_n = this->_n + raw_ptr->_n;
+    
+    // Summarize the predictions...
+    if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
+      for( uint i = 0; i < this->_predictions.size(); i++ ) {
+	this->_predictions[i] += raw_ptr->_predictions[i];
+      }
+    }
+    else {  // ...or update prediction/symbol based on a top down information (from language).
+      for( uint i = 0; i < this->_symbols.size(); i++ ) {
+	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
+	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] / this->_n << std::endl;
+	  }
+	}
+      }
+    }
+    return true;
+  }
+
+  string CategoryAttribute::toString() {
+    float best = 0.0;
+    int index = -1;
+    std::stringstream ss;
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      float prob = this->_predictions[i] / this->_n;
+      if( prob > best ) {
+	best = prob;
+	index = i;
+      }
+    }
+    if( index >= 0 ) {
+      ss << this->_symbols[index];
+    }
+    return ss.str();
+  }
+
+
   // --------------------------------
-  // Color attribute methods
+  // 2. Color attribute methods
   // ------------------------------------  
   ColorAttribute::ColorAttribute( const anchor_msgs::ColorAttribute &msg, 
 				  AttributeType type ) : AttributeCommon( msg.symbols, type) {
@@ -176,7 +339,6 @@ namespace anchoring {
     }
     // msg.colors = this->_symbols;
   }
-
   
   float ColorAttribute::match(const AttributePtr &query_ptr) {
     
@@ -224,7 +386,7 @@ namespace anchoring {
 
 
   // ------------------------------------
-  // Descriptor attribute methods
+  // 3. Descriptor attribute methods
   // --------------------------------------------
   DescriptorAttribute::DescriptorAttribute( const anchor_msgs::DescriptorAttribute &msg, 
 					    AttributeType type ) : AttributeCommon( msg.symbols, type) {
@@ -282,7 +444,7 @@ namespace anchoring {
 
 
   // ----------------------------------
-  // Position attribute methods
+  // 4. Position attribute methods
   // ---------------------------------------
   PositionAttribute::PositionAttribute( const anchor_msgs::PositionAttribute &msg,
 					AttributeType type ) : AttributeCommon( msg.symbols, type) {
@@ -365,10 +527,6 @@ namespace anchoring {
 
 	// Read the time
 	data.header.stamp = ros::Time(ite->get<double>("t"));	
-
-	// Read the symbol
-	//string symbol = sub.get<string>("symbol");
-	//this->_symbols.push_back(symbol);
 	
 	// Read position
 	mongo::Database::Document position = ite->get("position");
@@ -435,15 +593,8 @@ namespace anchoring {
     // Typecast the query attribute pointer
     PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
     assert( raw_ptr != nullptr );
-    
-    /*
-    // 1. Check the time
-    if( query.header.stamp.toSec() - train.header.stamp.toSec() > 1.0 ) {
-      return 0.0;
-    }
-    */
 
-    // 2. Check the distance
+    // The normalized L2 distance
     double _x, _y, _z, _d, _dist = -1.0;
     for( uint i = 0; i < this->_array.size(); i++ ) {
       geometry_msgs::PoseStamped train = this->_array[i];
@@ -463,23 +614,6 @@ namespace anchoring {
     }
     return 0.0;
   }
-  
-  /*
-  void PositionAttribute::append(const unique_ptr<AttributeCommon> &query_ptr) {
-    
-    // Typecast the query pointer
-    PositionAttribute *raw_ptr = dynamic_cast<PositionAttribute*>(query_ptr.get());
-    assert( raw_ptr != nullptr );
-
-    // Append the location (including a timestamp)
-    this->_array.push_back(raw_ptr->_array.front());
-
-    // Append the symbol (if there exists an symbol)
-    if( !raw_ptr->_symbols.empty() ) {
-      this->_symbols.push_back(raw_ptr->_symbols.front());
-    }  
-  }
-  */
 
   bool PositionAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
     
@@ -528,7 +662,7 @@ namespace anchoring {
 
   
   // --------------------------------
-  // Size attribute class methods
+  // 5. Size attribute class methods
   // -------------------------------------
   SizeAttribute::SizeAttribute( const anchor_msgs::SizeAttribute &msg,
 				AttributeType type ) : AttributeCommon( msg.symbols, type) {
@@ -614,245 +748,6 @@ namespace anchoring {
   string SizeAttribute::toString() {
     return _symbols[0];
   }
-
-
-  // -------------------------------
-  // Category attribute class methods
-  // ----------------------------------
-  CategoryAttribute::CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
-					AttributeType type ) : AttributeCommon( msg.symbols, type) {
-    // Read the data from ROS msg
-    cv_bridge::CvImagePtr cv_ptr;
-    try {
-      if( sizeof(msg.data) / sizeof(unsigned char) > 0 ) {
-	cv_ptr = cv_bridge::toCvCopy( msg.data,
-				      sensor_msgs::image_encodings::BGR8 );
-	cv_ptr->image.copyTo(this->_data);
-      }
-    } catch (cv_bridge::Exception& e) {
-      // FIX THIS SHIT LATER ON!!
-      //throw std::logic_error("[CategoryAttribute::CaategoryAttribute]:" + std::string(e.what()) );
-    }    
-    this->_border = msg.border;
-    this->_point = msg.point;
-    this->_predictions = vector<double>( msg.predictions.begin(), msg.predictions.end() );
-    this->_n = 1.0;   // ...counter
-  }
-
-  mongo::Database::Document CategoryAttribute::serialize() {
-
-    // Save the symbol(s)
-    mongo::Database::Document doc = AttributeCommon::serialize();
-
-    // Compress the image  
-    vector<uchar> buff;
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(90);
-    cv::imencode( ".jpg", this->_data, buff, compression_params);
-
-    // Save the image (to DB)
-    try {
-      std::size_t length = buff.size();
-      doc.add<unsigned char*>( "data", buff.data(), length);
-
-      // Save (category) predictions
-      doc.add<double>( "predictions", this->_predictions);
-      doc.add<double>( "n", this->_n);  // ..including the frequency 
-      
-      // Save the contour
-      for( auto &point : _border.contour ) {
-	mongo::Database::Document p_doc;
-	p_doc.add<int>( "x", point.x);
-	p_doc.add<int>( "y", point.y);
-	doc.append( "border", p_doc);
-      }
-
-      // Save the upper corner point of the image
-      mongo::Database::Document p_doc;
-      p_doc.add<int>( "x", this->_point.x);
-      p_doc.add<int>( "y", this->_point.y);
-      doc.add( "point", p_doc);
-    }
-    catch( const std::exception &e) {
-      cout << "[CategoryAttribute::serialize]" << e.what() << endl;
-    }
-    return doc;
-  }
-
-  void CategoryAttribute::deserialize(const mongo::Database::Document &doc) {
   
-    // Load the image -- from DB
-    try {
-      std::size_t length = doc.get<std::size_t>("data");
-      unsigned char* array = doc.get<unsigned char*>("data");
-
-      // Decompress the image      
-      vector<uchar> buff( array, array + length);
-      this->_data = cv::imdecode( cv::Mat(buff), CV_LOAD_IMAGE_COLOR);
-
-      // Load (category) predictions
-      doc.get<double>( "predictions", this->_predictions);
-      this->_n = (float)doc.get<double>("n");  // ...including the frequency 
-
-      // Load the contour
-      for( mongo::document_iterator ite = doc.begin("border"); ite != doc.end("border"); ++ite) {
-	anchor_msgs::Point2d point;
-	point.x = ite->get<int>("x");
-	point.y = ite->get<int>("y");
-	this->_border.contour.push_back(point);	
-      }
-
-      // Load the upper corner point of the image
-      anchor_msgs::Point2d point;
-      this->_point.x = doc.get("point").get<int>("x");
-      this->_point.y = doc.get("point").get<int>("y");
-      //std::cout << "Point: " << doc.get("point").get<int>("x") << ", " << doc.get("point").get<int>("y") << std::endl;
-    }
-    catch( const std::exception &e) {
-      cout << "[CategoryAttribute::deserialize]" << e.what() << endl;
-    }
-
-    // Load the symbol(s) 
-    AttributeCommon::deserialize(doc);
-  }
-
-  void CategoryAttribute::populate(anchor_msgs::Anchor &msg) {
-    anchor_msgs::CategoryAttribute category_msg;
-    //double max = *std::max_element( this->_predictions.begin(), this->_predictions.end());
-    for( uint i = 0; i < this->_predictions.size(); i++ ) {
-      //if( (this->_predictions[i] / max) > 0.25 ) {  // ...looking for spikes above max theshold value
-      category_msg.symbols.push_back(this->_symbols[i]);
-      category_msg.predictions.push_back((float)this->_predictions[i] / this->_n);
-      //}
-    }
-    double max = *std::max_element( this->_predictions.begin(), this->_predictions.end()) / this->_n;
-    sortAttribute( category_msg.symbols, category_msg.predictions, (max > 0.95 ? 1 : max > 0.65 ? 2 : 3 ));
-
-    /*
-    category_msg.symbols = this->_symbols;
-    auto n = this->_N.begin();
-    for( auto ite = this->_predictions.begin(); ite != this->_predictions.end(); ++ite, ++n) {
-      caffe_msg.predictions.push_back((float)*ite / *n);
-    }
-    */
-    msg.category = category_msg;
-  }
-
-  void CategoryAttribute::populate(anchor_msgs::Display &msg) {
-    msg.border = this->_border;
-    float best = 0.0;
-    int index = -1;
-    for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_n; 
-      if( prob > best ) {
-	best = prob;
-	index = i;
-      }
-    }
-    if( index >= 0 ) {
-      msg.category = this->_symbols[index];
-      msg.prediction = this->_predictions[index] / this->_n;
-    }
-    
-  }
-
-  float CategoryAttribute::match(const AttributePtr &query_ptr) { 
-
-    // Typecast the query attribute pointer
-    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(query_ptr.get());
-    assert( raw_ptr != nullptr );
-
-    float result = 0.0;
-    for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
-	if( this->_symbols[i] == raw_ptr->_symbols[j] && (this->_predictions[i] / this->_n) > 0.05 && raw_ptr->_predictions[j] > 0.05  ) {
-	  float diff = 1.0 / 
-	    exp( abs( (this->_predictions[i] / this->_n) - raw_ptr->_predictions[j] ) /
-		 ( (this->_predictions[i] / this->_n) + raw_ptr->_predictions[j] ) );
-	  if (diff > result ) {
-	    result = diff;
-	  }
-	}
-      }
-    }
-    return result;
-  }
-
-  bool CategoryAttribute::update(const unique_ptr<AttributeCommon> &new_ptr) {
-    
-    // Typecast the new attribute pointer
-    CategoryAttribute *raw_ptr = dynamic_cast<CategoryAttribute*>(new_ptr.get());
-    assert( raw_ptr != nullptr );
-
-    // Update the visual data
-    if( !raw_ptr->_data.empty() ) {
-      this->_data = raw_ptr->_data;
-      this->_border = raw_ptr->_border;
-      this->_point = raw_ptr->_point;
-    }
-
-    // Increment the counter
-    this->_n = this->_n + raw_ptr->_n;
-    
-    // Summarize the predictions...
-    if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
-      for( uint i = 0; i < this->_predictions.size(); i++ ) {
-	this->_predictions[i] += raw_ptr->_predictions[i];
-      }
-    }
-    else {  // ...or update prediction/symbol based on a top down information (from language).
-      //std::fill( this->_predictions.begin(), this->_predictions.end(), 0.0);
-      for( uint i = 0; i < this->_symbols.size(); i++ ) {
-	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
-	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
-	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] / this->_n << std::endl;
-        //std::cout << raw_ptr->_symbols[i] << " -- " << raw_ptr->_predictions[i] << std::endl;
-	  }
-	}
-      }
-    }
-    
-    /*
-    // Add non-exisitng symbols
-    for( uint i = 0; i < raw_ptr->_symbols.size(); i++ ) {
-      if( find( this->_symbols.begin(), this->_symbols.end(), raw_ptr->_symbols[i]) == this->_symbols.end() ) {
-	this->_symbols.push_back(raw_ptr->_symbols[i]);
-	this->_predictions.push_back(0.0);
-	this->_N.push_back(0.0);
-      }
-    }
-
-    // Update the predictions
-    for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
-	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	  this->_predictions[i] += raw_ptr->_predictions[j];
-	  this->_N[i] += raw_ptr->_N[j];
-	} 
-      }
-    }
-    */
-    return true;
-  }
-
-  string CategoryAttribute::toString() {
-    float best = 0.0;
-    int index = -1;
-    std::stringstream ss;
-    for( uint i = 0; i < this->_symbols.size(); i++ ) {
-      float prob = this->_predictions[i] / this->_n;
-      if( prob > best ) {
-	best = prob;
-	index = i;
-      }
-    }
-    if( index >= 0 ) {
-      ss << this->_symbols[index];
-      //ss << this->_symbols[index] << "  (" << this->_predictions[index] << ")";
-    }
-    return ss.str();
-  }
-
+  
 } // namespace anchoring

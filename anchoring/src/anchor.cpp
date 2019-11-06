@@ -12,11 +12,16 @@ namespace anchoring {
   using namespace std;
 
   // Constructor
-  Anchor::Anchor(AttributeMap &attributes, const ros::Time &t) {
+  Anchor::Anchor(const ros::Time &t, AttributeMap &attributes, PerceptMap &percepts) {
 
     // Assign (or move) the attributes
     for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
       this->_attributes[ite->first] = std::move(ite->second);
+    }
+
+    // Assign (or move) the perecpts
+    for( auto ite = percepts.begin(); ite != percepts.end(); ++ite) {
+      this->_percepts[ite->first] = std::move(ite->second);
     }
     
     // Generate an id  
@@ -26,8 +31,8 @@ namespace anchoring {
     this->_t = t;
 
     // Set status variables
-    this->_aging = true;
-    this->_thread = std::thread( &Anchor::decreaseAnchor, this, 250);
+    this->_persistent = false;
+    this->_thread = std::thread( &Anchor::fading, this, 100);
   }
 
   // Destructor
@@ -39,7 +44,7 @@ namespace anchoring {
   }  
 
   /**
-   * Public load (override of base class)
+   * Public load function (retreive the anchor from the database)
    */
   void Anchor::load(const mongo::Database &db) {
     
@@ -59,31 +64,29 @@ namespace anchoring {
       if( doc.exist("H") ) {
 	doc.get<std::string>( "H", this->_history);
       }
+
+      // Read all percepts
+      for( mongo::document_iterator ite = doc.begin("percepts"); ite != doc.end("percepts"); ++ite) {
+
+	// Load the type... 
+	PerceptType type = mapPerceptType(ite->get<std::string>("type"));
+
+	// Load the percepts based on the type
+	this->_percepts[type] = createPercept(type);
+
+	// Deserialize the perceptual data
+	this->_percepts[type]->deserialize(*ite); 
+      } 
       
       // Read all attributes
       for( mongo::document_iterator ite = doc.begin("attributes"); ite != doc.end("attributes"); ++ite) {
 
 	// Load the type...
-	AttributeType type = (AttributeType)ite->get<int>("type");
-
+	AttributeType type = mapAttributeType(ite->get<std::string>("type"));
+	//AttributeType type = (AttributeType)ite->get<int>("type");
+	
 	// Load the attribute based on the type
-	switch(type) {
-	case DESCRIPTOR:
-	  this->_attributes[DESCRIPTOR] = AttributePtr( new DescriptorAttribute(type) );
-	  break;
-	case COLOR:
-	  this->_attributes[COLOR] = AttributePtr( new ColorAttribute(type) );
-	  break;
-	case POSITION:
-	  this->_attributes[POSITION] = AttributePtr( new PositionAttribute(type) );
-	  break;
-	case SIZE:
-	  this->_attributes[SIZE] = AttributePtr( new SizeAttribute(type) );
-	  break;
-	case CATEGORY:
-	  this->_attributes[CATEGORY] = AttributePtr( new CategoryAttribute(type) );
-	  break;
-	};
+	this->_attributes[type] = createAttribute(type);
 
 	// Deserialize the attribute data
 	this->_attributes[type]->deserialize(*ite); 
@@ -95,24 +98,26 @@ namespace anchoring {
   }
   
   /**
-   * Public create function (save the anchor)
+   * Public save function (stores the anchor in the database)
    */
-  void Anchor::create(mongo::Database &db) {
+  void Anchor::save(mongo::Database &db) {
 
-    // Safely changed the aging variable
+    // Safely changed the persistent variable
     std::lock_guard<std::mutex> lock(this->_mtx);
-    if( this->_aging ) { 
-      this->_aging = false; // Lives forever (in the database) from now on...
-      this->_thread.join();
+    if( !this->_persistent ) { 
+      this->_persistent = true; // Lives forever (in the database) from now on...
+      if( this->_thread.joinable() ) {
+	this->_thread.join();
+      }
     }
 
     // Insert the anchor into database
     try {
 
       // Generate a unique symbol
-      AttributeMap::iterator ite = this->_attributes.find(CATEGORY);
-      if( ite != this->_attributes.end() ) {
-	this->_x = this->generateSymbol( ite->second->toString(), db);
+      if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
+	auto it = this->_attributes.find(CATEGORY);
+	this->_x = this->generateSymbol( it->second->toString(), db);
       }
       else {
 	this->_x = this->generateSymbol( "unknown", db );
@@ -123,45 +128,125 @@ namespace anchoring {
 
       // Add symbol
       doc.add<std::string>( "x", this->_x);
-            
-      // Add time
-      doc.add<double>( "t", this->_t.toSec());
 
       // Add the history 
       doc.add<std::string>( "H", this->_x);
-      
+
+      // Add time
+      doc.add<double>( "t", this->_t.toSec());
+
       // Add all attributes
-      for( ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
-	mongo::Database::Document subdoc = ite->second->serialize();
-        subdoc.add<int>( "type", (int)ite->first);
+      for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
+	mongo::Database::Document subdoc = it->second->serialize();
+        subdoc.add<std::string>( "type", it->second->getTypeStr());
         doc.append( "attributes", subdoc);
       }
-      
+
+      // Add all percepts
+      for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
+	mongo::Database::Document subdoc = it->second->serialize();
+        subdoc.add<std::string>( "type", it->second->getTypeStr());
+        doc.append( "percepts", subdoc);
+      }
+
       // Commit all changes to database
       db.insert(doc);
     }
     catch( const std::exception &e ) {
-      std::cout << "[Anchor::create]" << e.what() << std::endl;
+      std::cout << "[Anchor::save]" << e.what() << std::endl;
     }
   }
   
   /**
-   * Public maintain function (update the anchor)
+   * Public update function(s)
    */
-  void Anchor::maintain(mongo::Database &db, AttributeMap &attributes, const ros::Time &t ) {
+  void Anchor::update(mongo::Database &db, const ros::Time &t, AttributeMap &attributes, PerceptMap &percepts ) {
+
+    // Update the percepts of this anchor (or move un-exisiting percepts to this anchor) 
+    for( auto it = percepts.begin(); it != percepts.end(); ++it) {
+      if( this->_percepts.find(it->first) == this->_percepts.end() ) {
+	this->_percepts[it->first] = std::move(it->second);
+      }
+      else {
+	this->_percepts[it->first]->update(it->second);
+      }
+    }
+
+    // Make use of function overloading...
+    this->update(db, t, attributes);
+  }
+  
+  void Anchor::update(mongo::Database &db, const ros::Time &t, AttributeMap &attributes ) {
 
     // Update time
     this->_t = t;
 
-    // The anchor need to be re-acquired within it's life time...
-    if( this->_aging ) { 
-      this->create(db);    // ...in order to be saved to the database
+    // Update attributes of this anchor (or move un-exisiting attributes to this anchor) 
+    for( auto it = attributes.begin(); it != attributes.end(); ++it) {
+      if( this->_attributes.find(it->first) == this->_attributes.end() ) {
+	this->_attributes[it->first] = std::move(it->second);
+      }
+      else {
+	this->_attributes[it->first]->update(it->second);
+      }
     }
-    else if( !this->compare<AttributeMap>( this->_attributes, attributes ) ) { // Attributes keys does not match 
-      this->append(db, attributes);
+ 
+    // Save the anchor - the anchor need to be re-acquired within it's life time...
+    if( !this->_persistent ) { 
+      this->save(db);    // ...in order to be saved to the database
     }
     else {
-      this->update(db, attributes);  // Update existing attributes
+
+      // Update the database
+      try {
+
+	// Check and update the (unique) symbol 
+	if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
+	  auto it = this->_attributes.find(CATEGORY);
+	  std::string symbol = it->second->toString();
+	  if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	    bool found = false;
+	    for( auto x : this->_history ) {
+	      if( x.compare( 0, symbol.size(), symbol) == 0 ) {
+		this->_x = x;
+		found = true;
+		break;
+	      }
+	    }
+	    if( !found ) {
+	      this->_history.push_back(this->_x);
+	      this->_x = this->generateSymbol( symbol, db);
+	      db.update<std::string>( this->_id, "x", this->_x);
+	      db.update<std::string>( this->_id, "H", this->_history);
+	    }
+	  }
+	}
+
+	// Update time
+	db.update<double>( this->_id, "t", this->_t.toSec());
+
+	// Update all attributes
+	std::vector<mongo::Database::Document> docs;
+	for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
+	  mongo::Database::Document subdoc = it->second->serialize();
+	  subdoc.add<std::string>( "type", it->second->getTypeStr());
+	  docs.push_back(subdoc);	
+	}
+	db.update<mongo::Database::Document>( this->_id, "attributes", docs);
+
+	// Update all percepts
+	docs.clear();
+	for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
+	  mongo::Database::Document subdoc = it->second->serialize();
+	  subdoc.add<std::string>( "type", it->second->getTypeStr());
+	  docs.push_back(subdoc);	
+	}
+	db.update<mongo::Database::Document>( this->_id, "percepts", docs);
+	
+      }
+      catch( const std::exception &e ) {
+	std::cout << "[Anchor::update]" << e.what() << std::endl;
+      }
     }
   }
 
@@ -184,109 +269,11 @@ namespace anchoring {
       this->_history.push_back( other->id() );
       db.update<string>( this->_id, "H", this->_history);            
 
-      // Update the attributes
-      if( !this->compare<AttributeMap>( this->_attributes, other->_attributes ) ) { // Map keys are different
-	this->append(db, other->_attributes);
-      }
-      else { // Update existing attributes
-	this->update(db, other->_attributes);
-      }
+      // Update attributes and percepts
+      this->update(db, other->_t, other->_attributes, other->_percepts);
     }
     catch( const std::exception &e ) {
       std::cout << "[Anchor::merge]" << e.what() << std::endl;
-    }
-  }
-
-  /**
-   * Private update functions
-   */                                                                                        
-  void Anchor::append(mongo::Database &db, AttributeMap &attributes) {
-
-    // Append non-existing attributes and update the database
-    try {
-    
-      // Update time
-      db.update<double>( this->_id, "t", this->_t.toSec());
-      
-      // Add (or move) un-exisiting attributes to this anchor
-      std::vector<mongo::Database::Document> docs;
-      for( auto ite = attributes.begin(); ite != attributes.end(); ++ite) {
-	if( this->_attributes.find(ite->first) == this->_attributes.end() ) {
-	  this->_attributes[ite->first] = std::move(ite->second);
-	}
-	else {
-	  this->_attributes[ite->first]->update(ite->second);
-	}
-	mongo::Database::Document subdoc = this->_attributes[ite->first]->serialize();
-	subdoc.add<int>( "type", (int)ite->first);
-	docs.push_back(subdoc);	
-      }
-      db.update<mongo::Database::Document>( this->_id, "attributes", docs);
-
-      // Check and update the (unique) symbol 
-      auto ite = this->_attributes.find(CATEGORY);
-      if( ite != this->_attributes.end() ) {
-	std::string symbol = ite->second->toString();
-	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
-	  for( auto x : this->_history ) {
-	    if( x.compare( 0, symbol.size(), symbol) == 0 ) {
-	      this->_x = x;
-	      return;
-	    }
-	  }
-	  this->_history.push_back(this->_x);
-	  this->_x = this->generateSymbol( symbol, db);
-	  db.update<std::string>( this->_id, "x", this->_x);
-	  db.update<std::string>( this->_id, "H", this->_history);
-	}
-      }
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[Anchor::append]" << e.what() << std::endl;
-    }
-  }
-
-  void Anchor::update(mongo::Database &db, AttributeMap &attributes) {
-
-    // Update changed attributes
-    try {
-
-      // Update time
-      db.update<double>( this->_id, "t", this->_t.toSec());
-
-      // Update each attribute
-      int idx = 0;
-      AttributeMap::iterator ite = this->_attributes.begin();
-      for( ; ite != this->_attributes.end(); ++ite, idx++) {
-	if( ite->second->update(attributes[ite->first]) ) {
-	  std::stringstream ss;
-	  mongo::Database::Document doc = ite->second->serialize();
-	  doc.add<int>( "type", (int)ite->first);
-	  ss << "attributes." << idx;
-	  db.update<mongo::Database::Document>( this->_id, ss.str(), doc);	  
-	}
-      }
-
-      // Check and update the (unique) symbol 
-      ite = this->_attributes.find(CATEGORY);
-      if( ite != this->_attributes.end() ) {
-	std::string symbol = ite->second->toString();
-	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
-	  for( auto x : this->_history ) {
-	    if( x.compare( 0, symbol.size(), symbol) == 0 ) {
-	      this->_x = x;
-	      return;
-	    }
-	  }
-	  this->_history.push_back(this->_x);
-	  this->_x = this->generateSymbol( symbol, db);
-	  db.update<std::string>( this->_id, "x", this->_x);
-	  db.update<std::string>( this->_id, "H", this->_history);
-	}
-      }  
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[Anchor::update]" << e.what() << std::endl;
     }
   }
 
@@ -333,15 +320,19 @@ namespace anchoring {
   }
   
   // Thread function for decreasing the life of the anchor
-  void Anchor::decreaseAnchor(int life) {
-    while( this->_aging && life > 0  ) {
+  void Anchor::fading(int life) {
+    while( life != 0  ) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       life--;
+      if( this->_persistent ) {
+	break;
+      }
     }
     
     // Dead anchor - release this object
-    if( this->_aging ) {
+    if( !this->_persistent ) {
       this->_attributes.clear();
+      this->_percepts.clear();
     }
   }
 
@@ -358,16 +349,6 @@ namespace anchoring {
     */
   }
     
-  /*
-  anchor_msgs::Snapshot Anchor::getSnapshot() {
-    anchor_msgs::Snapshot msg;
-    for( auto ite = this->_attributes.begin(); ite != this->_attributes.end(); ++ite) {
-      msg.id = this->_id;
-      ite->second->populate(msg);
-    }
-    return msg;
-  }
-  */
 
   // ---[ Generate a unique symbol ]---
   std::string Anchor::generateSymbol(const std::string &key, mongo::Database &db) {

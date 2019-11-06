@@ -12,10 +12,9 @@
 // OpenCV includes
 #include <opencv2/core/core.hpp>
 
-// Anchor includes
-#include <anchor_msgs/Contour.h>
+// Anchoring includes
+#include <anchor_msgs/Anchor.h>  // ...includes ALL attribute messages
 #include <anchor_msgs/Display.h>
-#include <anchor_msgs/Anchor.h>
 
 #include <database/database.hpp>
 
@@ -26,12 +25,13 @@ namespace anchoring {
 
   // ---[ Different attribute types ]---
   enum AttributeType {
-    DESCRIPTOR = 0,
+    CATEGORY   = 0,
     COLOR      = 1,
-    SIZE       = 2,
+    DESCRIPTOR = 2,
     POSITION   = 3,
-    CATEGORY   = 4
+    SIZE       = 4
   };
+  
 
   // ---[ Common attribute base struct 
   // -----------------------------------------------
@@ -47,8 +47,8 @@ namespace anchoring {
     // Virtual database methods
     virtual mongo::Database::Document serialize(); 
     virtual void deserialize(const mongo::Database::Document &doc);
-    virtual void populate(anchor_msgs::Display &msg) { }
-    virtual void populate(anchor_msgs::Anchor &msg) { }
+    virtual void populate(anchor_msgs::Anchor &msg) {}
+    virtual void populate(anchor_msgs::Display &msg) {}
     
     // Virtual match method
     virtual float match(const unique_ptr<AttributeCommon> &query_ptr) = 0;
@@ -66,7 +66,29 @@ namespace anchoring {
   typedef unique_ptr<AttributeCommon> AttributePtr;
   typedef map<AttributeType, AttributePtr> AttributeMap;
   typedef map<AttributeType, float> MatchMap;
-  
+
+
+  // ---[ Category attribute struct ]---
+  //-----------------------------------------------
+  struct CategoryAttribute : public AttributeCommon {
+    vector<double> _predictions;
+    float _n;
+    
+    // Constructors
+    CategoryAttribute(AttributeType type = CATEGORY) : AttributeCommon(type) {}
+    CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
+		       AttributeType type = CATEGORY );
+
+    // Overrided methods
+    mongo::Database::Document serialize(); 
+    void deserialize(const mongo::Database::Document &doc);
+    void populate(anchor_msgs::Anchor &msg);
+    void populate(anchor_msgs::Display &msg);
+    float match(const AttributePtr &query_ptr);
+    bool update(const unique_ptr<AttributeCommon> &new_ptr);
+    string toString();
+  }; 
+
   
   // ---[ Color attribute struct ]---
   //-----------------------------------------------
@@ -80,7 +102,7 @@ namespace anchoring {
     ColorAttribute( const anchor_msgs::ColorAttribute &msg, 
 		    AttributeType type = COLOR );
 
-    // Override methods
+    // Overrided methods
     mongo::Database::Document serialize(); 
     void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
@@ -101,7 +123,7 @@ namespace anchoring {
     DescriptorAttribute( const anchor_msgs::DescriptorAttribute &msg, 
 			 AttributeType type = DESCRIPTOR );
 
-    // Override methods
+    // Overrided methods
     mongo::Database::Document serialize(); 
     void deserialize(const mongo::Database::Document &doc);
     virtual float match(const AttributePtr &query_ptr) { return 0.0; }
@@ -123,7 +145,7 @@ namespace anchoring {
     PositionAttribute( const AttributePtr &ptr,
 		       AttributeType type = POSITION);
     
-    // Override methods
+    // Overrided methods
     mongo::Database::Document serialize(); 
     void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
@@ -134,7 +156,7 @@ namespace anchoring {
   }; 
   
 
-  // ---[ Shape attribute struct ]---
+  // ---[ Size attribute struct ]---
   //-----------------------------------------------
   struct SizeAttribute : public AttributeCommon {
     geometry_msgs::Vector3 _data;
@@ -144,7 +166,7 @@ namespace anchoring {
     SizeAttribute( const anchor_msgs::SizeAttribute &msg,
 		   AttributeType type = SIZE);
 
-    // Override methods
+    // Overrided methods
     mongo::Database::Document serialize(); 
     void deserialize(const mongo::Database::Document &doc);
     void populate(anchor_msgs::Anchor &msg);
@@ -152,34 +174,8 @@ namespace anchoring {
     float match(const AttributePtr &query_ptr);
     bool update(const unique_ptr<AttributeCommon> &new_ptr);
     string toString();
-  }; 
-
-
-  // ---[ Caffe attribute struct ]---
-  //-----------------------------------------------
-  struct CategoryAttribute : public AttributeCommon {
-    cv::Mat _data;
-    vector<double> _predictions;
-    float _n;
-    
-    anchor_msgs::Contour _border;
-    anchor_msgs::Point2d _point;
-
-    // Constructors
-    CategoryAttribute(AttributeType type = CATEGORY) : AttributeCommon(type) {}
-    CategoryAttribute( const anchor_msgs::CategoryAttribute &msg,
-		       AttributeType type = CATEGORY );
-
-    // Override methods
-    mongo::Database::Document serialize(); 
-    void deserialize(const mongo::Database::Document &doc);
-    void populate(anchor_msgs::Anchor &msg);
-    void populate(anchor_msgs::Display &msg);
-    float match(const AttributePtr &query_ptr);
-    bool update(const unique_ptr<AttributeCommon> &new_ptr);
-    string toString();
-  }; 
-
+  };
+  
 
   // --[ Namspace function headers (and template functions) ]--
   template <typename T>
@@ -188,10 +184,12 @@ namespace anchoring {
     x = y;
     y = temp;
   }
-  void sortAttribute( vector<string>  &symbols,
+  void sortAttribute( vector<string> &symbols,
 		      vector<float> &predictions,
 		      int n = -1 );
-  
+  AttributeType mapAttributeType(const string &type);
+  AttributePtr createAttribute(AttributeType type);  
+
   
 } // namespace anchoring ]---
   
