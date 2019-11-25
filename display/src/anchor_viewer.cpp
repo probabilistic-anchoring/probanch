@@ -141,13 +141,13 @@ class AnchorViewer {
     this->_cam_model.fromCameraInfo(msg_ptr->info);
 
     // Stor the transformation
-    tf::Quaternion tf_quat( msg_ptr->transform.rotation.x,
-			    msg_ptr->transform.rotation.y,
-			    msg_ptr->transform.rotation.z,
-			    msg_ptr->transform.rotation.w );
-    tf::Vector3 tf_vec( msg_ptr->transform.translation.x,
-			msg_ptr->transform.translation.y,
-			msg_ptr->transform.translation.z );
+    tf::Quaternion tf_quat( msg_ptr->transform.transform.rotation.x,
+			    msg_ptr->transform.transform.rotation.y,
+			    msg_ptr->transform.transform.rotation.z,
+			    msg_ptr->transform.transform.rotation.w );
+    tf::Vector3 tf_vec( msg_ptr->transform.transform.translation.x,
+			msg_ptr->transform.transform.translation.y,
+			msg_ptr->transform.transform.translation.z );
     this->_tf = tf::Transform( tf_quat, tf_vec);
 
     // Publish the resulting anchor image

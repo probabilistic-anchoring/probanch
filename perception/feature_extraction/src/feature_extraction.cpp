@@ -7,6 +7,10 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+
 #include <opencv2/core/version.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -15,12 +19,7 @@
 
 #define USE_KEYPOINT_FEATURES 0
 
-FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) 
-  : nh_(nh)
-  , priv_nh_("~")
-  , it_(nh)
-  , display_image_("")
-{ 
+FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) : nh_(nh), priv_nh_("~"), it_(nh), display_image_("") { 
 
   // Publisher & subscribers
   obj_sub_ = nh_.subscribe("/objects/raw", 1, &FeatureExtraction::processCb, this);
@@ -39,7 +38,14 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh)
 
   // Set scale scale factor for the number of bins used in the calcualtion of the color histogram
   this->_cf.setScaleFactor(0.5);
-
+  
+  // Read spatial thresholds (default values = no filtering)
+  this->priv_nh_.param<double>( "min_x", this->min_x_, 0.0);
+  this->priv_nh_.param<double>( "max_x", this->max_x_, -1.0);
+  this->priv_nh_.param<double>( "min_y", this->min_y_, 0.0);
+  this->priv_nh_.param<double>( "max_y", this->max_y_, -1.0);
+  this->priv_nh_.param<double>( "min_z", this->min_z_, 0.0);
+  this->priv_nh_.param<double>( "max_z", this->max_z_, -1.0);
 } 
 
 void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
@@ -52,10 +58,11 @@ void FeatureExtraction::triggerCb( const std_msgs::String::ConstPtr &msg) {
 }
 
 void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &objects_msg) {
+
   // Create a (editable) copy
   anchor_msgs::ObjectArray output;
   output.header = objects_msg->header;
-  output.objects = objects_msg->objects;
+  //output.objects = objects_msg->objects;
   output.image = objects_msg->image;
   output.info = objects_msg->info;
   output.transform = objects_msg->transform;
@@ -89,10 +96,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     result.convertTo( result, -1, 1.0, 50); 
   }
 
-  // Histogram equalization
-  //img = ColorFeatures::equalizeIntensity(img);
-  //std::cout << "This part works.. " << std::endl;
-
   #if USE_KEYPOINT_FEATURES == 1
   // Detect keypoints (for the entire image)
   cv::Mat gray, descriptor;
@@ -109,7 +112,66 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   std::vector< std::vector< cv::KeyPoint> > total_keypoints;
   std::vector<cv::Mat> total_descriptor;
   for (uint i = 0; i < objects_msg->objects.size(); i++) {
-  
+
+    // -------------------------
+    // Spatial attributes
+    // ------------------------
+
+    // Get the point cloud cluster (and convert to PCL)
+    sensor_msgs::PointCloud2 pc2_cluster;
+    tf2::doTransform(objects_msg->objects[i].spatial.cluster, pc2_cluster, objects_msg->transform);
+    pcl::PointCloud<spatial_3d::SimplePoint>::Ptr pcl_cluster_ptr (new pcl::PointCloud<spatial_3d::SimplePoint>);    
+    pcl::fromROSMsg (pc2_cluster, *pcl_cluster_ptr);
+
+
+    // 1. Extract the position attribute
+    geometry_msgs::PoseStamped pose;
+    pose.header.stamp = objects_msg->header.stamp;
+    spatial_3d::getOrientedPosition( pcl_cluster_ptr, pose.pose);
+
+    // Check if the object is within the "workspace"
+    if( !this->checkSpatialPosition(pose.pose) )
+      continue;
+    //ROS_WARN("Poistion: x=%2f, y=%.2f, z=%.2f", pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
+
+    // Great new object message (and adding cluster and position)
+    anchor_msgs::Object obj;
+    pcl::toROSMsg( *pcl_cluster_ptr, obj.spatial.cluster );
+    obj.position.data = pose;
+
+
+    // 2. Extract the size attribute
+    spatial_3d::getSize( pcl_cluster_ptr, obj.size.data );
+
+    // Ground size symbols
+    std::vector<double> data = { obj.size.data.x, obj.size.data.y, obj.size.data.z};
+    std::sort( data.begin(), data.end(), std::greater<double>());
+    if( data.front() <= 0.1 ) { // 0 - 15 [cm] = small
+      obj.size.symbols.push_back("small");
+    }
+    else if( data.front() <= 0.20 ) { // 16 - 30 [cm] = medium
+      obj.size.symbols.push_back("medium");
+    }
+    else {  // > 30 [cm] = large
+      obj.size.symbols.push_back("large");
+    }
+    if( data[0] < data[1] * 1.1 ) {
+      obj.size.symbols.push_back("square");
+    }
+    else {
+      obj.size.symbols.push_back("rectangle");
+      if( data[0] > data[1] * 1.5 ) {
+	obj.size.symbols.push_back("long");
+      }
+      else {
+	obj.size.symbols.push_back("short");
+      }
+    }
+    
+    // -------------------------
+    // Visual attributes
+    // ------------------------    
+    
     // Get the contour
     std::vector<cv::Point> contour;
     for( uint j = 0; j < objects_msg->objects[i].visual.border.contour.size(); j++) {
@@ -117,8 +179,27 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
       contour.push_back(p);
     }
 
-    // 1. Get keypoint features (from keypoints within the contour)
-    // ---------------------------
+    // Add the contour to the result message
+    obj.visual.border = objects_msg->objects[i].visual.border;
+
+    // Extrace sub-image (based on the bounding box of the contour)
+    cv::Rect rect = cv::boundingRect(contour); 
+    rect = rect + cv::Size( 50, 50);  // ...add padding
+    rect = rect - cv::Point( 25, 25);
+    rect &= cv::Rect( cv::Point(0.0), img.size()); // Saftey routine!
+
+    // Add sub-image to the object message
+    cv::Mat sub_img = img(rect);
+    sub_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
+    cv_ptr->encoding = "bgr8";
+    cv_ptr->toImageMsg(obj.visual.data);
+    
+    // Add top-left corner point to message point
+    obj.visual.point.x = rect.x;
+    obj.visual.point.y = rect.y;
+
+
+    // 3. Extract keypoint attributes (from keypoints within the contour)
     #if USE_KEYPOINT_FEATURES == 1
     ROS_WANR("Keypoint features used.");
     std::vector<int> idxs;
@@ -145,29 +226,9 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv_ptr->encoding = "mono8";
     cv_ptr->toImageMsg(output.objects[i].descriptor.data);      
     #endif
-    
-    // 2. Extrace sub-image (based on the bounding box)
-    // --------------------------- 
-    cv::Rect rect = cv::boundingRect(contour); 
-    rect = rect + cv::Size( 50, 50);  // ...add padding
-    rect = rect - cv::Point( 25, 25);
-    rect &= cv::Rect( cv::Point(0.0), img.size()); // Saftey routine!
-    if( rect.area() == 0.0 )
-      continue;
-    
-    cv::Mat sub_img = img(rect);
-    sub_img.copyTo(cv_ptr->image); // Skip masking to get full (sub-image) 
-    cv_ptr->encoding = "bgr8";
-    cv_ptr->toImageMsg(output.objects[i].visual.data);
-    
-    // Top-left corner point to message point
-    output.objects[i].visual.point.x = rect.x;
-    output.objects[i].visual.point.y = rect.y; 
-    
-    // 3. Extract color attribute
-    // --------------------------- 
 
-    // Draw the contour image mask 
+    
+    // 4. Extract color attribute
     cv::Mat mask( img.size(), CV_8U, cv::Scalar(0) );
     std::vector<std::vector<cv::Point> > contours;
     contours.push_back(contour);
@@ -188,13 +249,8 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     std::vector<float> preds;
     this->_cf.predict( hist, preds);
     cv::Mat preds_img( 1, preds.size(), CV_32FC1, &preds.front()); 
-    
-    /*
-    for( int i = 0; i < preds.size(); i++ )
-      std::cout << cf_.colorSymbol(i) << ": " << (preds[i] * 100.0) << "%" << std::endl;
-    std::cout << " ---- " << std::endl;
-    */
 
+    // Draw color histrograms (on display image)
     if( display_image_ == "grounding" ) {
 
       // Draw the contour (for display)
@@ -215,33 +271,23 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	p2.y = p1.y - (int)(preds[i] * 40.0);
 	cv::rectangle( result, p1, p2, this->_cf.getColorScalar(i), CV_FILLED);
 	p1.x += 6;
-      }  
+      }
+      //cv::putText( result, std::to_string(i+1), cv::Point2f(rect.x, rect.y), cv::FONT_HERSHEY_DUPLEX, 0.5, color, 2);
     }
 
     // Ground color symbols (and add the result to the output message)
     for( uint j = 0; j < preds.size(); j++) {
-      output.objects[i].color.symbols.push_back(this->_cf.getColorSymbol(j));
-      output.objects[i].color.predictions.push_back(preds[j]);
+      obj.color.symbols.push_back(this->_cf.getColorSymbol(j));
+      obj.color.predictions.push_back(preds[j]);
     }
 
     // Create the output "image"
     cv_ptr->image = preds_img;
     cv_ptr->encoding = "32FC1";
-    cv_ptr->toImageMsg(output.objects[i].color.data);
-    /*
-    // Normalize the histogram and add to output (skip masking to get full sub-image)
-    cv::Mat hist_reduced;
-    cf_.reduce( hist, hist_reduced);
-    cf_.normalize(hist_reduced);
-    std::vector<cv::Mat> channels;  // Split for handling of multi-channel images 
-    cv::split( hist_reduced, channels);
-    std::cout << "Number of channels: " << channels.size() << std::endl;
-    for( uint j = 0; i < channels.size(); j++) {
-      channels[j].copyTo(cv_ptr->image); 
-      cv_ptr->encoding = "32FC1";
-      output.objects[i].color.data.push_back(*cv_ptr->toImageMsg());
-    }
-    */
+    cv_ptr->toImageMsg(obj.color.data);
+
+    // Add the object to the result array
+    output.objects.push_back(obj);
   }
 
   // Publish the new object array
@@ -271,21 +317,25 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	}
       }
 
-#if CV_MAJOR_VERSION == 2 // opencv2 only
-
+      #if CV_MAJOR_VERSION == 2 // opencv2 only
       for (uint i = 0; i < total_keypoints.size(); i++) {
 	if( !total_keypoints[i].empty() )
 	  cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	  //cv::drawKeypoints( result, total_keypoints[i], result, cv::Scalar( 51, 92, 255), cv::DrawMatchesFlags::DEFAULT);
       }
-#endif
+      #endif
       
     }
     cv_ptr->image = result;
     cv_ptr->encoding = "bgr8";
     display_image_pub_.publish(cv_ptr->toImageMsg());
   }
-
+  
+  // Dispaly the result
+  if( !display_image_.empty() ) {   
+    cv::imshow("Extracted and grounded attributes..", result);
+    cv::waitKey(10);
+  }
   /*
   // Publish an image with bounding boxes
   cv::Mat resized;
@@ -294,6 +344,16 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
   cv_ptr->encoding = "bgr8";
   boxed_pub_.publish(cv_ptr->toImageMsg());
   */
+}
+
+// Helper function for filtering a point cloud (based on spatial thresholds)
+bool FeatureExtraction::checkSpatialPosition( const geometry_msgs::Pose &pos ) {
+  if( ( pos.position.x > this->min_x_ && pos.position.x < this->max_x_ ) &&
+      ( pos.position.y > this->min_y_ && pos.position.y < this->max_y_ ) &&
+      ( pos.position.z > this->min_z_ && pos.position.z < this->max_z_ ) ) {
+    return true;
+  }
+  return false;
 }
 
 
@@ -309,13 +369,13 @@ void FeatureExtraction::spin() {
 // Main function
 // -----------------------
 int main(int argc, char **argv) {
-#if CV_MAJOR_VERSION == 2
+  #if CV_MAJOR_VERSION == 2
   // do opencv 2 code
   std::cout << "Opencv 2" << std::endl;
-#elif CV_MAJOR_VERSION == 3
+  #elif CV_MAJOR_VERSION == 3
   // do opencv 3 code
   std::cout << "Opencv 3" << std::endl;
-#endif
+  #endif
   
   ros::init(argc, argv, "feature_extraction_node");
   ros::NodeHandle nh;

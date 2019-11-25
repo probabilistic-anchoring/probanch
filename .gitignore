@@ -1,6 +1,22 @@
+# Ipython/Python stuff
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+rospy
+
+# PyTorch checkpoints
+*.pth.tar
+*.pth
+
+# Caffe models
+*.caffemodel
+
+# Image/video files
 *.png
 *.jpg
 *.avi
+
+# ROS stuff
 *.bag
 bin/
 log/
@@ -8,7 +24,5 @@ data/
 img/
 *~
 CATKIN_IGNORE
-*.caffemodel
-rospy
 perceptual_pipeline/iai_kinect2/kinect2_bridge/data
-*.pyc
+

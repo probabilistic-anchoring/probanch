@@ -1,19 +1,16 @@
 <launch>
-  <arg name="show_window" default="false"/>
-  <!-- Object segmentation node (including the Kinect) -->
-  <include file="$(find object_segmentation)/launch/object_segmentation_tf_static.launch" />
 
-  <!-- Run object tracking node
-  <node name="object_tracking_node" pkg="object_tracking" type="object_tracking" output="screen">
-    <remap to="/kinect2/qhd/image_color_rect" from="/rgb_image"/>
-    <remap to="/kinect2/qhd/image_depth_rect" from="/depth_image"/>
-    <remap to="/kinect2/qhd/camera_info" from="/camera_info"/>
-    <remap to="/kinect2/qhd/points" from="/cloud"/>
-  </node>
-  -->
+  <!-- Global params -->
+  <arg name="show_window" default="true"/>
+
+
+  <!-- DSN + RRN Object segmentation node (including the Kinect) -->
+  <include file="$(find  dsn_rrn_segmentation )/launch/object_segmentation_tf_static.launch" />
+
 
   <!-- Feature extraction node -->
-  <node name="extraction_node" pkg="feature_extraction" type="extraction" output="screen" />
+  <include file="$(find feature_extraction)/launch/feature_extraction.launch" />
+
 
   <!-- Object classification (ROS Caffe framework wrapper) node -->
   <node name="object_classification_node" pkg="object_classification" type="object_classification" output="screen" >
@@ -24,26 +21,28 @@
   </node>
 
 
-  <!-- Anchoring framework -->
+  <!-- Anchoring framework -->  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
-    <param name="db_name" type="string" value="anchortmpdb3" />
-  </node>
+    <param name="db_name" type="string" value="anchortmpdb4" />
+</node>
 
 
   <!-- Reasoning system -->
   <!-- include file="$(find reasoning)/launch/reasoning.launch" / -->
 
-  <!-- Display anchors -->
+
+  <!-- Display anchors --> 
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="both" />
-    <param name="display_window" type="bool" value="true" />
+    <param name="display_window" type="bool" value="$(arg show_window)" />
   </node>
+  
 
-
-  <!-- Include the display interface (including the websocket bridge) -->
+  <!-- Include the display interface (including the websocket bridge) 
   <include file="$(find display)/launch/web_interface.launch" />
+  -->
 
 </launch>

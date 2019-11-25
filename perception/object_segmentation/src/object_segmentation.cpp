@@ -12,6 +12,12 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <sensor_msgs/image_encodings.h>
+#include <geometry_msgs/TransformStamped.h>
+
+#include <tf2/convert.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 #include <std_msgs/String.h>
 #include <anchor_msgs/ObjectArray.h>
@@ -30,9 +36,10 @@
 // -------------------------
 ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox) 
   : nh_(nh)
-  , useApprox_(useApprox)
   , it_(nh)
   , priv_nh_("~")
+  , tf2_listener_(buffer_)
+  , useApprox_(useApprox)
   , queueSize_(5)
   , display_image_(false) {
 
@@ -65,8 +72,7 @@ ObjectSegmentation::ObjectSegmentation(ros::NodeHandle nh, bool useApprox)
     syncExact_->registerCallback( boost::bind( &ObjectSegmentation::segmentationCb, this, _1, _2, _3));
   }
 
-  // Create transformation listener
-  tf_listener_ = new tf::TransformListener();
+  // Read the base frame
   priv_nh_.param( "base_frame", base_frame_, std::string("base_link"));
 
   // Read segmentation parameters
@@ -121,7 +127,7 @@ ObjectSegmentation::~ObjectSegmentation() {
   delete image_sub_;
   delete camera_info_sub_;
   delete cloud_sub_;
-  delete tf_listener_;
+  //delete tf_listener_;
 }
 
 void ObjectSegmentation::spin() {
@@ -158,31 +164,41 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 					 const sensor_msgs::CameraInfo::ConstPtr camera_info_msg, 
 					 const sensor_msgs::PointCloud2::ConstPtr cloud_msg) {
   
-  // Get the transformation
-  tf::StampedTransform transform;
+  // Get the transformation (as geoemtry message)
+  geometry_msgs::TransformStamped tf_forward, tf_inverse;
   try{
-    tf_listener_->waitForTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.01) ); 
-    tf_listener_->lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp, transform );
+    tf_forward = this->buffer_.lookupTransform( base_frame_, cloud_msg->header.frame_id, cloud_msg->header.stamp);
+    tf_inverse = this->buffer_.lookupTransform( cloud_msg->header.frame_id, base_frame_, cloud_msg->header.stamp);
   }
-  catch( tf::TransformException ex) {
+  catch (tf2::TransformException &ex) {
     ROS_WARN("[ObjectSegmentation::callback] %s" , ex.what());
     return;
   }
+
+  // Get the transformation (as tf/tf2)
+  //tf2::Stamped<tf2::Transform> transform2;
+  //tf2::fromMsg(tf_forward, transform2);
+  //tf::Vector3d 
+  tf::Transform transform = tf::Transform(transform2.getOrigin(), transform2.getRotation());
   
+  
+  //tf::Transform transfrom = tf::Transform(tf_forward.transfrom);
+    
   // Read the cloud
   pcl::PointCloud<segmentation::Point>::Ptr raw_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
   pcl::fromROSMsg (*cloud_msg, *raw_cloud_ptr);
-
   
   // Transform the cloud to the world frame
   pcl::PointCloud<segmentation::Point>::Ptr transformed_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
-  pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);       
+  //pcl_ros::transformPointCloud( *raw_cloud_ptr, *transformed_cloud_ptr, transform);
+  pcl_ros::transformPointCloud(tf2::transformToEigen(tf_forward.transform).matrix(), *raw_cloud_ptr, *transformed_cloud_ptr);
 
   // Filter the transformed point cloud 
   this->filter (transformed_cloud_ptr);
   // ----------------------
   pcl::PointCloud<segmentation::Point>::Ptr original_cloud_ptr (new pcl::PointCloud<segmentation::Point>);
-  pcl_ros::transformPointCloud( *transformed_cloud_ptr, *original_cloud_ptr, transform.inverse());       
+  //pcl_ros::transformPointCloud( *transformed_cloud_ptr, *original_cloud_ptr, transform.inverse());
+  pcl_ros::transformPointCloud(tf2::transformToEigen(tf_inverse.transform).matrix(), *raw_cloud_ptr, *transformed_cloud_ptr);
   
   // Read the RGB image
   cv::Mat img;
@@ -255,7 +271,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
       uint idx = 0;
       pcl::PointIndices point_idx;
       BOOST_FOREACH  ( const segmentation::Point pt, downsampled_cloud_ptr->points ) {
-	tf::Vector3 trans_pt( pt.x, pt.y, pt.z);
+	tf2::Vector3 trans_pt( pt.x, pt.y, pt.z);
+	//tf2::doTransform( trans_pt, trans_pt, tf_forward);
 	trans_pt = transform * trans_pt;  
 	if( ( trans_pt.x() > this->min_x_ && trans_pt.x() < this->max_x_ ) &&
 	    ( trans_pt.y() > this->min_y_ && trans_pt.y() < this->max_y_ ) &&
@@ -338,7 +355,9 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     objects.header = cloud_msg->header;
     objects.image = *image_msg;
     objects.info = *camera_info_msg;
+    objects.transform = tf_forward;
 
+    /*
     // Store the inverse transformation
     tf::Quaternion tf_quat = transform.inverse().getRotation();
     objects.transform.rotation.x = tf_quat.x();
@@ -350,7 +369,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
     objects.transform.translation.x = tf_vec.getX();
     objects.transform.translation.y = tf_vec.getY();
     objects.transform.translation.z = tf_vec.getZ();
- 
+    */
+      
     // Process the segmented clusters
     int sz = 5;
     cv::Mat kernel = cv::getStructuringElement( cv::BORDER_CONSTANT, cv::Size( sz, sz), cv::Point(-1,-1) );
@@ -388,8 +408,8 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours( cluster_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-
-		// Get the contour of the convex hull
+	
+	// Get the contour of the convex hull
 	std::vector<cv::Point> contour = getLargetsContour( contours );
 	
 	// Create and add the object output message
@@ -419,7 +439,9 @@ void ObjectSegmentation::segmentationCb( const sensor_msgs::Image::ConstPtr imag
 	  cv::drawContours( this->result_img_, contours, -1, color, 1);
 	    
 	  // Transfrom the the cloud once again
-	  pcl_ros::transformPointCloud( *cluster_ptr, *cluster_ptr, transform);
+	  //tf2::doTransform( *cluster_ptr, *cluster_ptr, tf_forward);
+	  //pcl_ros::transformPointCloud( *cluster_ptr, *cluster_ptr, transform);
+	  pcl_ros::transformPointCloud(tf2::transformToEigen(tf_forward.transform).matrix(), *cluster_ptr, *cluster_ptr);
 	  
 	  // 1. Extract the position
 	  geometry_msgs::PoseStamped pose;

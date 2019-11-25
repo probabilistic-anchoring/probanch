@@ -17,7 +17,9 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
 
-#include <tf/transform_listener.h>
+//#include <tf/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
@@ -43,7 +45,9 @@ class ObjectSegmentation {
   image_transport::ImageTransport it_;
 
   // Tf transform listener 
-  tf::TransformListener *tf_listener_;
+  //tf::TransformListener *tf_listener_;
+  tf2_ros::Buffer buffer_;
+  tf2_ros::TransformListener tf2_listener_;
   std::string base_frame_;
 
   // Spatial thresholds

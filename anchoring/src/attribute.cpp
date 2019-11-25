@@ -210,19 +210,11 @@ namespace anchoring {
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
     
-    // Summarize the predictions...
-    if( this->_predictions.size() == raw_ptr->_predictions.size() ) {
-      for( uint i = 0; i < this->_predictions.size(); i++ ) {
-	this->_predictions[i] += raw_ptr->_predictions[i];
-      }
-    }
-    else {  // ...or update prediction/symbol based on a top down information (from language).
-      for( uint i = 0; i < this->_symbols.size(); i++ ) {
-	for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
-	  if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
-	    this->_predictions[i] = raw_ptr->_predictions[j] * this->_n;
-	    std::cout << this->_symbols[i] << " -- " << this->_predictions[i] / this->_n << std::endl;
-	  }
+    // Summarize the predictions
+    for( uint i = 0; i < this->_symbols.size(); i++ ) {
+      for( uint j = 0; j < raw_ptr->_symbols.size(); j++ ) {
+	if( this->_symbols[i] == raw_ptr->_symbols[j] ) {
+	  this->_predictions[i] += raw_ptr->_predictions[j];
 	}
       }
     }
@@ -363,7 +355,7 @@ namespace anchoring {
     // Increment the counter
     this->_n = this->_n + raw_ptr->_n;
 
-    // Summarize the predisctions
+    // Summarize the predictions
     for( uint i = 0; i < this->_predictions.size(); i++ ) {
       this->_predictions[i] += raw_ptr->_predictions[i];
     }

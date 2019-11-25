@@ -42,7 +42,10 @@
   <build_depend>rostime</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
-  
+  <build_depend>tf2</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>tf2_geometry_msgs</build_depend>
+
   <run_depend>anchor_msgs</run_depend>
   <run_depend>console</run_depend>
   <run_depend>cv_bridge</run_depend>
@@ -61,7 +64,10 @@
   <run_depend>rostime</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
-  
+  <run_depend>tf2</run_depend>
+  <run_depend>tf2_ros</run_depend>
+  <run_depend>tf2_geometry_msgs</run_depend>
+    
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>

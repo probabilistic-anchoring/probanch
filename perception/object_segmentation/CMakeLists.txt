@@ -22,7 +22,10 @@ find_package( catkin REQUIRED COMPONENTS
   rospy
   rostime
   sensor_msgs
-  std_msgs 
+  std_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -47,7 +50,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES segmentation
-  CATKIN_DEPENDS  anchor_msgs console roscpp rospy hand_tracking rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros
+  CATKIN_DEPENDS  anchor_msgs console roscpp rospy hand_tracking rostime std_msgs geometry_msgs sensor_msgs message_filters cv_bridge image_geometry image_transport pcl_conversions pcl_ros tf2 tf2_ros
 #  DEPENDS system_lib
 )
 

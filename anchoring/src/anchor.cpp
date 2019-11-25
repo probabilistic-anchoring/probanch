@@ -142,12 +142,18 @@ namespace anchoring {
         doc.append( "attributes", subdoc);
       }
 
+      /*
       // Add all percepts
       for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
 	mongo::Database::Document subdoc = it->second->serialize();
         subdoc.add<std::string>( "type", it->second->getTypeStr());
         doc.append( "percepts", subdoc);
       }
+      */
+      auto it = this->_percepts.find(VISUAL);
+      mongo::Database::Document subdoc = it->second->serialize();
+      subdoc.add<std::string>( "type", it->second->getTypeStr());
+      doc.append( "percepts", subdoc);
 
       // Commit all changes to database
       db.insert(doc);
@@ -204,7 +210,9 @@ namespace anchoring {
 	if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
 	  auto it = this->_attributes.find(CATEGORY);
 	  std::string symbol = it->second->toString();
+	  ROS_WARN("Category is '%s' is x is '%s'", symbol.c_str(), this->_x.c_str());
 	  if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	    
 	    bool found = false;
 	    for( auto x : this->_history ) {
 	      if( x.compare( 0, symbol.size(), symbol) == 0 ) {
@@ -236,11 +244,18 @@ namespace anchoring {
 
 	// Update all percepts
 	docs.clear();
+	/*
 	for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
 	  mongo::Database::Document subdoc = it->second->serialize();
 	  subdoc.add<std::string>( "type", it->second->getTypeStr());
 	  docs.push_back(subdoc);	
 	}
+	*/
+	auto it = this->_percepts.find(VISUAL);
+	mongo::Database::Document subdoc = it->second->serialize();
+	subdoc.add<std::string>( "type", it->second->getTypeStr());
+	docs.push_back(subdoc);
+	
 	db.update<mongo::Database::Document>( this->_id, "percepts", docs);
 	
       }

@@ -17,7 +17,6 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Vector3.h>
 
-
 namespace spatial_3d {
 
   // ---[ Used namespaces ]---
@@ -30,17 +29,17 @@ namespace spatial_3d {
   // -------------------
   // Namespace functions
   // -------------------
-  void passThroughFilter( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
-			  pcl::PointCloud<Point>::Ptr &filtered_ptr,
-			  const string axis,
-			  double min,
-			  double max,
-			  bool keep_organized = true );
-  void getPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+  void passThroughFilter( const pcl::PointCloud<SimplePoint>::Ptr &cloud_ptr,
+				       pcl::PointCloud<SimplePoint>::Ptr &filtered_ptr,
+				       const string axis,
+				       double min,
+				       double max,
+				       bool keep_organized = true );
+  void getPosition( const pcl::PointCloud<SimplePoint>::Ptr &cloud_ptr,
 		    geometry_msgs::Pose &pos );
-  void getOrientedPosition( const pcl::PointCloud<Point>::Ptr &cloud_ptr,
+  void getOrientedPosition( const pcl::PointCloud<SimplePoint>::Ptr &cloud_ptr,
 			    geometry_msgs::Pose &pos );
-  void getSize( const pcl::PointCloud<Point>::Ptr &projected_cloud_ptr,
+  void getSize( const pcl::PointCloud<SimplePoint>::Ptr &projected_cloud_ptr,
 		geometry_msgs::Vector3 &size );
   
 } // namespace 'spatial_3d'

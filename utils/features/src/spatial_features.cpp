@@ -21,14 +21,14 @@ using namespace std;
 namespace spatial_3d {
 
   // Filter the a point cloud based on a pass through filter
-  void passThroughFilter( const PointCloud<Point>::Ptr &cloud_ptr,
-			  PointCloud<Point>::Ptr &filtered_ptr,
+  void passThroughFilter( const PointCloud<SimplePoint>::Ptr &cloud_ptr,
+			  PointCloud<SimplePoint>::Ptr &filtered_ptr,
 			  const string axis,
 			  double min,
 			  double max,
 			  bool keep_organized ) {
-    PointCloud<Point>::Ptr result_ptr (new PointCloud<Point>);
-    PassThrough<Point> pass_;
+    PointCloud<SimplePoint>::Ptr result_ptr (new PointCloud<SimplePoint>);
+    PassThrough<SimplePoint> pass_;
     pass_.setInputCloud (cloud_ptr);
     pass_.setFilterFieldName (axis);
     pass_.setFilterLimits ( min, max);
@@ -38,7 +38,7 @@ namespace spatial_3d {
   }
 
   // Get the 3d postion (only)
-  void getPosition( const PointCloud<Point>::Ptr &cloud_ptr,
+  void getPosition( const PointCloud<SimplePoint>::Ptr &cloud_ptr,
 		    geometry_msgs::Pose &pos ) {
     Eigen::Vector4f centroid;
     compute3DCentroid (*cloud_ptr, centroid);
@@ -54,9 +54,9 @@ namespace spatial_3d {
   }
 
   // Get 3d postion and orientation
-  void getOrientedPosition( const PointCloud<Point>::Ptr &cloud_ptr,
+  void getOrientedPosition( const PointCloud<SimplePoint>::Ptr &cloud_ptr,
 			    geometry_msgs::Pose &pos ) {
-    PCA<Point> pca;
+    PCA<SimplePoint> pca;
     pca.setInputCloud(cloud_ptr);
 
     // Calculate the position and the orientation
@@ -74,11 +74,11 @@ namespace spatial_3d {
   }
 
   // Get the 3d size (minimal bounding box around a segmented point cloud)
-  void getSize( const PointCloud<Point>::Ptr &cloud_ptr,
+  void getSize( const PointCloud<SimplePoint>::Ptr &cloud_ptr,
 		geometry_msgs::Vector3 &size ) {
     // Get the 3d bounding box
-    Point proj_min;
-    Point proj_max;
+    SimplePoint proj_min;
+    SimplePoint proj_max;
     getMinMax3D (*cloud_ptr, proj_min, proj_max);
 
     double width = fabs(proj_max.x - proj_min.x);

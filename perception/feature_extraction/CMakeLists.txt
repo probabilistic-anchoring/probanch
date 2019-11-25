@@ -20,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   features
   image_transport
   roscpp
+  tf2
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -44,7 +46,7 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES feature_extraction
-  CATKIN_DEPENDS anchor_msgs cv_bridge features image_transport roscpp
+  CATKIN_DEPENDS anchor_msgs cv_bridge features image_transport roscpp tf2 tf2_ros
   DEPENDS OpenCV
 )
 
