@@ -2,9 +2,12 @@
 import os
 import sys
 
+import numpy as np
+import pickle
 
 import rospy
 import rospkg
+
 from pydc import DDC
 
 from anchor_msgs.msg import AnchorArray
@@ -14,19 +17,28 @@ from anchor_msgs.msg import PositionAttribute
 
 
 
+class State(object):
+    def __init__(self, time, run):
+        self.time = time
+        self.run = run
+        self.anchors = {}
+        self.flag_to_hand = False
+
+    def __repr__(self):
+        return "State(run: {}, time: {}, anchors: {})".format(self.run, self.time, self.anchors.keys())
+
 class AnchorInfo(object):
-    def __init__(self, coordinates, is_hand, hidden, observed, in_hand, time):
-        self.coordinates = coordinates
+    def __init__(self, mean_std, is_hand, observed, in_hand):
+        self.mean_std = mean_std
         self.is_hand = is_hand
-        self.hidden = hidden
         self.observed = observed
         self.in_hand = in_hand
-        self.time = time
 
 
 class CollectDataInHand():
 
     def __init__(self, model_file, n_samples, run):
+        self.flag_process_data = True
         self.run = run
         self.previous = {}
         self.current = {}
@@ -42,7 +54,8 @@ class CollectDataInHand():
 
         la_array = self.make_LogicAnchorArray(msg.anchors)
         self.collect_data(msg.anchors)
-        self.process_data()
+        if self.flag_process_data:
+            self.process_data()
         self.logic_anchors_publisher.publish(la_array)
 
 
@@ -165,144 +178,83 @@ class CollectDataInHand():
 
 
     def collect_data(self, anchors_observed):
+        time_step = self.ddc.querylist("T", "(current(time(T)))")
+        time_step = int(time_step.keys()[0])
+
         anchor_ids = self.ddc.querylist("A_ID", "(current(anchor(A_ID)))")
         anchor_ids = anchor_ids.keys()
 
-        time = self.ddc.querylist("T", "(current(time(T)))")
-        particle_time = []
-        for t in time.keys():
-            particle_time.append(t)
 
+
+        self.current = State(time_step, self.run)
+        flag_to_hand = False
         for a_id in anchor_ids:
-            anchor_key = "{}_{}_{}".format(a_id, time, self.run)
+            position_mean_std = self.collect_position(a_id)
+            is_hand = self.collect_is_hand(a_id)
+            observed = self.collect_observed(a_id)
+            in_hand = self.collect_in_hand(a_id)
+            if in_hand:
+                flag_to_hand = True
 
-            particle_coordinates = self.ddc.querylist("(X,VX,Y,VY,Z,VZ)", "(current(rv('{A_ID}'))~=(X,VX,Y,VY,Z,VZ))".format(A_ID=a_id))
-            particle_coordinates = particle_coordinates.keys()
-
-            is_hand = self.ddc.querylist("(B,RN)", "(current(data_is_hand('{A_ID}'))~=(B,RN))".format(A_ID=a_id))
-            particle_is_hand = []
-            print(len(is_hand))
-            for h in is_hand.keys():
-                ph = int(h.split(",")[0])
-                particle_is_hand.append(ph)
-
-            observed = self.ddc.querylist("(B,RN)", "(current(data_observed('{A_ID}'))~=(B,RN))".format(A_ID=a_id))
-            particle_observed = []
-            for h in observed.keys():
-                ph = int(h.split(",")[0])
-                particle_observed.append(ph)
-
-
-            hidden = self.ddc.querylist("(B,RN)", "(current(data_hidden('{A_ID}'))~=(B,RN))".format(A_ID=a_id))
-            # print(hidden)
-            particle_hidden = []
-            # for h in hidden.keys():
-            #     ph = int(h.split(",")[0])
-            #     particle_hidden.append(ph)
-
-
-            in_hand = self.ddc.querylist("(B,A_ID_Hider,RN)", "(current(data_in_hand('{A_ID}'))~=(B,A_ID_Hider,RN))".format(A_ID=a_id))
+            # print(observed)
             # print(in_hand)
-            particle_in_hand = []
-            # for h in in_hand.keys():
-            #     ph = h.split(",")[0].strip("'")
-            #     if ph.isdigit():
-            #         ph = int(ph)
-            #     else:
-            #         ph = "a"+ph
-            #     particle_in_hand.append(ph)
+            self.current.anchors[a_id] = AnchorInfo(position_mean_std, is_hand, observed, in_hand)
+        self.current.flag_to_hand = flag_to_hand
 
+    def collect_position(self, a_id):
+        particle_coordinates = self.ddc.querylist("(X,VX,Y,VY,Z,VZ)", "(current(rv('{A_ID}'))~=(X,VX,Y,VY,Z,VZ))".format(A_ID=a_id))
+        particle_coordinates = particle_coordinates.keys()
+        x_pos = []
+        y_pos = []
+        z_pos = []
+        for rv in particle_coordinates:
+            rv = rv.strip("'").split(",")
+            x_pos.append(float(rv[0]))
+            y_pos.append(float(rv[2]))
+            z_pos.append(float(rv[4]))
+        x_pos = np.array(x_pos)
+        y_pos = np.array(y_pos)
+        z_pos = np.array(z_pos)
 
+        x_mean = x_pos.mean()
+        y_mean = y_pos.mean()
+        z_mean = z_pos.mean()
 
+        x_std = x_pos.std()
+        y_std = y_pos.std()
+        z_std = z_pos.std()
+        return ((x_mean, x_std), (y_mean, y_std), (z_mean, z_std))
 
-            self.current[a_id] = AnchorInfo(particle_coordinates, particle_is_hand, particle_hidden, particle_observed, particle_in_hand, particle_time)
+    def collect_is_hand(self, a_id):
+        is_hand = self.ddc.query("(current(is_hand('{A_ID}')))".format(A_ID=a_id))
+        return is_hand
 
+    def collect_observed(self, a_id):
+        observed = self.ddc.query("(current(observed('{A_ID}')))".format(A_ID=a_id))
+        return observed
+
+    def collect_in_hand(self, a_id):
+        in_hand = self.ddc.querylist("A_Hand", "(current(in_hand('{A_ID}',A_Hand)))".format(A_ID=a_id))
+        if not in_hand.keys():
+            return None
+        else:
+            hand_id = in_hand.keys()[0]
+            return hand_id
 
     def process_data(self):
-        with open("dc_data_run{}.pl".format(self.run), "a+") as dc_data_file:
-            with open("pl_data_run{}.pl".format(self.run), "a+") as pl_data_file:
-                for a_id in self.current:
-                    for i in range(0,len(self.current[a_id].time)):
-                        formatted_anchor_id = "a{ID}_{Time}_{Particle}_{Run}".format(ID=a_id,Time=self.current[a_id].time,Particle=i,Run=self.run)
-
-                        dc_data_file.write("anchor_t1({}):=true.".format(formatted_anchor_id))
-                        dc_data_file.write("\n")
-                        pl_data_file.write("anchor_t1({}).".format(formatted_anchor_id))
-                        pl_data_file.write("\n")
-
-                        if self.current[a_id].is_hand[i]:
-                            dc_data_file.write("is_hand_t1({}):=true.".format(formatted_anchor_id))
-                            dc_data_file.write("\n")
-                            pl_data_file.write("is_hand_t1({}).".format(formatted_anchor_id))
-                            pl_data_file.write("\n")
-
-                        if self.current[a_id].observed[i]:
-                            dc_data_file.write("observed_t1({}):=true.".format(formatted_anchor_id))
-                            dc_data_file.write("\n")
-                            pl_data_file.write("observed_t1({}).".format(formatted_anchor_id))
-                            pl_data_file.write("\n")
-
-                        # if self.current[a_id].hidden[i]:
-                        #     dc_data_file.write("is_hidden_t1({}):=true.".format(formatted_anchor_id))
-                        #     dc_data_file.write("\n")
-                        #     pl_data_file.write("is_hidden_t1({}).".format(formatted_anchor_id))
-                        #     pl_data_file.write("\n")
-
-                        # if self.current[a_id].in_hand[i]:
-                        #     hider_a_id = self.current[a_id].in_hand[i]
-                        #     formatted_anchor_id_hider = "a{ID}_{Time}_{Particle}_{Run}".format(ID=hider_a_id,Time=self.current[a_id].time,Particle=i,Run=self.run)
-                        #     dc_data_file.write("in_hand_t1({},{}):=true.".format(formatted_anchor_id, formatted_anchor_id_hider))
-                        #     dc_data_file.write("\n")
-                        #     pl_data_file.write("in_hand_t1({}).".format(formatted_anchor_id, formatted_anchor_id_hider))
-                        #     pl_data_file.write("\n")
-
-                        # dc_data_file.write("rv_t1(a{ID}_{Time}_{Particle}_{Run})~.".format(ID=a_id,Time=self.current[a_id].coordinates,Particle=i,Run=self.run))
-                        # dc_data_file.write("\n")
-
-                        if a_id in self.previous:
-                            dc_data_file.write("anchor_t0({}):=true.".format(formatted_anchor_id))
-                            dc_data_file.write("\n")
-                            pl_data_file.write("anchor_t0({}).".format(formatted_anchor_id))
-                            pl_data_file.write("\n")
-
-
-                            if self.previous[a_id].is_hand[i]:
-                                dc_data_file.write("is_hand_t0({}):=true.".format(formatted_anchor_id))
-                                dc_data_file.write("\n")
-                                pl_data_file.write("is_hand_t0({}).".format(formatted_anchor_id))
-                                pl_data_file.write("\n")
-
-                            if self.previous[a_id].observed[i]:
-                                dc_data_file.write("observed_t0({}):=true.".format(formatted_anchor_id))
-                                dc_data_file.write("\n")
-                                pl_data_file.write("observed_t0({}).".format(formatted_anchor_id))
-                                pl_data_file.write("\n")
-
-                            # if self.previous[a_id].hidden[i]:
-                            #     dc_data_file.write("is_hidden_t0({}):=true.".format(formatted_anchor_id))
-                            #     dc_data_file.write("\n")
-                            #     pl_data_file.write("is_hidden_t0({}).".format(formatted_anchor_id))
-                            #     pl_data_file.write("\n")
-
-                            # if self.previous[a_id].in_hand[i]:
-                            #     hider_a_id = self.previous[a_id].in_hand[i]
-                            #     formatted_anchor_id_hider = "a{ID}_{Time}_{Particle}_{Run}".format(ID=hider_a_id,Time=self.current[a_id].time,Particle=i,Run=self.run)
-                            #     dc_data_file.write("in_hand_t0({},{}):=true.".format(formatted_anchor_id, formatted_anchor_id_hider))
-                            #     dc_data_file.write("\n")
-                            #     pl_data_file.write("in_hand_t0({}).".format(formatted_anchor_id, formatted_anchor_id_hider))
-                            #     pl_data_file.write("\n")
+        if self.previous:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            data_dir = os.path.join(dir_path, "learn_in_hand_data")
+            data_file = os.path.join(data_dir, "run{}_time{}.pickle".format(self.current.run, self.current.time))
+            data = {"current": self.current, "previous": self.previous}
 
 
 
-                    dc_data_file.write("\n")
-                    pl_data_file.write("\n")
+            if self.current.time>0:
+                with open(data_file, 'wb') as handle:
+                    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
-                dc_data_file.write("%%%%%%%%%%%%%%%%%%%%%")
-                dc_data_file.write("\n")
-
-                pl_data_file.write("%%%%%%%%%%%%%%%%%%%%%")
-                pl_data_file.write("\n")
-
+            if self.current.flag_to_hand:
+                self.flag_process_data = False
 
         self.previous = self.current

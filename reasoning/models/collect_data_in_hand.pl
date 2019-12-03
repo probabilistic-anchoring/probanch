@@ -30,29 +30,11 @@ cov(1,[Cov,0,0,0.000001],VarQ) :-
 	Cov is VarQ*DeltaT^2.
 
 
-
-% time(0):t+1 <- \+time(_):t.
-% time(T1):t+1 <- time(T0):t, T1 is T0+1.
-
-
-% random_number(A_ID,Predicate):t+1 ~ gaussian(0.0,1.0).
-
-% data_is_hand(A_ID):t+1 ~ val((1,RN)) <- is_hand(A_ID):t+1, random_number(A_ID,is_hand_stamp):t+1~=RN.
-% data_is_hand(A_ID):t+1 ~ val((0,RN)) <- anchor(A_ID):t+1, random_number(A_ID,is_hand):t+1~=RN.
-%
-% data_observed(A_ID):t+1 ~ val((1,RN)) <- observed(A_ID):t+1, random_number(A_ID,observed_stamp):t+1~=RN.
-% data_observed(A_ID):t+1 ~ val((0,RN)) <- anchor(A_ID):t+1, random_number(A_ID,observed_stamp):t+1~=RN.
-
-% data_hidden(A_ID):t+1 ~ val((0,RN)) <- observed(A_ID):t+1, \+hidden(A_ID,_):t+1, random_number(A_ID,hidden_stamp):t+1~=RN.
-% data_hidden(A_ID):t+1 ~ val((1,RN)) <- hidden(A_ID,_):t+1, random_number(A_ID,hidden_stamp):t+1~=RN.
-
-
-%
-% data_in_hand(A_ID):t+1 ~ val((A_ID_Hider,RN)) <- anchor(A_ID_Hider):t, in_hand(A_ID,A_ID_Hider):t+1, random_number(A_ID,in_hand_stamp):t+1~=RN.
-% data_in_hand(A_ID):t+1 ~ val((0,RN)) <- anchor(A_ID):t+1, random_number(A_ID,in_hand_stamp):t+1~=RN.
-
-% data_in_hand(A_ID):t+1 ~ val((0,0,RN)) <- observed(A_ID):t+1, random_number(A_ID,in_hand_stamp):t+1~=RN, writeln(111).
-% data_in_hand(A_ID):t+1 ~ val((1,A_ID_Hider,RN)) <- in_hand(A_ID,A_ID_Hider):t+1, random_number(A_ID,in_hand_stamp):t+1~=RN.
+time(0):t+1<-
+	\+time(_):t.
+time(T1):t+1<-
+	time(T0):t,
+	T1 is T0+1.
 
 
 
@@ -99,7 +81,6 @@ pick_hand(A_ID):t+1 ~ uniform(Hands) <-
 
 
 
-
 % observation position
 observation(anchor_r(A_ID)):t+1 ~ val(_) <-
 	anchor(A_ID):t+1,
@@ -110,7 +91,7 @@ observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 	rvProposal(_,A_ID):t+1 ~= [_|W].
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
    anchor(_):t,
-   color(A_ID):t ~=C,
+   % color(A_ID):t ~=C,
 	writeln('fuck leak'),
 	true.
 
@@ -139,14 +120,14 @@ rv(A_ID):t+1 ~  indepGaussians([ ([X,0],Cov), ([Y,0],Cov), ([Z,0],Cov) ]) <-
 	cov(1,Cov,VarQ1).
 rv(A_ID):t+1 ~ val(V) <-
 	anchor(A_ID):t,
-	observation(anchor_r(A_ID))~=_,
+   observation(anchor_r(A_ID))~=_,
 	anchor(A_ID):t+1,
 	rvProposal('observed',A_ID):t+1 ~= [V|_].
 
 rv(A_ID):t+1 ~ val(V) <-
-  anchor(A_ID):t,
-  anchor(A_ID):t+1,
-  in_hand(A_ID,A_ID_Hand):t+1,
+   anchor(A_ID):t,
+   anchor(A_ID):t+1,
+   in_hand(A_ID,A_ID_Hand):t+1,
 	rvProposal('in_hand',A_ID_Hand):t+1 ~= [V|_].
 
 

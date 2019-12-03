@@ -304,7 +304,7 @@ class AnchorViewer {
     roi.width = 360;
     roi.height = 270;
     //cv::Mat crop = result_img(roi);
-    cv::rectangle( result_img, roi, color, 1);
+    //cv::rectangle( result_img, roi, color, 1);
     
     /*
     // TMP

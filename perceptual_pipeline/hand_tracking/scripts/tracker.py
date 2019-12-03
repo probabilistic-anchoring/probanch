@@ -25,12 +25,20 @@ from anchor_msgs.msg import Contour
 # g_v_min = 180
 # g_v_max = 255
 
-"leuven"
-g_h_min = 14
+# "leuven"
+# g_h_min = 14
+# g_h_max = 32
+# g_s_min = 103
+# g_s_max = 255
+# g_v_min = 133
+# g_v_max = 255
+
+"leuven daylight"
+g_h_min = 23
 g_h_max = 32
-g_s_min = 103
-g_s_max = 255
-g_v_min = 133
+g_s_min = 70
+g_s_max = 235
+g_v_min = 94
 g_v_max = 255
 
 

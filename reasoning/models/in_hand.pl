@@ -86,7 +86,10 @@ observation(anchor_r(A_ID)):t+1 ~ logfinite([W:_]) <-
 	rvProposal(_,A_ID):t+1 ~= [_|W].
 observation(anchor_r(A_ID)):t+1 ~ val(_) <- %not good
    anchor(_):t,
-   color(A_ID):t ~=C,
+   % color(A_ID):t ~= C,
+	 % caffe(A_ID):t+1 ~= CF,
+	 % writeln(CF),
+	 % writeln(C),
 	writeln('fuck leak'),
 	true.
 

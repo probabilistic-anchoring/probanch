@@ -52,5 +52,10 @@ if __name__ == "__main__":
         from class_collect_data_in_hand import CollectDataInHand
         model_file = os.path.join(path, 'models/collect_data_in_hand.pl')
         rel_track = CollectDataInHand(model_file, N_SAMPLES, RUN)
+    elif args['mode']=="learned_in_hand":
+        RUN = args['run']
+        from class_learned_in_hand import LearnedInHand
+        model_file = os.path.join(path, 'models/learned_in_hand.pl')
+        rel_track = LearnedInHand(model_file, N_SAMPLES)
 
     rospy.spin()

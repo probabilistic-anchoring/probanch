@@ -48,6 +48,7 @@ class InHand():
                 obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
                 obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
                 obs.append("observation(anchor_caffe('{A_ID}'))~={Caffe}".format(A_ID=a.id, Caffe=caffe))
+                print(caffe, a.id)
                 if self.is_hand(a):
                     obs.append("observation(anchor_hand('{A_ID}'))~=true".format(A_ID=a.id))
 
@@ -124,7 +125,6 @@ class InHand():
                 #
                 # hidden = self.ddc.query("current(hidden('{A_ID}',_))".format(A_ID=la.id))
 
-        print(len(la_array.anchors))
         return la_array
 
 
@@ -136,6 +136,10 @@ class InHand():
         elif "skin" in anchor.caffe.symbols[0:2]:
             return False
         elif "squash" in anchor.caffe.symbols[0:2]:
+            return False
+        elif "cucumber" in anchor.caffe.symbols[0:2]:
+            return False
+        elif "keyboard" in anchor.caffe.symbols[0:1]:
             return False
         elif not anchor.caffe.symbols:
             return False
