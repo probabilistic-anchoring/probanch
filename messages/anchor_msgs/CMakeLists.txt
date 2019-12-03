@@ -21,6 +21,7 @@ add_message_files(
    CategoryAttribute.msg
    ColorAttribute.msg
    Contour.msg
+   ClusterArray.msg
    DescriptorAttribute.msg
    Display.msg
    DisplayArray.msg
