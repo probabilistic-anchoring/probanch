@@ -54,8 +54,12 @@ namespace mongo {
   public: 
 
     // Concstructor and destructor
+    Database() : _client_ptr(nullptr), _coll_ptr(nullptr) {}
     Database( const std::string &db, const std::string &collection );
     ~Database() {}
+    bool initialized() {
+      return _client_ptr != nullptr && _coll_ptr != nullptr;
+    }
 
     void set_collection(const std::string &collection);
     template<typename T> std::string get_id( const std::string &key, T val);

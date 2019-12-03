@@ -52,9 +52,13 @@ namespace anchoring {
     */
    
   public:
+    AnchorCollection() : _collection(""), _db_name("") {}
     AnchorCollection(const string &collection, const string &db_name);
     ~AnchorCollection();
-
+    bool persistent() {
+      return !_collection.empty() && !_db_name.empty();
+    }
+      
     // Public init och matching functions
     void init(int threads);
     void match( const AttributeMap &attributes,

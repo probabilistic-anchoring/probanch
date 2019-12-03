@@ -37,8 +37,14 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   // Create the anchor map
   std::string db;
   if( _priv_nh.getParam("db_name", db) ) {
-    ROS_WARN("Using database : %s", db.c_str());
-    _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection("anchors", db) );
+    if( db == "none" ) {
+      ROS_WARN("Using no database, anchors ponly stored in working memory.");
+      _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection() );
+    }
+    else {
+      ROS_WARN("Using database : %s", db.c_str());
+      _anchors = std::unique_ptr<AnchorCollection>( new AnchorCollection("anchors", db) );
+    }
   }
   else {  // ...default databas
     ROS_WARN("Using default database (anchordb).");
@@ -55,9 +61,11 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
 //  Init function
 void AnchorManagement::init(int threads) {
-  ROS_WARN("Start loading...");
-  this->_anchors->init(threads);
-  ROS_WARN("    ...[done]");
+  if( this->_anchors->persistent() ) {
+    ROS_WARN("Start loading...");
+    this->_anchors->init(threads);
+    ROS_WARN("    ...[done]");
+  }
 }
 
 /* -----------------------------------------

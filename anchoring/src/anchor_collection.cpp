@@ -163,8 +163,14 @@ namespace anchoring {
   void AnchorCollection::acquire(AttributeMap &attributes, PerceptMap &percepts, const ros::Time &t, bool persistent) {
     AnchorPtr anchor( new Anchor(t, attributes, percepts) ); // Generates an unique id for the anchor as well...
     if( persistent ) {
-      mongo::Database db(this->_db_name, this->_collection);
-      anchor->save(db);
+      if( !_collection.empty() && !_db_name.empty() ) { 
+	mongo::Database db(this->_db_name, this->_collection);
+	anchor->save(db);
+      }
+      else {
+	mongo::Database db;
+	anchor->save(db);
+      }
     }
     string id = anchor->id();
     this->_map[id] = anchor;
@@ -175,15 +181,27 @@ namespace anchoring {
   
   // Re-acquire an exisitng anchor
   void AnchorCollection::re_acquire(const string &id, AttributeMap &attributes, PerceptMap &percepts, const ros::Time &t ) {
-    mongo::Database db(this->_db_name, this->_collection);
-    this->_map[id]->update( db, t, attributes, percepts);
+    if( !_collection.empty() && !_db_name.empty() ) {
+      mongo::Database db(this->_db_name, this->_collection);
+      this->_map[id]->update( db, t, attributes, percepts);
+    }
+    else {
+      mongo::Database db;
+      this->_map[id]->update( db, t, attributes, percepts);
+    }
     //ROS_WARN("[Anchor (re-acquired): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
     
   // Track (by position) an exisitng anchor 
   void AnchorCollection::track(const string &id, AttributeMap &attributes, const ros::Time &t) {
-    mongo::Database db(this->_db_name, this->_collection);
-    this->_map[id]->update( db, t, attributes);
+    if( !_collection.empty() && !_db_name.empty() ) {
+      mongo::Database db(this->_db_name, this->_collection);
+      this->_map[id]->update( db, t, attributes);
+    }
+    else {
+      mongo::Database db;
+      this->_map[id]->update( db, t, attributes);
+    }
     //ROS_WARN("[Anchor (tracked): %s (%s)]", id.c_str(), this->_map[id]->toString().c_str());
   }
 

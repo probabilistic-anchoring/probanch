@@ -111,55 +111,58 @@ namespace anchoring {
       }
     }
 
-    // Insert the anchor into database
-    try {
+    // Generate a unique symbol
+    if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
+      auto it = this->_attributes.find(CATEGORY);
+      this->_x = this->generateSymbol( it->second->toString(), db);
+    }
+    else {
+      this->_x = this->generateSymbol( "unknown", db );
+    }
 
-      // Generate a unique symbol
-      if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
-	auto it = this->_attributes.find(CATEGORY);
-	this->_x = this->generateSymbol( it->second->toString(), db);
-      }
-      else {
-	this->_x = this->generateSymbol( "unknown", db );
-      }
+    // TEMP
+    if( db.initialized() ) {
+      // Insert the anchor into database
+      try {
 
-      // Save document (use this _id as identifier)
-      mongo::Database::Document doc(this->_id);    
+	// Save document (use this _id as identifier)
+	mongo::Database::Document doc(this->_id);    
 
-      // Add symbol
-      doc.add<std::string>( "x", this->_x);
+	// Add symbol
+	doc.add<std::string>( "x", this->_x);
 
-      // Add the history 
-      doc.add<std::string>( "H", this->_x);
+	// Add the history 
+	doc.add<std::string>( "H", this->_x);
 
-      // Add time
-      doc.add<double>( "t", this->_t.toSec());
+	// Add time
+	doc.add<double>( "t", this->_t.toSec());
 
-      // Add all attributes
-      for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
-	mongo::Database::Document subdoc = it->second->serialize();
-        subdoc.add<std::string>( "type", it->second->getTypeStr());
-        doc.append( "attributes", subdoc);
-      }
-
-      /*
-      // Add all percepts
-      for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
+	// Add all attributes
+	for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
+	  mongo::Database::Document subdoc = it->second->serialize();
+	  subdoc.add<std::string>( "type", it->second->getTypeStr());
+	  doc.append( "attributes", subdoc);
+	}
+	
+	/*
+	// Add all percepts
+	for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
 	mongo::Database::Document subdoc = it->second->serialize();
         subdoc.add<std::string>( "type", it->second->getTypeStr());
         doc.append( "percepts", subdoc);
-      }
-      */
-      auto it = this->_percepts.find(VISUAL);
-      mongo::Database::Document subdoc = it->second->serialize();
-      subdoc.add<std::string>( "type", it->second->getTypeStr());
-      doc.append( "percepts", subdoc);
+	}
+	*/
+	auto it = this->_percepts.find(VISUAL);
+	mongo::Database::Document subdoc = it->second->serialize();
+	subdoc.add<std::string>( "type", it->second->getTypeStr());
+	doc.append( "percepts", subdoc);
 
-      // Commit all changes to database
-      db.insert(doc);
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[Anchor::save]" << e.what() << std::endl;
+	// Commit all changes to database
+	db.insert(doc);
+      }
+      catch( const std::exception &e ) {
+	std::cout << "[Anchor::save]" << e.what() << std::endl;
+      }
     }
   }
   
@@ -203,64 +206,70 @@ namespace anchoring {
     }
     else {
 
-      // Update the database
-      try {
-
-	// Check and update the (unique) symbol 
-	if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
-	  auto it = this->_attributes.find(CATEGORY);
-	  std::string symbol = it->second->toString();
-	  ROS_WARN("Category is '%s' is x is '%s'", symbol.c_str(), this->_x.c_str());
-	  if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
-	    
-	    bool found = false;
-	    for( auto x : this->_history ) {
-	      if( x.compare( 0, symbol.size(), symbol) == 0 ) {
-		this->_x = x;
-		found = true;
-		break;
-	      }
-	    }
-	    if( !found ) {
-	      this->_history.push_back(this->_x);
-	      this->_x = this->generateSymbol( symbol, db);
-	      db.update<std::string>( this->_id, "x", this->_x);
-	      db.update<std::string>( this->_id, "H", this->_history);
+      // Check and update the (unique) symbol 
+      if( this->_attributes.find(CATEGORY) != this->_attributes.end() ) {
+	auto it = this->_attributes.find(CATEGORY);
+	std::string symbol = it->second->toString();
+	//ROS_WARN("Category is '%s' is x is '%s'", symbol.c_str(), this->_x.c_str());
+	if( this->_x.compare( 0, symbol.size(), symbol) != 0 ) {
+	  
+	  bool found = false;
+	  for( auto x : this->_history ) {
+	    if( x.compare( 0, symbol.size(), symbol) == 0 ) {
+	      this->_x = x;
+	      found = true;
+	      break;
 	    }
 	  }
+	  if( !found ) {
+	    this->_history.push_back(this->_x);
+	    this->_x = this->generateSymbol( symbol, db);
+	    //db.update<std::string>( this->_id, "x", this->_x);
+	    //db.update<std::string>( this->_id, "H", this->_history);
+	  }
 	}
-
-	// Update time
-	db.update<double>( this->_id, "t", this->_t.toSec());
-
-	// Update all attributes
-	std::vector<mongo::Database::Document> docs;
-	for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
-	  mongo::Database::Document subdoc = it->second->serialize();
-	  subdoc.add<std::string>( "type", it->second->getTypeStr());
-	  docs.push_back(subdoc);	
-	}
-	db.update<mongo::Database::Document>( this->_id, "attributes", docs);
-
-	// Update all percepts
-	docs.clear();
-	/*
-	for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
-	  mongo::Database::Document subdoc = it->second->serialize();
-	  subdoc.add<std::string>( "type", it->second->getTypeStr());
-	  docs.push_back(subdoc);	
-	}
-	*/
-	auto it = this->_percepts.find(VISUAL);
-	mongo::Database::Document subdoc = it->second->serialize();
-	subdoc.add<std::string>( "type", it->second->getTypeStr());
-	docs.push_back(subdoc);
-	
-	db.update<mongo::Database::Document>( this->_id, "percepts", docs);
-	
       }
-      catch( const std::exception &e ) {
-	std::cout << "[Anchor::update]" << e.what() << std::endl;
+
+      if( db.initialized() ) { // TMP
+	// Update the database
+	try {
+
+	  // TMP
+	  db.update<std::string>( this->_id, "x", this->_x);
+	  db.update<std::string>( this->_id, "H", this->_history);
+	  
+	  // Update time
+	  db.update<double>( this->_id, "t", this->_t.toSec());
+	  
+	  // Update all attributes
+	  std::vector<mongo::Database::Document> docs;
+	  for( auto it = this->_attributes.begin(); it != this->_attributes.end(); ++it) {
+	    mongo::Database::Document subdoc = it->second->serialize();
+	    subdoc.add<std::string>( "type", it->second->getTypeStr());
+	    docs.push_back(subdoc);	
+	  }
+	  db.update<mongo::Database::Document>( this->_id, "attributes", docs);
+	  
+	  // Update all percepts
+	  docs.clear();
+	  /*
+	    for( auto it = this->_percepts.begin(); it != this->_percepts.end(); ++it) {
+	    mongo::Database::Document subdoc = it->second->serialize();
+	    subdoc.add<std::string>( "type", it->second->getTypeStr());
+	    docs.push_back(subdoc);	
+	    }
+	  */
+	  auto it = this->_percepts.find(VISUAL);
+	  mongo::Database::Document subdoc = it->second->serialize();
+	  subdoc.add<std::string>( "type", it->second->getTypeStr());
+	  docs.push_back(subdoc);
+	  
+	  db.update<mongo::Database::Document>( this->_id, "percepts", docs);
+	
+	}
+	catch( const std::exception &e ) {
+	  std::cout << "[Anchor::update]" << e.what() << std::endl;
+	}
       }
     }
   }
@@ -368,27 +377,41 @@ namespace anchoring {
   // ---[ Generate a unique symbol ]---
   std::string Anchor::generateSymbol(const std::string &key, mongo::Database &db) {
     std::stringstream ss;
-    try {
-      db.set_collection("predicates");
-      
-      // Get the id (if document exists)
-      std::string id = db.get_id( "symbol", key);
-      if( !id.empty() ) {
-	int counter = db.get<int>( id, "count") + 1;
-	db.update<int>( id, "count", counter);
-	ss << key << "-" << counter;
+    if( db.initialized() ) {
+      try {
+	db.set_collection("predicates");
+	
+	// Get the id (if document exists)
+	std::string id = db.get_id( "symbol", key);
+	if( !id.empty() ) {
+	  int counter = db.get<int>( id, "count") + 1;
+	  db.update<int>( id, "count", counter);
+	  ss << key << "-" << counter;
+	}
+	else {
+	  mongo::Database::Document doc;
+	  doc.add<std::string>( "symbol", key);
+	  doc.add<int>( "count", 1);
+	  db.insert(doc);
+	  ss << key << "-1";
+	}
+	db.set_collection("anchors");
+      }
+      catch( const std::exception &e ) {
+	std::cout << "[Anchor::generateSymbol]" << e.what() << std::endl;
+      }
+    }
+    else {
+      map<std::string, int>::iterator it = this->_predicates.find(key);
+      if( it != this->_predicates.end() ) {
+	it->second += 1;
+	ss << it->first << "-" << it->second;
+	//this->_predicates[it->first] += 1;
       }
       else {
-	mongo::Database::Document doc;
-	doc.add<std::string>( "symbol", key);
-	doc.add<int>( "count", 1);
-	db.insert(doc);
+	this->_predicates.insert({key, 1});
 	ss << key << "-1";
       }
-      db.set_collection("anchors");
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[Anchor::generateSymbol]" << e.what() << std::endl;
     }
     return ss.str();
   }
