@@ -59,7 +59,7 @@ namespace anchoring {
 
   // Split list of identifiers
   void AnchorCollection::split( const vector<string> &list,
-			  vector<vector<string> > &split_list,
+			  vector<vector<string> > &splitted,
 			  int div ) {
     int chunk = list.size() / div;
     vector<string>::const_iterator first = list.begin(), last;
@@ -70,36 +70,12 @@ namespace anchoring {
       else {
 	last = list.end();
       }
-      split_list.push_back(vector<string>( first, last ));
+      splitted.push_back(vector<string>( first, last ));
       first = first + chunk;
     }
   }
 
-  // Thread init function
-  void AnchorCollection::run(const vector<string> &ids) {
-    mongo::Database db(this->_db_name, this->_collection);
-    try { 
-      for( auto ite = ids.begin(); ite != ids.end(); ++ite ) {
-	AnchorPtr anchor( new Anchor(*ite) );
-	anchor->load(db);  
-	this->_mtx.lock();
-	this->_map[*ite] = anchor;
-	this->_mtx.unlock();
-      }
-    }
-    catch( const std::exception &e ) {
-      std::cout << "[AnchorCollection::init]" << e.what() << std::endl;
-    }
-  }
-
-  /*
-  // Function for typcasting and accessing map elements 
-  std::shared_ptr<Anchor> AnchorCollection::get(string id) {
-    return dynamic_pointer_cast<Anchor>(this->_map[id]);
-  }
-  */
-
-
+  
   // ------------------
   // Public main init function
   // --------------------------------------------------
@@ -112,27 +88,54 @@ namespace anchoring {
     ROS_WARN("Init: %d (threads: %d)", (int)ids.size(), threads);
     
     // Start init process(es)
-    if( threads < (int)ids.size() ) {
+    if( threads > 0 && threads < (int)ids.size() ) {
       
       // Split the collection of ideintifers
       vector<vector<string> > splitted;
       this->split( ids, splitted, threads);
 
+      // Thread variables
+      std::mutex mtx;
+      std::vector<std::thread> threads;
+
       // Start running pool of threads
       for( auto ite = splitted.begin(); ite != splitted.end(); ++ite ) {
-	this->_threads.push_back(std::thread( &AnchorCollection::run, this, *ite));
+	auto run = [&](const vector<string> &ids) {
+	  mongo::Database db(this->_db_name, this->_collection);
+	  try { 
+	    for( auto &id : ids ) {
+	      AnchorPtr anchor( new Anchor(id) );
+	      anchor->load(db);  
+	      mtx.lock();
+	      this->_map[id] = anchor;
+	      mtx.unlock();
+	    }
+	  }
+	  catch( const std::exception &e ) {
+	    std::cout << "[AnchorCollection::init]" << e.what() << std::endl;
+	  } 
+	};
+	std::thread runner{run, *ite};
+	threads.push_back(std::move(runner));
       }
-      
-      // Wait for threads to finish   
-      for( auto ite = this->_threads.begin(); ite != this->_threads.end(); ++ite) {
-	if( ite->joinable() ) {
-	  ite->join();
-	}
+
+      // Wait for threads to finish
+      for (auto&& runner : threads) {
+        runner.join();
       }
-      this->_threads.clear();
     }
     else {
-      this->run(ids);
+      mongo::Database db(this->_db_name, this->_collection);
+      try { 
+	for( auto &id : ids ) {
+	  AnchorPtr anchor( new Anchor(id) );
+	  anchor->load(db);  
+	  this->_map[id] = anchor;
+	}
+      }
+      catch( const std::exception &e ) {
+	std::cout << "[AnchorCollection::init]" << e.what() << std::endl;
+      } 
     }
     
     // Build the f-sum model

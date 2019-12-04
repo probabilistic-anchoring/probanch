@@ -63,8 +63,8 @@ namespace anchoring {
     // Unique id for each anchor
     string _id;
     vector<string> _history;
-    map<std::string, int> _predicates;
-
+    static std::map<std::string, int> _predicates;
+    
     // Unique symbol for each anchor
     string _x;
     

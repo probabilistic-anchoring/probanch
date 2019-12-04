@@ -125,11 +125,11 @@
    
     // Connecting to ROS
     // -----------------
-    var ros = new ROSLIB.Ros();
-  
-    // Create a connection to the rosbridge WebSocket server.
-    //ros.connect('ws://localhost:9090');
-    ros.connect('ws://10.0.0.12:9090');
+    const IP = location.host;
+    const ROSAddr = 'ws://' + String(IP) + ':' + '9090';
+    var ros = new ROSLIB.Ros({
+      url: ROSAddr
+    });
 
     // ROS log
     ros.on( 'error', function(error) { 

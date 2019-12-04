@@ -57,6 +57,8 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
   _classifier = machine::load( path + "/models/svm.yml", "svm");
 
   _time_zero = -1.0;
+
+  auto mongo_instance = mongo::Database::create_instance();
 }
 
 //  Init function

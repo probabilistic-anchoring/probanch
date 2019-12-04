@@ -9,8 +9,12 @@
 
 namespace anchoring {
 
+  // Used namespaces
   using namespace std;
 
+  // Declare the static predicate map  
+  std::map<std::string, int> Anchor::_predicates;
+  
   // Constructor
   Anchor::Anchor(const ros::Time &t, AttributeMap &attributes, PerceptMap &percepts) {
 
@@ -406,7 +410,6 @@ namespace anchoring {
       if( it != this->_predicates.end() ) {
 	it->second += 1;
 	ss << it->first << "-" << it->second;
-	//this->_predicates[it->first] += 1;
       }
       else {
 	this->_predicates.insert({key, 1});

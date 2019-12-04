@@ -29,11 +29,6 @@ namespace anchoring {
     void split( const vector<string> &list,
 		vector<vector<string> > &split_list,
 		int div );
-
-    // Thread variables and function
-    vector<std::thread> _threads; // Pool of threads 
-    std::mutex _mtx;
-    virtual void run(const vector<string> &ids);
     
     /*
     // Binary visual feature matching objects

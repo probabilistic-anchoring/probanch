@@ -27,6 +27,10 @@ namespace mongo {
   using namespace mongocxx;
   using namespace bsoncxx;
   
+  // The mongocxx::instance constructor and destructor initialize and shut down the driver,
+  // respectively. Therefore, a mongocxx::instance must be created before using the driver and
+  // must remain alive for as long as the driver is in use.
+  //const mongocxx::instance{};
 
   // ---[ Class definition...
   // --------------------------------
@@ -107,6 +111,9 @@ namespace mongo {
 
 
     // Static id methods
+    static mongocxx::instance create_instance() {
+      return mongocxx::instance{};
+    }
     static void id_array( const std::string &db, 
 			  const std::string &collection, 
 			  vector<std::string> &array, 

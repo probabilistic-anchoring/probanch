@@ -46,7 +46,8 @@ void test_fn(const Database::Document &doc) {
 
 
 // --[ Main fn ]--- 
-int main(int, char**) { 
+int main(int, char**) {
+  auto instance = Database::create_instance();
   Database db("testdb", "testcollection");
   std::string id;
   
