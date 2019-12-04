@@ -31,26 +31,27 @@ if __name__ == "__main__":
     parser = argparser()
     args = vars(parser.parse_args(python_argv))
 
-    if args['mode']=="shellgame":
-        from class_shellgame import Shellgame
-        model_file = os.path.join(path, 'models/shellgame.pl')
-        rel_track = Shellgame(model_file, N_SAMPLES)
-    if args['mode']=="shellgame_multimodal":
-        from class_shellgame_multimodal import ShellgameMultimodal
-        model_file = os.path.join(path, 'models/shellgame_multimodal.pl')
-        rel_track = ShellgameMultimodal(model_file, N_SAMPLES)
-    elif args['mode']=="behind_of":
-        from class_behind_of import BehindOf
-        model_file = os.path.join(path, 'models/behind_of.pl')
-        rel_track = BehindOf(model_file, N_SAMPLES)
-    elif args['mode']=="in_hand":
-        from class_in_hand import InHand
-        model_file = os.path.join(path, 'models/in_hand.pl')
-        rel_track = InHand(model_file, N_SAMPLES)
-    elif args['mode']=="collect_data_in_hand":
+    if args['mode']=="collect_data_occluded":
         RUN = args['run']
-        from class_collect_data_in_hand import CollectDataInHand
-        model_file = os.path.join(path, 'models/collect_data_in_hand.pl')
-        rel_track = CollectDataInHand(model_file, N_SAMPLES, RUN)
+        from class_collect_data_occluded import CollectDataOccluded
+        model_file = os.path.join(path, 'models/collect_data_occluded.pl')
+        rel_track = CollectDataOccluded(model_file, N_SAMPLES, RUN)
+    # if args['mode']=="shellgame":
+    #     from class_shellgame import Shellgame
+    #     model_file = os.path.join(path, 'models/shellgame.pl')
+    #     rel_track = Shellgame(model_file, N_SAMPLES)
+    # if args['mode']=="shellgame_multimodal":
+    #     from class_shellgame_multimodal import ShellgameMultimodal
+    #     model_file = os.path.join(path, 'models/shellgame_multimodal.pl')
+    #     rel_track = ShellgameMultimodal(model_file, N_SAMPLES)
+    # elif args['mode']=="behind_of":
+    #     from class_behind_of import BehindOf
+    #     model_file = os.path.join(path, 'models/behind_of.pl')
+    #     rel_track = BehindOf(model_file, N_SAMPLES)
+    # elif args['mode']=="in_hand":
+    #     from class_in_hand import InHand
+    #     model_file = os.path.join(path, 'models/in_hand.pl')
+    #     rel_track = InHand(model_file, N_SAMPLES)
+
 
     rospy.spin()
