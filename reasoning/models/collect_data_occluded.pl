@@ -71,7 +71,7 @@ pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    \+observed(A_ID):t+1,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3), Occluders),
-   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.1, Z1<ZH), Occluders),
+   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.1, Z1<ZH+0.1), Occluders),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_)), Occluders),
    % writeln(Occluders),
    % writeln(Occluders),
@@ -116,7 +116,7 @@ rv(A_ID):t+1 ~ indepGaussians([ ([O_x,0],Cov), ([O_y,0],Cov), ([O_z,0],Cov) ]) <
 	V_y is O_y-R_y,
 	V_z is O_z-R_z,
 	varQ(VarQ),
-	VarQ1 is VarQ/5,
+	VarQ1 is VarQ/3,
 	cov(1,Cov,VarQ1).
 rv(A_ID):t+1 ~ val((R_x,V_x,R_y,V_y,R_z,V_z)) <-
    anchor(A_ID):t,

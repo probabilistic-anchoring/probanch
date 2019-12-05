@@ -129,10 +129,12 @@ class CollectDataOccluded():
             return False
         elif "glass" in anchor.category.symbols[0:4]:
             return False
-        # elif "banana" in anchor.category.symbols[0:1]:
-        #     return False
-        # elif "skin" in anchor.category.symbols[0:2]:
-        #     return False
+        elif "glove" in anchor.category.symbols[0:2]:
+            return False
+        elif "skin" in anchor.category.symbols[0:4]:
+            return False
+        elif "candle" in anchor.category.symbols[0:2]:
+            return False
         # elif "squash" in anchor.category.symbols[0:2]:
         #     return False
         # elif not anchor.category.symbols:
@@ -205,10 +207,11 @@ class CollectDataOccluded():
             data_file = os.path.join(data_dir, "run{}_time{}.pickle".format(self.current.run, self.current.time))
             data = {"current": self.current, "previous": self.previous}
 
+
             if self.current.time>0:
                 with open(data_file, 'wb') as handle:
                     pass
-                    # pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             # if self.current.flag_to_occluded:
             #     self.flag_process_data = False
