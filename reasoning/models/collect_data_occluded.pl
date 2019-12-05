@@ -63,8 +63,8 @@ pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    \+observed(A_ID):t+1,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3), Occluders),
-   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, Z1<ZH), Occluders),
-   % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_)), Occluders),
+   % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3, Z1<ZH), Occluders),
+   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_)), Occluders),
    % writeln(Occluders),
    \+Occluders=[].
 

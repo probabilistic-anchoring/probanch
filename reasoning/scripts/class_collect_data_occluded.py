@@ -50,7 +50,8 @@ class CollectDataOccluded():
         la_array = self.make_LogicAnchorArray(msg.anchors)
         self.collect_data(msg.anchors)
         self.process_data()
-        self.logic_anchors_publisher.publish(la_array)
+        # print(la_array)
+        # self.logic_anchors_publisher.publish(la_array)
 
 
     def make_observations(self, anchors):
@@ -89,7 +90,8 @@ class CollectDataOccluded():
         anchor_ids = [a_id.decode("UTF-8") for a_id in anchor_ids.keys()]
 
         for a_id in anchor_ids:
-            if a_id in anchor_ids_observed:
+            # probably do not need this check
+            if a_id not in anchor_ids_observed:
                 la = LogicAnchor()
                 la.id = a_id
                 la.observed = False
@@ -108,7 +110,6 @@ class CollectDataOccluded():
                     la.particle_positions.append(position)
 
                 la_array.anchors.append(la)
-
         return la_array
 
 
@@ -144,7 +145,7 @@ class CollectDataOccluded():
             # print(occluded_by)
             if occluded_by:
                 flag_to_occluded = True
-            # print(observed)
+            # print(occluded_by)
             self.current.anchors[a_id] = AnchorInfo(position_mean_std, observed, occluded_by)
         self.current.flag_to_occluded = flag_to_occluded
 
