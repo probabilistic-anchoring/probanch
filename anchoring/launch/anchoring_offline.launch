@@ -17,7 +17,11 @@
     <param name="display_window" type="bool" value="$(arg show_window)" />
   </node>
 
-  <!-- Include the display interface (including the websocket bridge) -->
+  <!-- Include the display interface (including the websocket bridge)
   <include file="$(find display)/launch/web_interface.launch" />
+  -->
 
+  <!-- Include the data collection reasoner -->
+  <include file="$(find reasoning)/launch/collect_data_occluded.launch" />
+	    
 </launch>

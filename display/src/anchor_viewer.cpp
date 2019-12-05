@@ -149,7 +149,8 @@ class AnchorViewer {
 			msg_ptr->transform.transform.translation.y,
 			msg_ptr->transform.transform.translation.z );
     this->_tf = tf::Transform( tf_quat, tf_vec);
-
+    this->_tf  = this->_tf.inverse();
+    
     // Publish the resulting anchor image
     if( !this->_display_trigger.empty() ) {
       cv_ptr->image = this->anchor_img();
