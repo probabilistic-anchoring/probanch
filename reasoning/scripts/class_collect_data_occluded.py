@@ -64,28 +64,28 @@ class CollectDataOccluded():
             observations.append("observation(remove_anchor('{A_ID}'))~=true".format(A_ID=a_id))
 
         aids= [a.id for a in anchors]
-        print(set(self.anchors_to_remove) & set(aids))
-        print(self.anchors_to_remove)
-        self.anchors_to_remove = []
 
         for a in anchors:
-            obs = []
-            if self.filter(a):
-                position = a.position.data.pose.position
-                bbox = a.size.data
-                color = a.color.symbols[0]
-                #TODO make probabilistic with prediciont socres
-                category = a.category.symbols[0]
+            if not a.id in self.anchors_to_remove:
+                obs = []
+                if self.filter(a):
+                    position = a.position.data.pose.position
+                    bbox = a.size.data
+                    color = a.color.symbols[0]
+                    #TODO make probabilistic with prediciont socres
+                    category = a.category.symbols[0]
 
-                obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
-                obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
-                obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
-                obs.append("observation(anchor_category('{A_ID}'))~={Category}".format(A_ID=a.id, Category=category))
+                    obs.append("observation(anchor_r('{A_ID}'))~=({X},{Y},{Z})".format(A_ID=a.id, X=position.x, Y=position.y, Z=position.z))
+                    obs.append("observation(anchor_bb('{A_ID}'))~=({BBX},{BBY},{BBZ})".format(A_ID=a.id, BBX=bbox.x, BBY=bbox.y, BBZ=bbox.z))
+                    obs.append("observation(anchor_c('{A_ID}'))~={C}".format(A_ID=a.id, C=color))
+                    obs.append("observation(anchor_category('{A_ID}'))~={Category}".format(A_ID=a.id, Category=category))
 
 
-                obs = ','.join(obs)
-                observations.append(obs)
+                    obs = ','.join(obs)
+                    observations.append(obs)
         observations = ','.join(observations)
+
+        self.anchors_to_remove = []
         return observations
 
 
