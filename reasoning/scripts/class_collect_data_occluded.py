@@ -38,6 +38,7 @@ class CollectDataOccluded():
         self.previous = {}
         self.current = {}
         self.ddc = DDC(model_file, n_samples)
+        self.anchors_to_remove = []
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback=self.process_anchors)
         self.removed_anchors_sub = rospy.Subscriber('anchors_removed', RemovedAnchorArray, callback=self.remove_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
@@ -45,8 +46,8 @@ class CollectDataOccluded():
 
     # New callback function for removing anchors (from DDC database)
     def remove_anchors(self, msg):
-        print(msg.ids)
-    
+        self.anchors_to_remove += msg.ids
+
     def process_anchors(self, msg):
         observations = self.make_observations(msg.anchors)
         self.ddc.step(observations);
@@ -54,15 +55,17 @@ class CollectDataOccluded():
         la_array = self.make_LogicAnchorArray(msg.anchors)
         self.collect_data(msg.anchors)
         self.process_data()
-        # print(la_array)
         self.logic_anchors_publisher.publish(la_array)
 
 
     def make_observations(self, anchors):
         observations = []
+        for a_id in self.anchors_to_remove:
+            observations.append("observation(remove_anchor('{A_ID}'))~=true".format(A_ID=a_id))
+        self.anchors_to_remove = []
+
         for a in anchors:
             obs = []
-
             if self.filter(a):
                 position = a.position.data.pose.position
                 bbox = a.size.data
@@ -146,10 +149,8 @@ class CollectDataOccluded():
             position_mean_std = self.collect_position(a_id)
             observed = self.collect_observed(a_id)
             occluded_by = self.collect_occluded_by(a_id)
-            # print(occluded_by)
             if occluded_by:
                 flag_to_occluded = True
-            # print(occluded_by)
             self.current.anchors[a_id] = AnchorInfo(position_mean_std, observed, occluded_by)
         self.current.flag_to_occluded = flag_to_occluded
 

@@ -25,24 +25,32 @@ cov(1,[Cov,0,0,0.000001],VarQ) :-
 	deltaT(DeltaT),
 	Cov is VarQ*DeltaT^2.
 
-time(0):t+1<-
+time(0):t+1 <-
 	\+time(_):t.
-time(T1):t+1<-
+time(T1):t+ 1<-
 	time(T0):t,
 	T1 is T0+1.
 
 
+remove_anchor_list:t+1 ~ val(RA_List) <-
+   findall_forward(RA_ID, (observation(remove_anchor(RA_ID))~=_), RA_List).
+removed(RA_ID):t+1 <-
+   remove_anchor_list:t+1 ~= RA_List,
+   member(RA_ID,RA_List).
+
 observed_list:t+1 ~ val(A_List) <-
    findall_forward(A_ID, (observation(anchor_r(A_ID))~=_), A_List).
-
 observed(A_ID):t+1 <-
    observed_list:t+1 ~= A_List,
    member(A_ID,A_List).
 
+
 anchor(A_ID):t+1 <-
-	observed(A_ID):t+1.
+	observed(A_ID):t+1,
+   \+removed(A_ID):t+1.
 anchor(A_ID):t+1 <-
 	anchor(A_ID):t,
+   \+removed(A_ID):t+1,
    occluded_by(A_ID,_):t+1.
 
 
@@ -84,7 +92,9 @@ observation(anchor_category(A_ID)):t+1 ~ val(_) <-
 %observation bb
 observation(anchor_bb(A_ID)):t+1 ~ val(_) <-
 	anchor(A_ID):t+1.
-
+%observation remove
+observation(remove_anchor(RA_ID)):t+1 ~ val(_) <-
+   true.
 
 
 
