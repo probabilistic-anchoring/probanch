@@ -62,6 +62,10 @@ class CollectDataOccluded():
         observations = []
         for a_id in self.anchors_to_remove:
             observations.append("observation(remove_anchor('{A_ID}'))~=true".format(A_ID=a_id))
+
+        aids= [a.id for a in anchors]
+        print(set(self.anchors_to_remove) & set(aids))
+        print(self.anchors_to_remove)
         self.anchors_to_remove = []
 
         for a in anchors:
