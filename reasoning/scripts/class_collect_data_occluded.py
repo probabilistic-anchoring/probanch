@@ -12,8 +12,7 @@ from anchor_msgs.msg import AnchorArray
 from anchor_msgs.msg import LogicAnchor
 from anchor_msgs.msg import LogicAnchorArray
 from anchor_msgs.msg import PositionAttribute
-
-
+from anchor_msgs.msg import RemovedAnchorArray
 
 class State(object):
     def __init__(self, time, run):
@@ -40,9 +39,14 @@ class CollectDataOccluded():
         self.current = {}
         self.ddc = DDC(model_file, n_samples)
         self.anchors_sub = rospy.Subscriber('anchors', AnchorArray, callback=self.process_anchors)
+        self.removed_anchors_sub = rospy.Subscriber('anchors_removed', RemovedAnchorArray, callback=self.remove_anchors)
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
 
+    # New callback function for removing anchors (from DDC database)
+    def remove_anchors(self, msg):
+        print(msg.ids)
+    
     def process_anchors(self, msg):
         observations = self.make_observations(msg.anchors)
         self.ddc.step(observations);
@@ -51,7 +55,7 @@ class CollectDataOccluded():
         self.collect_data(msg.anchors)
         self.process_data()
         # print(la_array)
-        # self.logic_anchors_publisher.publish(la_array)
+        self.logic_anchors_publisher.publish(la_array)
 
 
     def make_observations(self, anchors):

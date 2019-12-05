@@ -33,6 +33,7 @@ add_message_files(
    ObjectArray.msg
    Point2d.msg
    PositionAttribute.msg
+   RemovedAnchorArray.msg
    SizeAttribute.msg
    SemanticAnchor.msg
    SemanticAnchorArray.msg

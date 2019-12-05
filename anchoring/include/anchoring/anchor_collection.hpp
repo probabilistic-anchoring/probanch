@@ -79,6 +79,9 @@ namespace anchoring {
     }
 
     // Map access functions
+    bool exist(const string &id) {
+      return this->_map.find(id) != this->_map.end();
+    }
     uint size() { return this->_map.size(); }
     bool empty() { return this->_map.empty(); }
     std::string resolve(const string &id) const;

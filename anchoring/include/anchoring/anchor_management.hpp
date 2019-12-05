@@ -31,7 +31,7 @@ class AnchorManagement {
   ros::NodeHandle _nh, _priv_nh;
   ros::Subscriber _object_sub, _track_sub, _assoc_sub, _update_sub;
   ros::ServiceServer _spatial_srv, _timed_srv;
-  ros::Publisher _anchor_pub, _display_pub;
+  ros::Publisher _anchor_pub, _display_pub, _remove_pub;
 
   double _time_zero;
 

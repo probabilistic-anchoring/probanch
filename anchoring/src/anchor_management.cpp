@@ -10,6 +10,7 @@
 
 #include <anchor_msgs/DisplayArray.h>
 #include <anchor_msgs/AnchorArray.h>
+#include <anchor_msgs/RemovedAnchorArray.h>
 
 #include <anchoring/anchor_management.hpp>
 
@@ -30,7 +31,8 @@ AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") 
 
   // Publisher used for further broadcasting anchor information
   _anchor_pub = _nh.advertise<anchor_msgs::AnchorArray>("/anchors", 1);
-
+  _remove_pub = _nh.advertise<anchor_msgs::RemovedAnchorArray>("/anchors_removed", 1);
+  
   // Publischer used for displaying the anchors
   _display_pub = _nh.advertise<anchor_msgs::DisplayArray>("/display/anchors", 1);
 
@@ -186,26 +188,41 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
    Main track function(s)
    --------------------------------------- */
 void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr ) {
-
+  ROS_WARN("Got %d logical anchor(s).", (int)track_ptr->anchors.size());
+  
   // Maintain all incoming tracked objects
+  anchor_msgs::RemovedAnchorArray msg;
   ros::Time t = track_ptr->header.stamp;
   for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
+    ROS_WARN("Anchor id: %s", track_ptr->anchors[i].id.c_str());
+	     
     // Tracked hidden object, add the position(s) of hte object
     if( !track_ptr->anchors[i].observed ) {
-      
-      // Populate a list of position messages
-      std::vector<geometry_msgs::PoseStamped> array;
-      auto p = track_ptr->anchors[i].particle_positions.begin();
-      for( ; p != track_ptr->anchors[i].particle_positions.end(); ++p ) {  
-	array.push_back(p->data);
-      }
 
-      // Track the anchor
-      anchoring::AttributeMap attributes;
-      attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
-      this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
+      if( this->_anchors->exist(track_ptr->anchors[i].id) ) {
+
+	// Populate a list of position messages
+	std::vector<geometry_msgs::PoseStamped> array;
+	auto p = track_ptr->anchors[i].particle_positions.begin();
+	for( ; p != track_ptr->anchors[i].particle_positions.end(); ++p ) {  
+	  array.push_back(p->data);
+	}
+
+	// Track the anchor
+	anchoring::AttributeMap attributes;
+	attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
+	this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
+      }
+      else {
+	msg.ids.push_back(track_ptr->anchors[i].id);
+      }
     }
+  }
+
+  // Publish id's of (possible) removed anchors
+  if( !msg.ids.empty() ) {
+    this->_remove_pub.publish(msg);
   }
 }
 
