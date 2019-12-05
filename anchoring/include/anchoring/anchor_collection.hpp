@@ -63,7 +63,7 @@ namespace anchoring {
     void acquire(AttributeMap &attributes, PerceptMap &percepts, const ros::Time &t, bool persistent = false);
     void re_acquire(const string &id, AttributeMap &attributes, PerceptMap &percepts, const ros::Time &t);
     void track(const string &id, AttributeMap &attributes, const ros::Time &t);
-    void remove();
+    void remove(std::vector<std::string> &removed);
 
     // Get anchors as different ROS messages
     template <typename T> T get(const string &id);

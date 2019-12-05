@@ -191,11 +191,10 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
   ROS_WARN("Got %d logical anchor(s).", (int)track_ptr->anchors.size());
   
   // Maintain all incoming tracked objects
-  anchor_msgs::RemovedAnchorArray msg;
   ros::Time t = track_ptr->header.stamp;
   for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
-    ROS_WARN("Anchor id: %s", track_ptr->anchors[i].id.c_str());
+    //ROS_WARN("Anchor id: %s", track_ptr->anchors[i].id.c_str());
 	     
     // Tracked hidden object, add the position(s) of hte object
     if( !track_ptr->anchors[i].observed ) {
@@ -214,16 +213,9 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 	attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
 	this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
       }
-      else {
-	msg.ids.push_back(track_ptr->anchors[i].id);
-      }
     }
   }
 
-  // Publish id's of (possible) removed anchors
-  if( !msg.ids.empty() ) {
-    this->_remove_pub.publish(msg);
-  }
 }
 
 
@@ -285,7 +277,14 @@ void AnchorManagement::spin() {
 
     // Remove expired anchors from list (while idle)
     if( !this->_anchors->empty() ) {
-      this->_anchors->remove();
+
+      anchor_msgs::RemovedAnchorArray msg;
+      this->_anchors->remove(msg.ids);
+
+      // Publish id's of removed anchors
+      if( !msg.ids.empty() ) {
+	this->_remove_pub.publish(msg);
+      }
     }
 
     ros::spinOnce();

@@ -209,13 +209,14 @@ namespace anchoring {
   }
 
   // Remove the anchor space
-  void AnchorCollection::remove() {
+  void AnchorCollection::remove(std::vector<std::string> &removed) {
     
     // Remove glitches
     for( auto ite = this->_map.begin(); ite != this->_map.end(); ) {
       if( ite->second->expired() ) {
 	ROS_WARN("Anchor [removed]: %s", ite->first.c_str());
 	//this->remove(ite->first); // Remove from the binary descriptor model
+	removed.push_back(ite->first);
 	ite = this->_map.erase( ite );
       }
       else {
