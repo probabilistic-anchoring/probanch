@@ -6,13 +6,13 @@
 #
 # Acknowledgment: https://github.com/spillai/pybot
 
-import roslib; # roslib.load_manifest('pr2_python')
-import numpy as np, struct
+#import roslib; # roslib.load_manifest('pr2_python')
+import numpy as np #, struct
 from sensor_msgs.msg import PointCloud2, PointField
-from tf import transformations
-from geometry_msgs.msg import Transform, Vector3, Quaternion
-import numpy.lib.recfunctions as nlr
-from itertools import izip
+#from tf import transformations
+#from geometry_msgs.msg import Transform, Vector3, Quaternion
+#import numpy.lib.recfunctions as nlr
+#from itertools import izip
 
 def pointcloud2_to_array(cloud_msg):
     ''' 
