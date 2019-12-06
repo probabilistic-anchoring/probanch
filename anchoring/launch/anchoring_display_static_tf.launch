@@ -24,12 +24,14 @@
   <!-- Anchoring framework -->  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
-    <param name="db_name" type="string" value="anchortmpdb4" />
+    <!-- param name="db_name" type="string" value="anchortmpdb4" / -->
+    <param name="db_name" type="string" value="none" />
 </node>
 
 
   <!-- Reasoning system -->
   <!-- include file="$(find reasoning)/launch/reasoning.launch" / -->
+  <include file="$(find reasoning)/launch/collect_data_occluded.launch" />
 
 
   <!-- Display anchors --> 

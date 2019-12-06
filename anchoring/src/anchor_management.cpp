@@ -194,8 +194,6 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
   ros::Time t = track_ptr->header.stamp;
   for( uint i = 0; i < track_ptr->anchors.size(); i++) {
 
-    //ROS_WARN("Anchor id: %s", track_ptr->anchors[i].id.c_str());
-	     
     // Tracked hidden object, add the position(s) of hte object
     if( !track_ptr->anchors[i].observed ) {
 
@@ -213,6 +211,9 @@ void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr 
 	attributes[POSITION] = AttributePtr( new PositionAttribute(array) );
 	this->_anchors->track( track_ptr->anchors[i].id, attributes, t); // TRACK
       }
+    }
+    else {
+      ROS_WARN("Anchor id: %s, does not exist.", track_ptr->anchors[i].id.c_str());
     }
   }
 
