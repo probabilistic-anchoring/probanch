@@ -7,14 +7,16 @@
   <node name="anchor_management_node" pkg="anchoring" type="anchoring" output="screen">
     <!-- param name="db_name" type="string" value="anchortmpdb" / -->
     <param name="db_name" type="string" value="none" /> 
-    <param name="display_window" type="bool" value="$(arg show_window)" />
   </node>
 
   <!-- Display anchors -->
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer" output="screen">
-    <param name="max_particles" type="int" value="200" />
+    <param name="max_particles" type="int" value="-1" />
     <param name="display_mode" type="string" value="both" />
     <param name="display_window" type="bool" value="$(arg show_window)" />
+
+    <!-- Supported colors: red, white, gray and ornage (default) -->
+    <param name="draw_color" type="string" value="orange" />
   </node>
 
   <!-- Include the display interface (including the websocket bridge)

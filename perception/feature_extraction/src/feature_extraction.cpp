@@ -32,7 +32,6 @@ FeatureExtraction::FeatureExtraction(ros::NodeHandle nh) : nh_(nh), priv_nh_("~"
   // Load the color classifier
   const std::string path = ros::package::getPath("feature_extraction");
   std::cout << path + "/models/colors.yml" << std::endl; 
-  //this->_cf = std::shared_ptr<ColorFeatures>( new ColorFeatures(path + "/models/colors.yml") );
   this->_cf.load(path + "/models/colors.yml");
   std::cout << "Loaded fine..." << std::endl;
 
@@ -272,7 +271,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
 	cv::rectangle( result, p1, p2, this->_cf.getColorScalar(i), CV_FILLED);
 	p1.x += 6;
       }
-      //cv::putText( result, std::to_string(i+1), cv::Point2f(rect.x, rect.y), cv::FONT_HERSHEY_DUPLEX, 0.5, color, 2);
     }
 
     // Ground color symbols (and add the result to the output message)
@@ -336,14 +334,6 @@ void FeatureExtraction::processCb(const anchor_msgs::ObjectArray::ConstPtr &obje
     cv::imshow("Extracted and grounded attributes..", result);
     cv::waitKey(10);
   }
-  /*
-  // Publish an image with bounding boxes
-  cv::Mat resized;
-  cv::resize( result, resized, cv::Size(), 0.5, 0.5, CV_INTER_AREA); // Reduce the size
-  cv_ptr->image = resized;
-  cv_ptr->encoding = "bgr8";
-  boxed_pub_.publish(cv_ptr->toImageMsg());
-  */
 }
 
 // Helper function for filtering a point cloud (based on spatial thresholds)

@@ -53,8 +53,8 @@ class CollectDataOccluded():
         self.ddc.step(observations);
 
         la_array = self.make_LogicAnchorArray(msg.anchors)
-        self.collect_data(msg.anchors)
-        self.process_data()
+        # self.collect_data(msg.anchors)
+        # self.process_data()
         self.logic_anchors_publisher.publish(la_array)
 
 

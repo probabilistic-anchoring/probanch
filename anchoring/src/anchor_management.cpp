@@ -188,7 +188,6 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
    Main track function(s)
    --------------------------------------- */
 void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr ) {
-  ROS_WARN("Got %d logical anchor(s).", (int)track_ptr->anchors.size());
   
   // Maintain all incoming tracked objects
   ros::Time t = track_ptr->header.stamp;
