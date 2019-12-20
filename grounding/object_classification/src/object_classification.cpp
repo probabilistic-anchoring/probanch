@@ -97,11 +97,11 @@ class ObjectClassification {
     for (uint i = 0; i < objects_msg->objects.size(); i++) {
       
       // Read percept from ROS message
-      cv::Mat img;
+      cv::Mat object_img;
       try {
 	cv_ptr = cv_bridge::toCvCopy( objects_msg->objects[i].visual.data,
 				      sensor_msgs::image_encodings::BGR8 );
-	cv_ptr->image.copyTo(img);
+	cv_ptr->image.copyTo(object_img);
       } catch (cv_bridge::Exception& e) {
 	ROS_ERROR("[ObjectClassification::process] receiving image: %s", e.what());
 	return;
@@ -109,8 +109,8 @@ class ObjectClassification {
 
       // Classify image
       //auto t = cv::getTickCount();
-      if( img.data ) {
-	vector<Prediction> predictions = this->_classifier->Classify(img);
+      if( object_img.data ) {
+	vector<Prediction> predictions = this->_classifier->Classify(object_img);
 	vector<Prediction>::iterator ite = predictions.begin();
 	for( ; ite != predictions.end(); ++ite ) {
 	  string str = ite->first;
@@ -121,30 +121,49 @@ class ObjectClassification {
 	  output.objects[i].category.predictions.push_back(ite->second);
 	}
       }
+      else {
+	continue;
+      }
       //double s = (cv::getTickCount() - t) / cv::getTickFrequency();
       //ROS_INFO("Classification time: %.2f (ms)", (100.0 * s));
 	       
       // Draw the result
-      if( (this->display_image_ || this->display_window_ ) && img.data ) {
+      if( this->display_image_ || this->display_window_ ) {
 
-	cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
+	//cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
 	//cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
-	//cv::Scalar color = cv::Scalar::all(64); // Dark gray
+	cv::Scalar color = cv::Scalar::all(64); // Dark gray
 
-	int x = objects_msg->objects[i].visual.point.x;
-	int y = objects_msg->objects[i].visual.point.y;
-	cv::Rect rect( cv::Point(x,y), img.size());
-	img.copyTo(result_img_(rect));
+	// Get the contour
+	std::vector<cv::Point> contour;
+	for( uint j = 0; j < objects_msg->objects[i].visual.border.contour.size(); j++) {
+	  cv::Point p( objects_msg->objects[i].visual.border.contour[j].x, objects_msg->objects[i].visual.border.contour[j].y );
+	  contour.push_back(p);
+	}
+	std::vector<std::vector<cv::Point> > contours;
+	contours.push_back(contour);
 	
+	// Draw masked image on resulting display image
+	cv::Mat mask( img.size(), CV_8U, cv::Scalar(0) );
+	cv::drawContours( mask, contours, -1, cv::Scalar(255), CV_FILLED);
+	img.copyTo( result_img_, mask);
+	cv::drawContours( result_img_, contours, -1, cv::Scalar( 32, 84, 233), 1);
+
+	int x = objects_msg->objects[i].visual.point.x + 14;
+	int y = objects_msg->objects[i].visual.point.y + 14;
+	/*
+	cv::Rect rect( cv::Point(x,y), img.size());
+	img.copyTo(result_img_(rect));	
 	cv::rectangle( result_img_, rect, color, 1);
+	*/
 	
 	std::stringstream ss;
 	ss << setprecision(2) << fixed;
-	int offset = -10 - (16 * (this->_N - 1));
+	int offset = - (16 * (this->_N - 1));
 	for( uint j = 0; j < this->_N; j++) {
 	  ss << (j+1) << ". " << output.objects[i].category.symbols[j];
 	  ss << " (" << output.objects[i].category.predictions[j] * 100.0 << "%)";
-	  cv::putText( result_img_, ss.str(), cv::Point( rect.x, rect.y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
+	  cv::putText( result_img_, ss.str(), cv::Point( x, y + offset), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 4);
 	  ss.str("");
 	  offset += 16;
 	}
@@ -164,6 +183,8 @@ class ObjectClassification {
 	*/
       }
     }
+    cv::addWeighted( img, 0.2, result_img_, 0.8, 0.0, result_img_);
+
 
     // Publish the new object array
     obj_pub_.publish(output);

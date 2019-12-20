@@ -21,11 +21,10 @@ using namespace anchoring;
 // Constructor
 AnchorManagement::AnchorManagement(ros::NodeHandle nh) : _nh(nh), _priv_nh("~") {
 
+  // ROS publisher and subscribers
   _object_sub = _nh.subscribe("/objects/classified", 10, &AnchorManagement::match, this);
   _track_sub = _nh.subscribe("/logic_anchors", 10, &AnchorManagement::track, this);
   _update_sub = _nh.subscribe("/semantic_update", 10, &AnchorManagement::update, this);
-  //_assoc_sub = _nh.subscribe("/associations", 10, &AnchorManagement::associate, this);
-
   _timed_srv = _nh.advertiseService("/anchoring/timed_request", &AnchorManagement::timedRequest, this);
   _spatial_srv = _nh.advertiseService("/anchoring/spatial_request", &AnchorManagement::spatialRequest, this);
 
@@ -73,10 +72,12 @@ void AnchorManagement::init(int threads) {
 }
 
 /* -----------------------------------------
-   Main matcher function
+
+   Main match function
    ----------------------
    Receives and process each incomming
    scene of object(s).
+
    --------------------------------------- */
 void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr ) {
 
@@ -185,10 +186,14 @@ void AnchorManagement::match( const anchor_msgs::ObjectArrayConstPtr &object_ptr
 
 
 /* -----------------------------------------
-   Main track function(s)
+
+   Main track function
+   ------------------------
+   Recives possible postions (particles) of 
+   tracked unobserved objects.
+
    --------------------------------------- */
 void AnchorManagement::track( const anchor_msgs::LogicAnchorArrayPtr &track_ptr ) {
-  ROS_WARN("Got %d logical anchor(s).", (int)track_ptr->anchors.size());
   
   // Maintain all incoming tracked objects
   ros::Time t = track_ptr->header.stamp;
@@ -239,7 +244,6 @@ void AnchorManagement::update( const anchor_msgs::SemanticAnchorArrayPtr &update
     anchoring::AttributeMap attributes;
     attributes[CATEGORY] = AttributePtr( new CategoryAttribute(update_ptr->anchors[i].category) );
     this->_anchors->track( update_ptr->anchors[i].id, attributes, t); // TRACK
-    //this->_anchors->re_acquire( update_ptr->anchors[i].id, attributes, t); // TRACK
   }
 }
 
@@ -323,108 +327,5 @@ float AnchorManagement::predict(map< string, map<anchoring::AttributeType, float
 
 }
    --------------------------------------- */
-/*
-// ---[ Track method based on data association ]---
-void AnchorManagement::associate( const anchor_msgs::LogicAssociationArrayConstPtr &associations_ptr ) {
-
-  //ROS_INFO("Got associations.");
-
-  try {
-
-    // Update (merge) anchors based on probabilistic object tracking
-    for( auto &msg: associations_ptr->associations) {
-      int idx_id = -1;
-      int idx_best = -1;
-      float best = 0.0;
-      //std::cout << "Id: " << this->_anchors->toString(msg.id) << std::endl;
-      for( uint i = 0; i < msg.associations.size(); i++) {
-	//std::cout << "Assoc: " << this->_anchors->toString(msg.associations[i]);
-	//std::cout << " (" << msg.probabilities[i] << ")" << std::endl;
-	if( msg.probabilities[i] > best ) {
-	  best = msg.probabilities[i];
-	  idx_best = i;
-	}
-	if(msg.id == msg.associations[i]){
-	  idx_id = i;
-	}
-      }
-
-      //if( msg.associations[idx] != msg.id && best > 0.5 ) {
-      if (idx_id == -1) {
-	if( best > 0.80 ) {
-	  this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
-	}
-      }
-
-      else {
-	if( msg.associations[idx_best] != msg.id && msg.probabilities[idx_id] < associations_ptr->gamma_newT && best > 0.80 ) {
-	  this->_anchors->track( msg.associations[idx_best], msg.id); // TRACK
-	}
-	else if (msg.associations[idx_best] == msg.id && best > 0.80){
-	  continue;
-	}
-      }
-    }
-  }
-  catch( const std::exception &e ) {
-    ROS_ERROR("[AnchorManagement::track]%s", e.what() );
-  }
-}
-*/
-
-
-/* -----------------------------------------
-   Process function
-   -----------------
-   Process all matches and return true in
-   case an object is re-observed.
-   ---
-   All matching values are in range
-   [0.0 1.0] (where 1.0 is a perfect match).
-   ---
-
-   Return:
-     -1 - tracked by distance
-      0 - no match
-     +1 - re-acquried by match
-   -------------------------------------- 
-int AnchorManagement::process( map< string, map<AttributeType, float> > &matches,
-			       string &id,
-			       float dist_th,
-			       float rate_th ) {
-
-  // Check the location (main feature for track)
-  float best = 0.0;
-  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-    //std::cout << "Prob. dist: " << ite->second[POSITION] << ", prob. rate: " << ite->second[IMAGE] << std::endl;
-    if( ite->second[POSITION] > best ) {
-      best = ite->second[POSITION];
-      id = ite->first;
-    }
-  }
-  if( best > dist_th ) {
-    return -1;
-  }
-
-  // Check keypoints, caffe-result, color and shape (main feature for acquire/re_acquire)
-  best = 0.0;
-  for( auto ite = matches.begin(); ite != matches.end(); ++ite) {
-
-    // ( DESCRIPTOR OR CATEGORY ) AND ( COLOR AND SIZE )
-    float rate_1 = max( ite->second[DESCRIPTOR], ite->second[CATEGORY] );
-    float rate_2 = min( ite->second[COLOR], ite->second[SIZE] );
-    float rate = min( rate_1, rate_2 );
-    if( rate > best ) {
-      best = rate;
-      id = ite->first;
-    }
-  }
-  if( best > rate_th ) {
-    return 1;
-  }
-
-  return 0;
-}
-----------------------------------*/
 
 // ---[ END ]----
