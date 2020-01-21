@@ -1,0 +1,6 @@
+<launch>
+
+  <node name="reasoning_node" pkg="reasoning" type="rel_track.py" output="screen" args="-mode=occluded_learned">
+  </node>
+
+</launch>
