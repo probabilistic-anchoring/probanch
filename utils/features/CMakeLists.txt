@@ -29,6 +29,9 @@ message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 #find_package(OpenCV REQUIRED COMPONENTS core highgui)
 #message( STATUS "Using OpenCV version: " ${OpenCV_VERSION})
 
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+catkin_python_setup()
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################

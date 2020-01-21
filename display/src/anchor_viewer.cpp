@@ -10,7 +10,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
 #include <image_geometry/pinhole_camera_model.h>
-#include <pcl_ros/transforms.h>
+//#include <pcl_ros/transforms.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -20,6 +20,11 @@
 #include <anchor_msgs/LogicAnchorArray.h>
 #include <geometry_msgs/Point.h>
 
+//#include <tf2/convert.h>
+//#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+//#include <tf2_eigen/tf2_eigen.h>
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 using namespace std;
@@ -27,39 +32,34 @@ using namespace cv;
 
 class AnchorViewer {
 
-  /* --------------
-     ROS variables
-     -------------- */
+  // ROS variables
   ros::NodeHandle _nh;
   ros::NodeHandle _priv_nh;
   image_transport::ImageTransport _it;
-  ros::Subscriber _anchor_sub;
-  ros::Subscriber _particle_sub;
-  ros::Subscriber _highlight_sub;
-  ros::Subscriber _click_sub;
+  ros::Subscriber _anchor_sub, _click_sub, _display_trigger_sub, _highlight_sub, _particle_sub;
   ros::Publisher _selected_pub;
-
-  string _display_trigger;
-  bool _display_window;
-  ros::Subscriber _display_trigger_sub;
   image_transport::Publisher _display_image_pub;
 
-  cv::Mat _img;
+  // Display variables
+  Mat _img, _icon;
+  cv::Scalar _color;
   vector<anchor_msgs::Display> _anchors;
-  string _highlight;
-  cv::Mat _icon;
+  int _counter;
+  string _display_trigger, _highlight;
+  bool _display_window;
 
   // Camera information
   image_geometry::PinholeCameraModel _cam_model;
 
   // Tranformation
-  tf::Transform _tf;
+  tf2::Stamped<tf2::Transform> _tf2;
+  //tf2::Transform _tf;
 
-  // Struct for storing a single particle
+  
+  // --[ Private struct for storing a single particle ]--
+  // -------------------------------------------------------
   struct Particle {
-    double _x;
-    double _y;
-    double _z;
+    double _x, _y, _z;
     string _color;
 
     Particle( double x, double y, double z, string color) :
@@ -76,9 +76,9 @@ class AnchorViewer {
     }
 
     Point2f getPixel( image_geometry::PinholeCameraModel &cam_model,
-		      tf::Transform &tf ) {
-      tf::Vector3 vec( _x, _y, _z);
-      vec = tf * vec;
+		      tf2::Transform &tf ) {
+      tf2::Vector3 vec( _x, _y, _z);
+      vec = tf.inverse() * vec;
       cv::Point3d pt_cv( vec.x(), vec.y(), vec.z());
       cv::Point2f p = cam_model.project3dToPixel(pt_cv);
       return p;
@@ -103,24 +103,27 @@ class AnchorViewer {
       return c;
     }
   };
+  // --[ End of struct ]----
+
+  // Private varaibles for storing particles
   vector<Particle> _particles;
   int _max_particles;
   cv::RNG _rng;
 
-  // Callback fn for web interface trigger
+  
+  // --[ Callback functions ] --
+  
+  // Callback function for handle web interface trigger
   void trigger_cb( const std_msgs::String::ConstPtr &msg) {
-    if( msg->data == "anchoring" || msg->data == "association" ) {
+    if( msg->data == "anchoring" || msg->data == "logic" ) {
       this->_display_trigger = msg->data;
     }
     else {
       this->_display_trigger = "";
     }
-    //this->_display_web_image = (msg->data == "anchoring") ? true : false;
   }
 
   // Callback function for reciving and displaying the image
-  // TMP
-  int _counter;
   void display_cb(const anchor_msgs::DisplayArrayConstPtr& msg_ptr) {
 
     // Store the image
@@ -141,15 +144,7 @@ class AnchorViewer {
     this->_cam_model.fromCameraInfo(msg_ptr->info);
 
     // Stor the transformation
-    tf::Quaternion tf_quat( msg_ptr->transform.transform.rotation.x,
-			    msg_ptr->transform.transform.rotation.y,
-			    msg_ptr->transform.transform.rotation.z,
-			    msg_ptr->transform.transform.rotation.w );
-    tf::Vector3 tf_vec( msg_ptr->transform.transform.translation.x,
-			msg_ptr->transform.transform.translation.y,
-			msg_ptr->transform.transform.translation.z );
-    this->_tf = tf::Transform( tf_quat, tf_vec);
-    this->_tf  = this->_tf.inverse();
+    tf2::fromMsg( msg_ptr->transform, this->_tf2);
     
     // Publish the resulting anchor image
     if( !this->_display_trigger.empty() ) {
@@ -160,18 +155,16 @@ class AnchorViewer {
     _counter++;
   }
 
-  // Callback function for receiving particles from the data association
+  // Callback function for receiving particles from the logical reasoner
   void particles_cb(const anchor_msgs::LogicAnchorArrayPtr& msg_ptr) {
-    //ROS_WARN("Got particles!");    
-
-    this->_particles.clear();
-    for( uint i = 0; i < msg_ptr->anchors.size(); i++) {
-      if( msg_ptr->anchors[i].color.symbols.empty() )
+    
+    this->_particles.clear();  // Clear all previosuly stored particles
+    for( auto &anchor : msg_ptr->anchors ) {
+      if( anchor.color.symbols.empty() )
         continue;
-      auto p = msg_ptr->anchors[i].particle_positions.begin();
-      //ROS_WARN("Number of particles: %d", (int)msg_ptr->anchors[i].particle_positions.size());
-      for( ; p != msg_ptr->anchors[i].particle_positions.end(); ++p ) {
-	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.y, p->data.pose.position.z, msg_ptr->anchors[i].color.symbols.front()) );
+      auto p = anchor.particle_positions.begin();
+      for( ; p != anchor.particle_positions.end(); ++p ) {
+	this->_particles.push_back( Particle( p->data.pose.position.x, p->data.pose.position.y, p->data.pose.position.z, anchor.color.symbols.front()) );
       }
     }
     if( _max_particles >= 0 ) {
@@ -179,25 +172,36 @@ class AnchorViewer {
 	this->_particles.erase( this->_particles.begin() + this->_rng.uniform( 0, (int)this->_particles.size() ) );
       }
     }
+
+    /*
+    // Print log data
+    for( auto it = _anchors.begin(); it != _anchors.end(); ++it) {
+      ROS_INFO_STREAM("Anchor: " << it->x << " - position: (" << it->pos.pose.position.x << ", " << it->pos.pose.position.y << ", " << it->pos.pose.position.y << ")");
+    }
+    ROS_INFO_STREAM("-------------------------------");
+    double x = 0.0, y = 0.0, z = 0.0, sz = (double)this->_particles.size();
+    for( auto &p : this->_particles) {
+      x += p._x;
+      y += p._y;
+      z += p._z;
+    }
+    ROS_INFO_STREAM("Mean position of particles: (" << x  / sz << ", " << y / sz << ", " << y / sz << ")");
+    ROS_INFO_STREAM("-------------------------------");
+    */
   }
 
-  // Function for processing the scene image
+  // Function for processing the scene of anchored objects
   cv::Mat anchor_img() {
 
-    // Draw the result
+    // Prepare result image(s)
     cv::Mat result_img, highlight_img;
     this->_img.copyTo(result_img);
     this->_img.copyTo(highlight_img);
-    //cv::Mat highlight_img(this->_img);
     cv::cvtColor( result_img, result_img, CV_BGR2GRAY);
     cv::cvtColor( result_img, result_img, CV_GRAY2BGR);
     result_img.convertTo( result_img, -1, 1.0, 50);
 
-    // Set contour color
-    //cv::Scalar color = cv::Scalar::all(255); // White
-    cv::Scalar color = cv::Scalar( 32, 84, 233); // Orange
-    //cv::Scalar color = cv::Scalar( 0, 0, 233); // Red
-    //cv::Scalar color = cv::Scalar::all(64); // Dark gray
+    // Iterate anchors and draw result
     for( auto ite = _anchors.begin(); ite != _anchors.end(); ++ite) {
 
       if( ite->border.contour.empty() ) {
@@ -225,98 +229,39 @@ class AnchorViewer {
 
       // Draw the object
       this->_img.copyTo( result_img, mask);
-      cv::drawContours( result_img, contours, -1, color, 1);
-      /*
-      // Draw contour or sub image
-      if( this->_display_trigger == "association" ) {
-	this->_img.copyTo( result_img, mask);
-	cv::drawContours( result_img, contours, -1, color, 1);
-      }
-      else {
-	//cv::Mat sub_img = result_img(rect);
-	//this->_img.copyTo( result_img, rect);
-	//sub_img.copyTo(result_img);
-	this->_img(rect).copyTo( result_img(rect) );
-      }
-      */
+      cv::drawContours( result_img, contours, -1, this->_color, 1);
 
       // Draw highlighted result
       if( ite->id == this->_highlight ) {
 	cv::drawContours( highlight_img, contours, -1, cv::Scalar( 0, 255, 0), CV_FILLED);
-	cv::drawContours( highlight_img, contours, -1, color, 1);
+	cv::drawContours( highlight_img, contours, -1, this->_color, 1);
       }
 
       // Print anchoring information
       if( this->_display_trigger == "anchoring" || this->_display_trigger == "both" ) {
 	int x_top = rect.x + 5, y_top = rect.y + 5;
 	int x_centre = x_top + this->_icon.cols / 2, y_centre = y_top + this->_icon.rows / 2;
-	cv::line( result_img, cv::Point( x_centre, y_centre), cv::Point( x_centre + (rect.width * 0.8), y_centre), color, 1);
+	cv::line( result_img, cv::Point( x_centre, y_centre), cv::Point( x_centre + (rect.width * 0.8), y_centre), this->_color, 1);
 	cv::circle( result_img, cv::Point( x_centre, y_centre), 10, cv::Scalar::all(255), -1);
 	this->_icon.copyTo( result_img( cv::Rect( x_top, y_top, this->_icon.cols, this->_icon.rows) ) );
-	cv::circle( result_img, cv::Point( x_centre, y_centre), 10, color, 1);
-	cv::putText( result_img, ite->x, cv::Point( rect.x + 22, rect.y + 12), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	
-	/*
-	cv::rectangle( result_img, rect, color, 1, 8);
-	cv::putText( result_img, ite->x, cv::Point( rect.x+10, rect.y+16), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	*/
-	
-	/*
-	 std::stringstream ss;
-	 ss << "Symbol: " << ite->x;
-	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 58), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 ss.str("");
-	 ss << "Category: " << ite->category << " (" << ite->prediction * 100.0 << "%)";
-	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 42), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 ss.str("");
-	 ss << "Color(s): [";
-	 for( uint i = 0; i < ite->colors.size(); i++) {
-	   ss << ite->colors[i];
-	   if( i < ite->colors.size() - 1 )
-	     ss <<",";
-	 }
-	 ss << "]";
-	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 26), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 ss.str("");
-	 ss << "Size: " << ite->size;
-	 cv::putText( result_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 cv::putText( highlight_img, ss.str(), cv::Point( rect.x, rect.y - 10), cv::FONT_HERSHEY_DUPLEX, 0.4, color, 1, 8);
-	 ss.str("");
-	*/
+	cv::circle( result_img, cv::Point( x_centre, y_centre), 10, this->_color, 1);
+	cv::putText( result_img, ite->x, cv::Point( rect.x + 22, rect.y + 12), cv::FONT_HERSHEY_DUPLEX, 0.4, this->_color, 1, 8);
       }
 
       // Draw particles
-      if( this->_display_trigger == "association" || this->_display_trigger == "both" ) {
+      if( this->_display_trigger == "logic" || this->_display_trigger == "both" ) {
 	for( uint i = 0; i < this->_particles.size(); i++) {
-	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
-	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf), 2, this->_particles[i].getColor(), -1);
+	  cv::circle( result_img, this->_particles[i].getPixel(this->_cam_model, this->_tf2), 1, this->_particles[i].getColor(), -1);
+	  cv::circle( highlight_img, this->_particles[i].getPixel(this->_cam_model, this->_tf2), 1, this->_particles[i].getColor(), -1);
 	}
 
       }
     }
     cv::addWeighted( highlight_img, 0.2, result_img, 0.8, 0.0, result_img);
     /*
-    cv::Rect roi;
-    roi.x = 280;
-    roi.y = 260;
-    roi.width = 360;
-    roi.height = 270;
-    cv::Mat crop = result_img(roi);
-    cv::rectangle( result_img, roi, color, 1);
-    */
-    /*
-    // TMP
-    cv::Rect roi;
-    roi.x = 80;
-    roi.y = 200;
-    roi.width = 320;
-    roi.height = 320;
-    cv::Mat crop = result_img(roi);
-    cv::rectangle( crop, cv::Rect( 0, 0, crop.cols, crop.rows), cv::Scalar( 32, 84, 233), 2);
-    cv::imwrite( "/home/aspo/testbed/images/" + std::to_string(_counter) + ".jpg", crop);
+    cv::Rect roi( 280, 260, 360, 270);  // x, y, w, h
+    cv::Mat crop = result_img(roi);     // Cropped images
+    cv::rectangle( result_img, roi, color, 1);   
     */
 
     // Return the result
@@ -386,8 +331,7 @@ class AnchorViewer {
   }
 
 public:
-  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh) { //,  _display_trigger("anchoring"), _max_particles(-1) {
-    _counter = 0;
+  AnchorViewer(ros::NodeHandle nh) : _nh(nh), _priv_nh("~"), _it(nh), _counter(0) { 
 
     // ROS subscriber/publisher
     _anchor_sub = _nh.subscribe("/display/anchors", 10, &AnchorViewer::display_cb, this);
@@ -408,10 +352,21 @@ public:
       this->_display_trigger = "anchoring";
     }
     if( !_priv_nh.getParam("display_window", this->_display_window) ) {
-      this->_display_window = false;
+      this->_display_window = true;
     }
-    ROS_WARN("[AnchorViewer] Display mode: '%s'", this->_display_trigger.c_str());    
-    ROS_WARN("[AnchorViewer] Number of particles: '%d'", this->_max_particles);    
+    ROS_INFO("[AnchorViewer] Display mode: '%s'", this->_display_trigger.c_str());    
+    ROS_INFO("[AnchorViewer] Max number of drawn particles: '%d'", this->_max_particles);    
+    ROS_INFO_STREAM("[AnchorViewer] Display window: " << ( this->_display_window ? "Yes" : "No" ));
+    
+    // Set used color for drawing contoru and anchor information
+    std::string color_name;
+    if( !_priv_nh.getParam("draw_color", color_name) ) {
+      color_name = "orange";
+    }
+    if( color_name == "white" )     this->_color = cv::Scalar::all(255);     // White
+    else if( color_name == "red" )  this->_color = cv::Scalar( 0, 0, 233);   // Red
+    else if( color_name == "gray" ) this->_color = cv::Scalar::all(64);      // Dark gray
+    else                            this->_color = cv::Scalar( 32, 84, 233); // Orange (default)
 
     // Create the display window
     if( this->_display_window ) {

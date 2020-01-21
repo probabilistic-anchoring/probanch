@@ -146,7 +146,6 @@ public:
     while(ros::ok() && cap.isOpened()) {
       cv::Mat img;
       cap >> img; // get a new frame from camera
-      //cv::Mat img( 100, 100, CV_8UC3, cv::Scalar(255,0,0));
 
       // Encode the image to base64
       vector<uchar> buf;

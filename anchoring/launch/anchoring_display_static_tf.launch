@@ -1,11 +1,11 @@
 <launch>
 
   <!-- Global params -->
-  <arg name="show_window" default="true"/>
+  <arg name="show_window" default="false"/>
 
 
   <!-- DSN + RRN Object segmentation node (including the Kinect) -->
-  <include file="$(find  dsn_rrn_segmentation )/launch/object_segmentation_tf_static.launch" />
+  <!-- include file="$(find  dsn_rrn_segmentation )/launch/object_segmentation_tf_static.launch" /  -->
 
 
   <!-- Feature extraction node -->
@@ -24,20 +24,22 @@
   <!-- Anchoring framework -->  
   <node name="anchor_management_node" pkg="anchoring" type="anchoring"
         output="screen">
-    <param name="db_name" type="string" value="anchortmpdb4" />
+    <!-- param name="db_name" type="string" value="anchortmpdb4" / -->
+    <param name="db_name" type="string" value="none" />
 </node>
 
 
   <!-- Reasoning system -->
   <!-- include file="$(find reasoning)/launch/reasoning.launch" / -->
+  <include file="$(find reasoning)/launch/collect_data_occluded.launch" />
 
 
-  <!-- Display anchors --> 
+  <!-- Display anchors -->
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer"
         output="screen" >
     <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="both" />
-    <param name="display_window" type="bool" value="$(arg show_window)" />
+    <param name="display_window" type="bool" value="true" />
   </node>
   
 
