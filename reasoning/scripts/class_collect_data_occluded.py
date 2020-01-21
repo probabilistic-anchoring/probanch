@@ -125,22 +125,55 @@ class CollectDataOccluded():
 
 
     def filter(self, anchor):
+        # print(anchor.category.symbols[0])
+        # print(anchor.id)
         if "glasses" in anchor.category.symbols[0:4]:
             return False
         elif "glass" in anchor.category.symbols[0:4]:
             return False
         elif "glove" in anchor.category.symbols[0:2]:
             return False
-        elif "skin" in anchor.category.symbols[0:4]:
+            if "black" in anchor.color.symbols[0:1]:
+                return False
+        #     else:
+        #         return True
+        elif "potato" in anchor.category.symbols[0:1]:
             return False
+
+        elif "keyboard" in anchor.category.symbols[0:1]:
+            return False
+        # elif "skin" in anchor.category.symbols[0:1]:
+        #     return False
+        # elif "skin" in anchor.category.symbols[0:4]:
+        #     return False
         elif "candle" in anchor.category.symbols[0:2]:
             return False
+        elif "beaker" in anchor.category.symbols[0:2]:
+            return False
+        elif "case" in anchor.category.symbols[0:2]:
+            return False
+        elif "spatual" in anchor.category.symbols[0:2]:
+            return False
+        elif "tape_measure" in anchor.category.symbols[0:2]:
+            return False
+        elif "flashlight" in anchor.category.symbols[0:1]:
+            return False
+        elif "melon" in anchor.category.symbols[0:1]:
+            return False
+        elif "bean" in anchor.category.symbols[0:1]:
+            return False
+        # elif "mango" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "squash" in anchor.category.symbols[0:2]:
         #     return False
         # elif not anchor.category.symbols:
         #     return False
+
         else:
+            print(anchor.category.symbols[0], anchor.color.symbols[0],anchor.id)
             return True
+
+
 
 
     def collect_data(self, anchors_observed):
@@ -201,7 +234,7 @@ class CollectDataOccluded():
     def process_data(self):
         if self.previous:
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            data_dir = os.path.join(dir_path, "data","learn_occluded_by_data")
+            data_dir = os.path.join(dir_path, "data","learn_occluded_by_data_frontiers")
             if not os.path.exists(data_dir):
                 os.makedirs(data_dir)
             data_file = os.path.join(data_dir, "run{}_time{}.pickle".format(self.current.run, self.current.time))
@@ -209,9 +242,9 @@ class CollectDataOccluded():
 
 
             if self.current.time>0:
-                with open(data_file, 'wb') as handle:
-                    pass
-                    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pass
+                # with open(data_file, 'wb') as handle:
+                #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             # if self.current.flag_to_occluded:
             #     self.flag_process_data = False

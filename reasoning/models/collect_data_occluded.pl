@@ -11,7 +11,7 @@ builtin(varQ(_)).
 builtin(cov(_,_,_)).
 
 deltaT(0.2).
-varQ(0.001).
+varQ(0.0001).
 
 % http://webee.technion.ac.il/people/shimkin/Estimation09/ch8_target.pdf page 3
 cov(2,[Cov11,Cov12,Cov21,Cov22],VarQ) :-
@@ -57,6 +57,8 @@ anchor(A_ID):t+1 <-
 occluded_by(A_ID,A_ID_occluder):t+1 <-
    observed(A_ID):t,
    \+observed(A_ID):t+1,
+   category(A_ID):t~=Cat,
+   \+member(Cat, [glove, skin,book]),
    pick_occluder(A_ID):t+1 ~= A_ID_occluder.
 occluded_by(A_ID,A_ID_occluder):t+1 <-
    anchor(A_ID):t,
@@ -71,7 +73,7 @@ pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    \+observed(A_ID):t+1,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3), Occluders),
-   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.1, Z1<ZH+0.1), Occluders),
+   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2+(Z1-ZH)^2), D<0.15, Z1<ZH+0.05), Occluders),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_)), Occluders),
    % writeln(Occluders),
    % writeln(Occluders),

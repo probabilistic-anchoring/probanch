@@ -1,6 +1,6 @@
 <launch>
 
-  <node name="reasoning_node" pkg="reasoning" type="rel_track.py" output="screen" args="-mode=collect_data_occluded -run=0">
+  <node name="reasoning_node" pkg="reasoning" type="rel_track.py" output="screen" args="-mode=collect_data_occluded -run=10">
   </node>
 
 </launch>
