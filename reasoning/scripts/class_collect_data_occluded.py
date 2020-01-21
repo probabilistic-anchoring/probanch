@@ -53,8 +53,8 @@ class CollectDataOccluded():
         self.ddc.step(observations);
 
         la_array = self.make_LogicAnchorArray(msg.anchors)
-        # self.collect_data(msg.anchors)
-        # self.process_data()
+        self.collect_data(msg.anchors)
+        self.process_data()
         self.logic_anchors_publisher.publish(la_array)
 
 
@@ -170,7 +170,7 @@ class CollectDataOccluded():
         #     return False
 
         else:
-            print(anchor.category.symbols[0], anchor.color.symbols[0],anchor.id)
+            # print(anchor.category.symbols[0], anchor.color.symbols[0],anchor.id)
             return True
 
 
@@ -234,7 +234,9 @@ class CollectDataOccluded():
     def process_data(self):
         if self.previous:
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            data_dir = os.path.join(dir_path, "data","learn_occluded_by_data_frontiers")
+            # data_dir = os.path.join(dir_path, "data","learn_occluded_by_data_frontiers")
+            data_dir = os.path.join(dir_path, "data","working_example")
+
             if not os.path.exists(data_dir):
                 os.makedirs(data_dir)
             data_file = os.path.join(data_dir, "run{}_time{}.pickle".format(self.current.run, self.current.time))
