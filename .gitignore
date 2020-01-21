@@ -26,3 +26,4 @@ img/
 CATKIN_IGNORE
 perceptual_pipeline/iai_kinect2/kinect2_bridge/data
 *.pickle
+*.zip

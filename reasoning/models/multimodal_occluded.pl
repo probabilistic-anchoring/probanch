@@ -67,19 +67,21 @@ occluded_by(A_ID,A_ID_occluder):t+1 <-
    \+observed(A_ID):t+1,
    anchor(A_ID_occluder):t+1.
 
+
+is_occluder(A_ID):t+1 <-
+   anchor(A_ID):t+1,
+   observed(A_ID):t+1,
+   category(A_ID):t ~= C,
+   member(C,[box,mug,block]).
+
 pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    anchor(A_ID):t,
    observed(A_ID):t,
    \+observed(A_ID):t+1,
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
-   % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.3), Occluders),
-   findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2+(Z1-ZH)^2), D<0.12, Z1<ZH+0.1), Occluders),
-   % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_)), Occluders),
-   % writeln(Occluders),
-   % writeln(Occluders),
+   % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2+(Z1-ZH)^2), D<0.15, Z1<ZH+0.5), Occluders),
+   findall_forward(H, (observed(H):t+1, is_occluder(H):t+1), Occluders),
    \+Occluders=[].
-
-
 
 
 

@@ -31,10 +31,9 @@ class AnchorInfo(object):
         self.occluded = occluded
 
 
-class CollectDataOccluded():
+class MultimodalOccluded():
 
-    def __init__(self, model_file, n_samples, run):
-        self.run = run
+    def __init__(self, model_file, n_samples):
         self.previous = {}
         self.current = {}
         self.ddc = DDC(model_file, n_samples)
@@ -53,8 +52,6 @@ class CollectDataOccluded():
         self.ddc.step(observations);
 
         la_array = self.make_LogicAnchorArray(msg.anchors)
-        self.collect_data(msg.anchors)
-        self.process_data()
         self.logic_anchors_publisher.publish(la_array)
 
 
@@ -132,14 +129,10 @@ class CollectDataOccluded():
         elif "glass" in anchor.category.symbols[0:4]:
             return False
         elif "glove" in anchor.category.symbols[0:2]:
-            return False
             if "black" in anchor.color.symbols[0:1]:
                 return False
-        #     else:
-        #         return True
-        elif "potato" in anchor.category.symbols[0:1]:
-            return False
-
+            else:
+                return False
         elif "keyboard" in anchor.category.symbols[0:1]:
             return False
         # elif "skin" in anchor.category.symbols[0:1]:
@@ -158,10 +151,8 @@ class CollectDataOccluded():
             return False
         elif "flashlight" in anchor.category.symbols[0:1]:
             return False
-        elif "melon" in anchor.category.symbols[0:1]:
-            return False
-        elif "bean" in anchor.category.symbols[0:1]:
-            return False
+        # elif "melon" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "mango" in anchor.category.symbols[0:1]:
         #     return False
         # elif "squash" in anchor.category.symbols[0:2]:
@@ -170,85 +161,5 @@ class CollectDataOccluded():
         #     return False
 
         else:
-            # print(anchor.category.symbols[0], anchor.color.symbols[0],anchor.id)
+            # print(anchor.category.symbols[0], anchor.color.symbols[0])
             return True
-
-
-
-
-    def collect_data(self, anchors_observed):
-        time_step = self.ddc.querylist("T", "(current(time(T)))")
-        time_step = int(list(time_step.keys())[0].decode("UTF-8"))
-
-        anchor_ids = self.ddc.querylist("A_ID", "(current(anchor(A_ID)))")
-        anchor_ids = [a_id.decode("UTF-8") for a_id in anchor_ids.keys()]
-        self.current = State(time_step, self.run)
-        flag_to_occluded = False
-        for a_id in anchor_ids:
-            position_mean_std = self.collect_position(a_id)
-            observed = self.collect_observed(a_id)
-            occluded_by = self.collect_occluded_by(a_id)
-            if occluded_by:
-                flag_to_occluded = True
-            self.current.anchors[a_id] = AnchorInfo(position_mean_std, observed, occluded_by)
-        self.current.flag_to_occluded = flag_to_occluded
-
-    def collect_position(self, a_id):
-        particle_coordinates = self.ddc.querylist("(X,Y,Z)", "(current(rv('{A_ID}'))~=(X,_,Y,_,Z,_))".format(A_ID=a_id))
-        particle_coordinates = [pc.decode("UTF-8") for pc in particle_coordinates.keys()]
-        x_pos = []
-        y_pos = []
-        z_pos = []
-        for rv in particle_coordinates:
-            rv = rv.strip("'").split(",")
-            x_pos.append(float(rv[0]))
-            y_pos.append(float(rv[1]))
-            z_pos.append(float(rv[2]))
-
-        x_pos = np.array(x_pos)
-        y_pos = np.array(y_pos)
-        z_pos = np.array(z_pos)
-
-        x_mean = x_pos.mean()
-        y_mean = y_pos.mean()
-        z_mean = z_pos.mean()
-
-        x_std = x_pos.std()
-        y_std = y_pos.std()
-        z_std = z_pos.std()
-        return ((x_mean, x_std), (y_mean, y_std), (z_mean, z_std))
-
-    def collect_observed(self, a_id):
-        observed = self.ddc.query("(current(observed('{A_ID}')))".format(A_ID=a_id))
-        return observed
-
-
-    def collect_occluded_by(self, a_id):
-        occluded_by = self.ddc.querylist("A_Occluder", "(current(occluded_by('{A_ID}',A_Occluder)))".format(A_ID=a_id))
-        if not occluded_by.keys():
-            return None
-        else:
-            occluded_by=  {k.decode("UTF-8"):v for k,v in occluded_by.items()}
-            return occluded_by
-
-    def process_data(self):
-        if self.previous:
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            # data_dir = os.path.join(dir_path, "data","learn_occluded_by_data_frontiers")
-            data_dir = os.path.join(dir_path, "data","working_example")
-
-            if not os.path.exists(data_dir):
-                os.makedirs(data_dir)
-            data_file = os.path.join(data_dir, "run{}_time{}.pickle".format(self.current.run, self.current.time))
-            data = {"current": self.current, "previous": self.previous}
-
-
-            if self.current.time>0:
-                pass
-                # with open(data_file, 'wb') as handle:
-                #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-            # if self.current.flag_to_occluded:
-            #     self.flag_process_data = False
-
-        self.previous = self.current

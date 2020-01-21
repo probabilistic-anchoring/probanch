@@ -36,6 +36,18 @@ if __name__ == "__main__":
         from class_collect_data_occluded import CollectDataOccluded
         model_file = os.path.join(path, 'models/collect_data_occluded.pl')
         rel_track = CollectDataOccluded(model_file, N_SAMPLES, RUN)
+    elif args['mode']=="occluded_learned":
+        from occluded_learned import OccludedLearned
+        model_file = os.path.join(path, 'models/occluded_learned.pl')
+        rel_track = OccludedLearned(model_file, N_SAMPLES)
+    elif args["mode"]=="multimodal_occluded":
+        from multimodal_occluded import MultimodalOccluded
+        model_file = os.path.join(path, 'models/multimodal_occluded.pl')
+        rel_track = MultimodalOccluded(model_file, N_SAMPLES)
+    elif args["mode"]=="occluded":
+        from occluded import Occluded
+        model_file = os.path.join(path, 'models/occluded.pl')
+        rel_track = Occluded(model_file, N_SAMPLES)
     # if args['mode']=="shellgame":
     #     from class_shellgame import Shellgame
     #     model_file = os.path.join(path, 'models/shellgame.pl')
