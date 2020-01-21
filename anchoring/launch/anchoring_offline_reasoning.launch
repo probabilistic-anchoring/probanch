@@ -21,5 +21,7 @@
   <include file="$(find display)/launch/web_interface.launch" />
   -->
 
+  <!-- Include the data collection reasoner -->
+  <include file="$(find reasoning)/launch/occluded.launch" />
 
 </launch>
