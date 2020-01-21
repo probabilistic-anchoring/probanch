@@ -11,14 +11,21 @@ import argparse
 import cv2
 
 # Global parameters
-x = 220 # 160 # 200
-y = 300 # 280 # 200
-width = 400 # 400 # 320
-height = 220 # 240 # 320
+#x = 220 # 160 # 200
+#y = 300 # 280 # 200
+#width = 400 # 400 # 320
+#height = 220 # 240 # 320
 
 # Function for processing a video strean frame by frame
-def processVideo(path, fname):
+def processVideo(path, fname, region):
 
+    # Try to get the region of interest (x, y, width, height)
+    try:
+        x, y, width, height = eval(region)
+    except ValueError as e:
+        print('[Video] Could not parse region of interest: %s' % str(e))
+        return
+    
     # Open the video stream
     cap = cv2.VideoCapture(path + '/videos/' + fname)
     if not cap.isOpened():
@@ -54,7 +61,6 @@ def processVideo(path, fname):
  
         # 'Save' the frame
         if paused and (key == ord('S') or key == ord('s')):
-            print("HERE!")
 
             # Create folder (if it does not exist)
             if not os.path.exists(path + '/images'):
@@ -94,6 +100,7 @@ def main():
     # Parse arguments    
     parser = argparse.ArgumentParser(description="Anchor video processing.")
     parser.add_argument('-n', '--name', type=str, required=True)
+    parser.add_argument('-r', '--region', type=str, required=True)
     args = parser.parse_args()
 
     # Get the file path for this package
@@ -101,7 +108,7 @@ def main():
     path = rospack.get_path('display')
 
     # Call the video processing function
-    processVideo(path, args.name)    
+    processVideo(path, args.name, args.region)    
 
 if __name__ == '__main__':
     main()
