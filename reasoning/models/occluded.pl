@@ -58,15 +58,8 @@ occluded_by(A_ID,A_ID_occluder):t+1 <-
    observed(A_ID):t,
    \+observed(A_ID):t+1,
    category(A_ID):t~=Cat,
-   \+member(Cat, [glove, skin,book]),
+   \+member(Cat, [glove, skin]),
    pick_occluder(A_ID):t+1 ~= A_ID_occluder.
-occluded_by(A_ID,A_ID_occluder):t+1 <-
-   anchor(A_ID):t,
-   anchor(A_ID_occluder):t,
-   occluded_by(A_ID,A_ID_occluder):t,
-   \+observed(A_ID):t+1,
-   anchor(A_ID_occluder):t+1.
-
 pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    anchor(A_ID):t,
    observed(A_ID):t,
@@ -74,8 +67,23 @@ pick_occluder(A_ID):t+1 ~ uniform(Occluders) <-
    rv(A_ID):t ~= (X1,_,Y1,_,Z1,_),
    % findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2+(Z1-ZH)^2), D<0.15, Z1<ZH+0.5), Occluders),
    findall_forward(H, (observed(H):t+1, rv(H):t+1~=(XH,_,YH,_,ZH,_), D is sqrt((X1-XH)^2+(Y1-YH)^2), D<0.12, Z1<ZH+0.1), Occluders),
-
    \+Occluders=[].
+
+
+occluded_by(A_ID,A_ID_occluder):t+1 <-
+   anchor(A_ID):t,
+   anchor(A_ID_occluder):t,
+   occluded_by(A_ID,A_ID_occluder):t,
+   \+observed(A_ID):t+1,
+   observed(A_ID_occluder):t+1.
+
+occluded_by(A_ID,A_ID_occluder):t+1 <-
+   anchor(A_ID):t,
+   anchor(A_ID_occluder):t,
+   occluded_by(A_ID,A_ID_occluder):t,
+   \+observed(A_ID):t+1,
+   \+observed(A_ID_occluder):t+1,
+   occluded_by(A_ID_occluder,_):t+1.
 
 
 
@@ -116,11 +124,18 @@ rv(A_ID):t+1 ~ indepGaussians([ ([O_x,0],Cov), ([O_y,0],Cov), ([O_z,0],Cov) ]) <
 	varQ(VarQ),
 	VarQ1 is VarQ/3,
 	cov(1,Cov,VarQ1).
-rv(A_ID):t+1 ~ val((R_x,V_x,R_y,V_y,R_z,V_z)) <-
+
+noisy(_,_,Pos):t+1 ~ gaussian(Pos,0.00005) <- true.
+rv(A_ID):t+1 ~ val((X,V_x,Y,V_y,Z,V_z)) <-
    anchor(A_ID):t,
    anchor(A_ID):t+1,
    occluded_by(A_ID,A_ID_Occluder):t+1,
-	rv(A_ID_Occluder):t+1 ~= (R_x,V_x,R_y,V_y,R_z,V_z).
+	rv(A_ID_Occluder):t+1 ~= (R_x,V_x,R_y,V_y,R_z,V_z),
+   noisy(A_ID,x,R_x):t+1 ~= X,
+   noisy(A_ID,y,R_y):t+1 ~= Y,
+   noisy(A_ID,z,R_z):t+1 ~= Z.
+
+
 
 
 
