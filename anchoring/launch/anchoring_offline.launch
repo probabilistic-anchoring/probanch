@@ -11,7 +11,7 @@
 
   <!-- Display anchors -->
   <node name="anchor_viewer_node" pkg="display" type="anchor_viewer" output="screen">
-    <param name="max_particles" type="int" value="-1" />
+    <param name="max_particles" type="int" value="200" />
     <param name="display_mode" type="string" value="both" />
     <param name="display_window" type="bool" value="$(arg show_window)" />
 
