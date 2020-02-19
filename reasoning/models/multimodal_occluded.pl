@@ -58,7 +58,7 @@ occluded_by(A_ID,A_ID_occluder):t+1 <-
    observed(A_ID):t,
    \+observed(A_ID):t+1,
    category(A_ID):t~=Cat,
-   \+member(Cat, [glove, skin,book]),
+   \+member(Cat, [glove, skin, book,mug,box]),
    pick_occluder(A_ID):t+1 ~= A_ID_occluder.
 occluded_by(A_ID,A_ID_occluder):t+1 <-
    anchor(A_ID):t,

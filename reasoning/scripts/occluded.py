@@ -135,8 +135,8 @@ class Occluded():
                 return False
         elif "keyboard" in anchor.category.symbols[0:1]:
             return False
-        elif "skin" in anchor.category.symbols[0:1]:
-            return False
+        # elif "skin" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "skin" in anchor.category.symbols[0:4]:
         #     return False
         elif "candle" in anchor.category.symbols[0:2]:

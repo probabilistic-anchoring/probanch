@@ -132,14 +132,10 @@ class CollectDataOccluded():
         elif "glass" in anchor.category.symbols[0:4]:
             return False
         elif "glove" in anchor.category.symbols[0:2]:
-            return False
             if "black" in anchor.color.symbols[0:1]:
                 return False
-        #     else:
-        #         return True
-        elif "potato" in anchor.category.symbols[0:1]:
-            return False
-
+            else:
+                return False
         elif "keyboard" in anchor.category.symbols[0:1]:
             return False
         # elif "skin" in anchor.category.symbols[0:1]:
@@ -158,16 +154,16 @@ class CollectDataOccluded():
             return False
         elif "flashlight" in anchor.category.symbols[0:1]:
             return False
-        elif "melon" in anchor.category.symbols[0:1]:
-            return False
-        elif "bean" in anchor.category.symbols[0:1]:
-            return False
+        # elif "melon" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "mango" in anchor.category.symbols[0:1]:
         #     return False
         # elif "squash" in anchor.category.symbols[0:2]:
         #     return False
         # elif not anchor.category.symbols:
         #     return False
+        elif "key" in anchor.category.symbols[0:1]:
+            return False
 
         else:
             # print(anchor.category.symbols[0], anchor.color.symbols[0],anchor.id)
@@ -245,8 +241,8 @@ class CollectDataOccluded():
 
             if self.current.time>0:
                 pass
-                # with open(data_file, 'wb') as handle:
-                #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                with open(data_file, 'wb') as handle:
+                    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             # if self.current.flag_to_occluded:
             #     self.flag_process_data = False

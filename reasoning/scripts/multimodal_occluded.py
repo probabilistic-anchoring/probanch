@@ -43,6 +43,9 @@ class MultimodalOccluded():
         self.logic_anchors_publisher = rospy.Publisher('logic_anchors', LogicAnchorArray, queue_size=10)
 
 
+        # for debugging
+        self.seen = {}
+
     # New callback function for removing anchors (from DDC database)
     def remove_anchors(self, msg):
         self.anchors_to_remove += msg.ids
@@ -124,33 +127,39 @@ class MultimodalOccluded():
     def filter(self, anchor):
         # print(anchor.category.symbols[0])
         # print(anchor.id)
-        if "glasses" in anchor.category.symbols[0:4]:
-            return False
-        elif "glass" in anchor.category.symbols[0:4]:
-            return False
-        elif "glove" in anchor.category.symbols[0:2]:
-            if "black" in anchor.color.symbols[0:1]:
-                return False
-            else:
-                return False
-        elif "keyboard" in anchor.category.symbols[0:1]:
-            return False
+        if False:
+            pass
+        # elif "glasses" in anchor.category.symbols[0:4]:
+        #     return False
+        # elif "glass" in anchor.category.symbols[0:4]:
+        #     return False
+        # elif "glove" in anchor.category.symbols[0:2]:
+        #     if "black" in anchor.color.symbols[0:1]:
+        #         return False
+        #     else:
+        #         return False
+        # elif "keyboard" in anchor.category.symbols[0:1]:
+        #     return False
+        # elif "key" in anchor.category.symbols[0:1]:
+        #     return False
+        # elif "bag" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "skin" in anchor.category.symbols[0:1]:
         #     return False
         # elif "skin" in anchor.category.symbols[0:4]:
         #     return False
-        elif "candle" in anchor.category.symbols[0:2]:
-            return False
-        elif "beaker" in anchor.category.symbols[0:2]:
-            return False
-        elif "case" in anchor.category.symbols[0:2]:
-            return False
-        elif "spatual" in anchor.category.symbols[0:2]:
-            return False
-        elif "tape_measure" in anchor.category.symbols[0:2]:
-            return False
-        elif "flashlight" in anchor.category.symbols[0:1]:
-            return False
+        # elif "candle" in anchor.category.symbols[0:2]:
+        #     return False
+        # elif "beaker" in anchor.category.symbols[0:2]:
+        #     return False
+        # elif "case" in anchor.category.symbols[0:2]:
+        #     return False
+        # elif "spatual" in anchor.category.symbols[0:2]:
+        #     return False
+        # elif "tape_measure" in anchor.category.symbols[0:2]:
+        #     return False
+        # elif "flashlight" in anchor.category.symbols[0:1]:
+        #     return False
         # elif "melon" in anchor.category.symbols[0:1]:
         #     return False
         # elif "mango" in anchor.category.symbols[0:1]:
@@ -159,7 +168,17 @@ class MultimodalOccluded():
         #     return False
         # elif not anchor.category.symbols:
         #     return False
-
+        # elif "speaker" in anchor.category.symbols[0:1]:
+        #     return False
+        elif "egg" in anchor.category.symbols[0:1]:
+            return False
+        elif "key" in anchor.category.symbols[0:1]:
+            return False
         else:
-            # print(anchor.category.symbols[0], anchor.color.symbols[0])
+            if not anchor.id in self.seen:
+                self.seen[anchor.id] = (anchor.category.symbols[0], anchor.color.symbols[0], anchor.size.data.x, anchor.size.data.y, anchor.size.data.z)
+                print(self.seen[anchor.id])
+
+            else:
+                pass
             return True
