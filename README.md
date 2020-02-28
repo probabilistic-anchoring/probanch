@@ -1,23 +1,20 @@
 # **ProbAnch**: a Probabilistic Perceptual Anchoring Framework #
 
-This repository contains the source code of the **anchoring framework** used to *" ...create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
+This repository contains the source code of the **anchoring framework** used to *" [...] create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
+
+Here is a short demo:
 
 
+[![ProbAnch - Transitive Occlusion](screenshot_transitive.png)](https://vimeo.com/388874421 "ProbAnch - Transitive Occlusion")
 
 
-<!-- <a href="{https://player.vimeo.com/video/388874421}" title="Transitive Occlusion"><img src="{image-url}" alt="Transitive Occlusion" /></a> -->
-
-[![ProbAnch - Transitive Occlusion](http://i.imgur.com/7YTMFQp.png)](https://vimeo.com/388874421 "ProbAnch - Transitive Occlusion")
+More videos available [here](https://vimeo.com/manage/folders/1365568#).
 
 
-<!-- <iframe src="https://player.vimeo.com/video/388874421" width="640" height="564" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe> -->
-
-<iframe  title="YouTube video player" width="480" height="390" src="http://www.youtube.com/watch?v=TheVideoID?autoplay=1" frameborder="0" allowfullscreen></iframe>
-
-
-## References ##
+## Papers ##
 
 __[1]__ A. Persson, P. Zuidberg Dos Martires, L. De Raedt and A. Loutfi: [Semantic Relational Object Tracking](https://arxiv.org/abs/1902.09937). In: IEEE Transactions on Cognitive and Developmental Systems, 2019.
+
 __[2]__ P. Zuidberg Dos Martires, A. Persson, N. Kumar, A. Loutfi and L. De Raedt  [Symbolic Learning and Reasoning with Noisy Data for Probabilistic Anchoring](https://arxiv.org/abs/2002.10373)
 
 
@@ -35,7 +32,14 @@ The overall system is divided into the following subfolders, which each contains
 * [**reasoning**](https://bitbucket.org/reground/anchoring/src/master/reasoning/): a package that handles the logical reasoning.
 * [**utils**](https://bitbucket.org/reground/anchoring/src/master/utils/): a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
 <!-- * [**bagfiles**](https://bitbucket.org/reground/anchoring/src/master/bagfiles/): contains a couple of example bagfiles (should, however, be kept as a minimal folder in order to prevent the repository to exceed the storage capacity). -->
-_____________________
+
+
+
+<object data="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf" type="application/pdf" width="700px" height="700px">
+    <embed src="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf">
+        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf">Download PDF</a>.</p>
+    </embed>
+</object>_____________________
 
 
 ## Dependencies ##
