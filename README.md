@@ -34,12 +34,10 @@ The overall system is divided into the following subfolders, which each contains
 <!-- * [**bagfiles**](https://bitbucket.org/reground/anchoring/src/master/bagfiles/): contains a couple of example bagfiles (should, however, be kept as a minimal folder in order to prevent the repository to exceed the storage capacity). -->
 
 
+A schematic overview of the **ProbAnch** framework taken from [[2]](#markdown-header-references):
 
-<object data="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf">
-        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="https://github.com/probabilistic-anchoring/probanch/system_overview.pdf">Download PDF</a>.</p>
-    </embed>
-</object>_____________________
+![alt text](system_overview.png)
+_____________________
 
 
 ## Dependencies ##
