@@ -7,10 +7,12 @@ This repository contains the source code of the **anchoring framework** used to 
 
 <!-- <a href="{https://player.vimeo.com/video/388874421}" title="Transitive Occlusion"><img src="{image-url}" alt="Transitive Occlusion" /></a> -->
 
+[![ProbAnch - Transitive Occlusion](http://i.imgur.com/7YTMFQp.png)](https://vimeo.com/388874421 "ProbAnch - Transitive Occlusion")
 
 
+<!-- <iframe src="https://player.vimeo.com/video/388874421" width="640" height="564" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe> -->
 
-<iframe src="https://player.vimeo.com/video/388874421" width="640" height="564" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+<iframe  title="YouTube video player" width="480" height="390" src="http://www.youtube.com/watch?v=TheVideoID?autoplay=1" frameborder="0" allowfullscreen></iframe>
 
 
 ## References ##
