@@ -30,10 +30,13 @@ int main(int argc, char* argv[]) {
   }
   int ite = atoi(argv[1]);
   std::cout << "Running " << ite << " iteratons... " << std::endl; 
-
-  // Read all samples from DB
+  
   cv::Mat data, labels;
-  //machine::read( "anchorexp2", "dataset", data, labels);
+
+  // Read all samples from JSON file
+  // machine::file2data( data, labels, "reground_dataset.json", "./");
+  
+  // Read all samples from DB
   machine::read( "anchorexpC", "dataset", data, labels);
   std::cout<< "Total samples: " << data.rows << "x" << data.cols << std::endl;
   std::cout<< "Total labels: " << labels.rows << "x" << labels.cols << std::endl;
@@ -45,16 +48,16 @@ int main(int argc, char* argv[]) {
     std::cout<< "Filtered total samples: " << data.rows << "x" << data.cols << std::endl;
     std::cout<< "---" << std::endl;
   }
-  //machine::filter( data, data, 0);
+
+  // Write data to JSON file
   machine::write2file( data, labels, "reground_dataset.json", "./");
   
   // Randomly distribute the data
-  //cv::Mat distData, distLabels;
-  //machine::distribute( data, labels, distData, distLabels, 100);
+  // cv::Mat distData, distLabels;
+  // machine::distribute( data, labels, distData, distLabels, 100);
   
   // Split the data into traning and test data
   cv::Mat trainData, trainLabels, testData, testLabels;
-  //machine::split( distData, distLabels, trainData, trainLabels, testData, testLabels, 0.7);
   machine::split( data, labels, trainData, trainLabels, testData, testLabels, 0.7);
   std::cout<< "Traning samples: " << trainLabels.rows << std::endl;
   std::cout<< "Test samples: " << testData.rows << std::endl;
@@ -110,11 +113,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Accuracy (" << classifier.first <<"): " << stats[classifier.first].getAccuracy(x) << std::endl;
       }
     }
-    /*
-    if( (x+1) % 10 == 0 ) {
-      std::cout << "--------" << std::endl;
-    }
-    */
+
     // Reset the model each classifer
     for( auto &classifier : classifiers) {
       classifier.second = machine::create(classifier.first);
@@ -138,5 +137,4 @@ int main(int argc, char* argv[]) {
     */
     std::cout << "---------" << std::endl;
   }
-
 }

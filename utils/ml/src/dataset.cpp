@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <ml/ml.hpp>
 #include <database/database.hpp>
@@ -161,7 +163,7 @@ namespace machine {
   }
 
   // ---[ Write the dataset to file (in JSON format) ]---
-  // ---------------------------------------------
+  // ----------------------------------------------------
   void write2file( const Mat &data, const Mat &labels,
 		   std::string f_name, std::string path) {
 
@@ -191,6 +193,38 @@ namespace machine {
     }
     else {
       cout << "[ml::write2file]" << " Unable to open file: " << path + "/" + f_name << endl;
+    }
+  }
+
+    // ---[ Read dataset from file (in JSON format) ]---
+  // ----------------------------------------------------
+  void file2data( Mat &data, Mat &labels,
+		  std::string f_name, std::string path) {
+    namespace pt = boost::property_tree;
+    try {
+      pt::ptree root;                // Creates a root
+      pt::read_json(path + "/" + f_name, root);  // Loads the json file in this ptree
+
+      // Read data
+      for (pt::ptree::value_type& rowPair : root.get_child("data")) {
+	vector<float> r;
+	for ( pt::ptree::value_type& itemPair : rowPair.second) {
+	  r.push_back(itemPair.second.get_value<float>());
+	}
+	Mat1f row(Mat1f(r).t());
+	data.push_back(row);
+      }
+
+      // Read labels
+      for (pt::ptree::value_type& itemPair : root.get_child("targets")) {
+	vector<float> r;
+	r.push_back(itemPair.second.get_value<float>());
+	Mat1f row(Mat1f(r).t());
+	labels.push_back(row);
+      }
+    }
+    catch(...) {
+      cout << "[ml::file2data]" << " Unable to open file: " << path + "/" + f_name << endl;
     }
   }
 

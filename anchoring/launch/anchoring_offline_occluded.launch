@@ -22,6 +22,6 @@
   -->
 
   <!-- Include the data collection reasoner -->
-  <include file="$(find reasoning)/launch/occluded.launch" />
+  <include file="$(find reasoning)/launch/multimodal_occluded.launch" />
 
 </launch>

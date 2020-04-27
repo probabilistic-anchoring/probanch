@@ -141,6 +141,8 @@ namespace machine {
 		  Mat &distData, Mat &distLabels, int k = 800);
   void write2file(const Mat &data, const Mat &labels,
 		  std::string f_name, std::string path = "");
+  void file2data(Mat &data, Mat &labels,
+		 std::string f_name, std::string path = "");
 
 } // namespace 'machine'
 
