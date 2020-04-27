@@ -1,23 +1,48 @@
-# The Anchoring Framework #
+# **ProbAnch**: a Probabilistic Perceptual Anchoring Framework #
 
-This repository contains the source code of the **anchoring framework** used to *" ...create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
+This repository contains the source code of the **anchoring framework** used to *" [...] create and maintain the correspondence between symbols and sensor data that refer to the same physical objects"*, as described in [[1]](#markdown-header-references). The overall framework is a modularized framework consisting of several individual programs which are utilizing the infrastructure and communication protocols found in the [ROS (Robot Operating System)](http://wiki.ros.org/) environment.
 
-The overall system is (or it will eventually be) divided into the following subfolders, which each contains one or many individual ROS packages:
+Here is a short demo:
+
+
+[![ProbAnch - Transitive Occlusion](screenshot_transitive.png)](https://vimeo.com/388874421 "ProbAnch - Transitive Occlusion")
+
+
+More videos available [here](https://vimeo.com/manage/folders/1365568#).
+
+
+## Papers ##
+
+__[1]__ A. Persson, P. Zuidberg Dos Martires, L. De Raedt and A. Loutfi: [Semantic Relational Object Tracking](https://arxiv.org/abs/1902.09937). In: IEEE Transactions on Cognitive and Developmental Systems, 2019.
+
+__[2]__ P. Zuidberg Dos Martires, A. Persson, N. Kumar, A. Loutfi and L. De Raedt  [Symbolic Learning and Reasoning with Noisy Data for Probabilistic Anchoring](https://arxiv.org/abs/2002.10373)
+
+
+
+
+## Framework Architecture ##
+
+The overall system is divided into the following subfolders, which each contains one or many individual ROS packages:
 
 * [**anchoring**](https://bitbucket.org/reground/anchoring/src/master/anchoring/): the main anchoring management system.
-* [**bagfiles**](https://bitbucket.org/reground/anchoring/src/master/bagfiles/): contains a couple of example bagfiles (should, however, be kept as a minimal folder in order to prevent the repository to exceed the storage capacity).
 * [**display**](https://bitbucket.org/reground/anchoring/src/master/display/): a package used for displaying of the results, both resulting anchors and intermediate results throughout the perceptual pipeline.
 * [**grounding**](https://bitbucket.org/reground/anchoring/src/master/grounding/): contains (currently) only a ROS wrapper for the Caffe framework for object classification.
-* [**messagea**](https://bitbucket.org/reground/anchoring/src/master/messages/): a folder for separate package(s) for all anchor specific ROS messages.
+* [**messages**](https://bitbucket.org/reground/anchoring/src/master/messages/): a folder for separate package(s) for all anchor specific ROS messages.
 * [**perception**](https://bitbucket.org/reground/anchoring/src/master/perception/): a seperate folder for all package for handling and processing of sensor data (e.g., object segmentation, feature extraction, etc.).
 * [**reasoning**](https://bitbucket.org/reground/anchoring/src/master/reasoning/): a package that handles the logical reasoning.
 * [**utils**](https://bitbucket.org/reground/anchoring/src/master/utils/): a package of libraries and tools, e.g. a separate wrapper library for accessing a MongoDB database.
+<!-- * [**bagfiles**](https://bitbucket.org/reground/anchoring/src/master/bagfiles/): contains a couple of example bagfiles (should, however, be kept as a minimal folder in order to prevent the repository to exceed the storage capacity). -->
+
+
+A schematic overview of the **ProbAnch** framework taken from [[2]](#markdown-header-references):
+
+![alt text](system_overview.png)
 _____________________
 
 
 ## Dependencies ##
 
-The code has been written and tested in both Ubuntu 16.04 (Xenial) together with ROS Kinetic, as well as Ubuntu 18.04 (Bionic) together with ROS Melodic. However, the code does not have any OS- or ROS-specific dependencies (except for standard libraries), and should, therefore, work fine even on other Ubuntu releases together with other ROS distributions. 
+The code has been written and tested in both Ubuntu 16.04 (Xenial) together with ROS Kinetic, as well as Ubuntu 18.04 (Bionic) together with ROS Melodic. However, the code does not have any OS- or ROS-specific dependencies (except for standard libraries), and should, therefore, work fine even on other Ubuntu releases together with other ROS distributions.
 
 * [Basic Requirements](#markdown-header-basic-requirements)
 * [Optimal Performance](#markdown-header-optimal-performance)
@@ -31,7 +56,7 @@ The following dependencies are required for a basic installation of the framewor
 
 #### 1. MongoDB Database Server
 
-For this framework, a document-oriented NoSQL [MongoDB Database server](https://www.mongodb.com/) is integrated and used in order to facilitate persistent storage and maintenance of anchored objects. 
+For this framework, a document-oriented NoSQL [MongoDB Database server](https://www.mongodb.com/) is integrated and used in order to facilitate persistent storage and maintenance of anchored objects.
 More specifically, the `utils` directory contains a `database` package that is compiled as a library which, currently, contains a *generic database interface* for seamless access and communication with the database in order to store and retrieve anchored objects, log data, etc. This library has been rewritten for the latest C++11 drivers for [MongoDB](http://mongodb.github.io/mongo-cxx-driver/mongocxx-v3/).  The latest version of the [MongoDB Community Edition database](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/), together with all C and C++ drivers, can be installed through the following steps:
 
 * __Install the database:__
@@ -97,7 +122,7 @@ The [OpenCV (Open Source Computer Vision library)](https://opencv.org/) is the p
 *__Note:__* *make sure that library path of the install libraries, e.g.* `/usr/local/lib`*, is part of your* `LD_LIBRARY_PAHT`.
 
 #### 3. Robot Operating System (ROS)
- 
+
 The appropriate ROS distribution for currently supported Ubuntu LTS releases can be installed through the following steps:
 
 * __Setup software packages and keys:__
@@ -122,7 +147,7 @@ The appropriate ROS distribution for currently supported Ubuntu LTS releases can
         sudo rosdep init
         rosdep update
 
-This framework is also heavily dependent of the `cv_bridge` ROS package for converting and transporting OpenCV images between submodules (or ROS nodes). However, the `cv_bridge`, installed as part of the larger `vision_opencv` package through the default package manager (e.g., `sudo apt-get install ros-melodic-vision-opencv`), is __only__ built for __Python 2.7__. 
+This framework is also heavily dependent of the `cv_bridge` ROS package for converting and transporting OpenCV images between submodules (or ROS nodes). However, the `cv_bridge`, installed as part of the larger `vision_opencv` package through the default package manager (e.g., `sudo apt-get install ros-melodic-vision-opencv`), is __only__ built for __Python 2.7__.
 
 *__Note:__* *installing the* `vision_opencv` *package through the use of the package manager, will also install a minimal "default" version of OpenCV.*
 
@@ -158,11 +183,11 @@ _____________________
 
 ### __Optimal Performance:__
 
-#### 1. [Nvidia CUDA](https://developer.nvidia.com/cuda-zone) 
+#### 1. [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 
 For optimal performance, this framework is using Nvidia CUDA libraries for both handling the processing of input sensory RGB-D data, as well as semantically classifying perceived objects. In the latter case is further the Caffe deep learning framework utilized (likewise for optimized system performance).
 
-#### 2. [Caffe](https://caffe.berkeleyvision.org/) Deep Learning Framework 
+#### 2. [Caffe](https://caffe.berkeleyvision.org/) Deep Learning Framework
 
 For optimal performance, this framework is using Nvidia CUDA libraries for both handling the processing of input sensory RGB-D data, as well as semantically classifying perceived objects. In the latter case is further the Caffe deep learning framework utilized (likewise for optimized system performance).
 
@@ -183,10 +208,3 @@ _____________________
 ## Tutorial ##
 Coming soon.
 _____________________
-
-## References ##
-
-__[1]__ A. Persson, P. Zuidberg Dos Martires, A. Loutfi, and L. De Raedt: [Semantic Relational Object Tracking](https://arxiv.org/abs/1902.09937). In: IEEE Transactions on Cognitive and Developmental Systems, 2019.
-
-
-
